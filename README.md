@@ -125,5 +125,6 @@ React, React DOM, and Framer remain host-provided externals.
 4. The Changesets action opens or updates a release pull request.
 5. Merging that pull request publishes to npm using `NPM_TOKEN`.
 
-The package is intentionally marked `UNLICENSED` until an explicit license is
-chosen. Publishing publicly does not itself require granting reuse rights.
+## License
+
+Released under the [MIT License](./LICENSE).

@@ -11,7 +11,7 @@
     "url": "https://github.com/flowgrow/framer-kit/issues"
   },
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "sideEffects": false,
   "files": [
     "dist",
