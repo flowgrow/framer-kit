@@ -50,6 +50,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "dev:framer": "npm run build && node scripts/dev-framer.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -46,6 +46,41 @@ export const withTrackingName = createDataAttributeOverride(
 
 Pinning the full version makes upgrades and rollbacks a one-line change.
 
+### Local Framer development
+
+The stable hostname for this repository is already provisioned. These are the
+one-time commands used to create it; they do not need to run again on this Mac:
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create framer-kit-dev
+cloudflared tunnel route dns framer-kit-dev framer-kit-dev.kniff.at
+```
+
+Run the build watcher, CORS-enabled local server, and named Cloudflare Tunnel
+together:
+
+```bash
+npm run dev:framer
+```
+
+Then import the stable development URL from a Framer code file:
+
+```tsx
+import {
+  CarouselSettings,
+  registerCarouselSettingsPropertyControls,
+} from "https://framer-kit-dev.kniff.at/embla.js"
+
+registerCarouselSettingsPropertyControls()
+
+export { CarouselSettings }
+```
+
+Use the same URL for the settings component and overrides so they share one
+store instance. The development server disables caching and serves all emitted
+chunks from `dist`; keep `npm run dev:framer` running while Framer loads them.
+
 ### Embla overrides
 
 Embla Carousel, its plugins, and Zustand are bundled into the `embla` entry. A
