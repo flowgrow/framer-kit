@@ -30,10 +30,6 @@
       "types": "./dist/hooks.d.ts",
       "import": "./dist/hooks.js"
     },
-    "./components": {
-      "types": "./dist/components.d.ts",
-      "import": "./dist/components.js"
-    },
     "./overrides": {
       "types": "./dist/overrides.d.ts",
       "import": "./dist/overrides.js"
@@ -41,10 +37,6 @@
     "./embla": {
       "types": "./dist/embla.d.ts",
       "import": "./dist/embla.js"
-    },
-    "./schema": {
-      "types": "./dist/schema.d.ts",
-      "import": "./dist/schema.js"
     }
   },
   "scripts": {

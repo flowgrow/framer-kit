@@ -156,10 +156,8 @@ React, React DOM, and Framer remain host-provided externals.
 
 - `@kniff/framer-kit/core` — browser-safe utilities.
 - `@kniff/framer-kit/hooks` — reusable React hooks.
-- `@kniff/framer-kit/components` — code-component building blocks.
 - `@kniff/framer-kit/overrides` — override factories.
 - `@kniff/framer-kit/embla` — bundled Embla overrides and shared state.
-- `@kniff/framer-kit/schema` — structured-data builders and serialization.
 
 ## Release workflow
 
