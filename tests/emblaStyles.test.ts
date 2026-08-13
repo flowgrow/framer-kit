@@ -11,20 +11,25 @@ describe("Embla structural styles", () => {
       display: "block",
       width: "100%",
       height: "100%",
+      "--kniff-embla-overflow": "hidden",
       "--kniff-embla-slide-size": "auto",
       "--kniff-embla-touch-action": "pan-y pinch-zoom",
     })
-    expect(EMBLA_STRUCTURAL_CSS).toContain("overflow: hidden")
+    expect(EMBLA_STRUCTURAL_CSS).toContain(
+      "overflow: var(--kniff-embla-overflow, hidden)",
+    )
     expect(EMBLA_STRUCTURAL_CSS).toContain("min-width: 0")
   })
 
   it("accepts carousel-specific slide sizing and touch behavior", () => {
     expect(
       createEmblaWrapperStyle({
+        overflow: "visible",
         slideSize: "80%",
         touchAction: "pan-y",
       }),
     ).toMatchObject({
+      "--kniff-embla-overflow": "visible",
       "--kniff-embla-slide-size": "80%",
       "--kniff-embla-touch-action": "pan-y",
     })

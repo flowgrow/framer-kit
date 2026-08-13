@@ -48,35 +48,44 @@ Pinning the full version makes upgrades and rollbacks a one-line change.
 
 ### Embla overrides
 
-Embla Carousel and Zustand are bundled into the `embla` entry. A Framer
-override file only needs to re-export the overrides it uses:
+Embla Carousel, its plugins, and Zustand are bundled into the `embla` entry. A
+Framer override file only needs to re-export the overrides it uses:
 
 ```tsx
 export {
   withCmsEmbla,
   withEmbla,
   withHideNavigationWhenNoScrollableSlides,
-} from "https://esm.sh/@kniff/framer-kit@0.1.0/embla?external=react,react-dom,framer"
+} from "https://esm.sh/@kniff/framer-kit@0.1.0-framer-test.1/embla?external=react,react-dom,framer&target=es2022"
 ```
 
 Use `withEmbla` for a regular stack and `withCmsEmbla` for a CMS collection.
 Apply `withHideNavigationWhenNoScrollableSlides` to navigation that should
 disappear when the connected carousel cannot scroll.
 
-The carousel layer must have a custom Layers-panel name or an `aria-label`.
-That value is the ID shared with the Carousel Settings component. Replace the
-old Framer-hosted store import in that component with the package store:
+The Carousel Settings code component is also a thin wrapper. All props,
+property controls, plugin setup, store registration, and canvas UI live in this
+package:
 
 ```tsx
 import {
-  useEmblaStore,
-} from "https://esm.sh/@kniff/framer-kit@0.1.0/embla?external=react,react-dom,framer"
+  CarouselSettings,
+  registerCarouselSettingsPropertyControls,
+  type CarouselSettingsProps,
+} from "https://esm.sh/@kniff/framer-kit@0.1.0-framer-test.1/embla?external=react,react-dom,framer&target=es2022"
+
+registerCarouselSettingsPropertyControls()
+
+export { CarouselSettings }
+export type { CarouselSettingsProps }
 ```
 
-The store retains the existing `addConfig`, `removeConfig`, `getConfig`,
-`addEmblaInstance`, `removeEmblaInstance`, and `getInstance` API. The settings
-component and all overrides must import the same exact package version so they
-share one store instance.
+That is the entire Framer code-component file. The type re-export is optional;
+it lets other Framer code use the package's prop contract without duplicating
+it. The carousel layer must have a custom Layers-panel name or an `aria-label`.
+That value is the ID selected in Carousel Settings. The settings component and
+all overrides must import the same exact package version so they share one
+store instance.
 
 The overrides own Embla's structural CSS. No separate stylesheet is required:
 the viewport clips overflow, the container uses horizontal-carousel touch

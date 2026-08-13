@@ -5,6 +5,8 @@ import type {
 } from "embla-carousel"
 
 export interface EmblaStyles {
+  /** Whether carousel content is clipped at the viewport. Defaults to hidden. */
+  overflow?: "hidden" | "visible"
   /** CSS flex-basis for each rendered direct child. Defaults to `auto`. */
   slideSize?: string
   /** Browser touch gesture policy for the carousel container. */

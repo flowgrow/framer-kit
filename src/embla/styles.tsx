@@ -8,7 +8,7 @@ export const EMBLA_CONTAINER_CLASS = "kniff-embla__container"
 
 export const EMBLA_STRUCTURAL_CSS = `
 .kniff-embla__viewport {
-  overflow: hidden;
+  overflow: var(--kniff-embla-overflow, hidden);
 }
 .kniff-embla__container {
   touch-action: var(--kniff-embla-touch-action, pan-y pinch-zoom);
@@ -20,6 +20,7 @@ export const EMBLA_STRUCTURAL_CSS = `
 `
 
 type EmblaWrapperStyle = CSSProperties & {
+  "--kniff-embla-overflow": "hidden" | "visible"
   "--kniff-embla-slide-size": string
   "--kniff-embla-touch-action": string
 }
@@ -31,6 +32,7 @@ export function createEmblaWrapperStyle(
     display: "block",
     width: "100%",
     height: "100%",
+    "--kniff-embla-overflow": styles?.overflow ?? "hidden",
     "--kniff-embla-slide-size": styles?.slideSize ?? "auto",
     "--kniff-embla-touch-action":
       styles?.touchAction ?? "pan-y pinch-zoom",

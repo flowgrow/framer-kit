@@ -1,4 +1,16 @@
 export {
+  CarouselSettings,
+  carouselSettingsDefaults,
+  carouselSettingsPropertyControls,
+  createCarouselOptions,
+  createCarouselPlugins,
+  registerCarouselSettingsPropertyControls,
+} from "./CarouselSettings.js"
+export type {
+  AutoMoveType,
+  CarouselSettingsProps,
+} from "./CarouselSettings.js"
+export {
   withCmsEmbla,
   withEmbla,
   withHideNavigationWhenNoScrollableSlides,
