@@ -97,6 +97,42 @@ That value is the ID selected in Carousel Settings. The settings component and
 all overrides must import the same exact package version so they share one
 store instance.
 
+## Embla accessory components
+
+The package also contains the separate code components needed to work around
+Framer's override and property-control boundaries:
+
+| Component | Purpose |
+| --- | --- |
+| `EmblaNavigationButton` | Previous/next control with a connected Framer Slot |
+| `EmblaDots` | Styled, clickable snap navigation |
+| `EmblaCurrentIndex` | Writes the selected one-based index into a connected Slot |
+| `EmblaTotalSlides` | Writes the page count into a connected Slot |
+| `EmblaProgressBar` | Native progress or connected Track and Fill Slots |
+| `ThumbnailConnection` | Synchronizes main and thumbnail carousel IDs |
+
+Each one remains a separate Framer code file, but that file is only a thin
+wrapper. For example, the complete local-development `EmblaDots.tsx` is:
+
+```tsx
+import {
+  EmblaDots,
+  registerEmblaDotsPropertyControls,
+  type EmblaDotsProps,
+} from "https://framer-kit-dev.kniff.at/embla.js"
+
+registerEmblaDotsPropertyControls()
+
+export default EmblaDots
+export type { EmblaDotsProps }
+```
+
+Copy-ready wrappers for all six components live in [`examples/framer`](./examples/framer).
+For npm usage, replace the development URL with the same exact versioned
+`esm.sh` URL used by Carousel Settings and the overrides. Keeping that URL
+identical is essential: separate module URLs can create separate Zustand stores
+that cannot see one another's carousel registrations.
+
 The overrides own Embla's structural CSS. No separate stylesheet is required:
 the viewport clips overflow, the container uses horizontal-carousel touch
 behavior, and its direct DOM children become slides. Existing Framer slide
