@@ -7,6 +7,7 @@ beforeEach(() => {
   useEmblaStore.setState({
     configs: new Map(),
     emblaInstances: new Map(),
+    thumbnailConnections: new Map(),
   })
 })
 
@@ -55,5 +56,25 @@ describe("useEmblaStore", () => {
     useEmblaStore.getState().removeEmblaInstance("Featured", previous)
 
     expect(useEmblaStore.getState().getInstance("Featured")).toBe(replacement)
+  })
+
+  it("registers thumbnail-to-main relationships with safe cleanup", () => {
+    const store = useEmblaStore.getState()
+
+    store.addThumbnailConnection("Thumbs", "Main")
+    expect(useEmblaStore.getState().getConnectedMainId("Thumbs")).toBe(
+      "Main",
+    )
+
+    store.addThumbnailConnection("Thumbs", "Replacement")
+    store.removeThumbnailConnection("Thumbs", "Main")
+    expect(useEmblaStore.getState().getConnectedMainId("Thumbs")).toBe(
+      "Replacement",
+    )
+
+    store.removeThumbnailConnection("Thumbs", "Replacement")
+    expect(
+      useEmblaStore.getState().getConnectedMainId("Thumbs"),
+    ).toBeUndefined()
   })
 })

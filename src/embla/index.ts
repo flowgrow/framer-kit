@@ -48,7 +48,10 @@ export {
   thumbnailConnectionDefaults,
   thumbnailConnectionPropertyControls,
 } from "./ThumbnailConnection.js"
-export type { ThumbnailConnectionProps } from "./ThumbnailConnection.js"
+export type {
+  ThumbnailCarouselConnectionOptions,
+  ThumbnailConnectionProps,
+} from "./ThumbnailConnection.js"
 export {
   withCmsEmbla,
   withEmbla,

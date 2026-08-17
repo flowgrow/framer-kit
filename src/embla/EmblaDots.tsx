@@ -70,6 +70,8 @@ export function EmblaDots(props: EmblaDotsProps) {
       style={{
         ...props.style,
         display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         gap: options.dotsGap,
         padding: options.dotsPadding,
         borderRadius: options.dotsRadius,
@@ -93,6 +95,7 @@ export function EmblaDots(props: EmblaDotsProps) {
             appearance: "none",
             width: options.dotSize,
             height: options.dotSize,
+            flex: "0 0 auto",
             padding: 0,
             border: "none",
             borderRadius: options.dotSize,

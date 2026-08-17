@@ -1,8 +1,16 @@
-import { useMemo, type HTMLAttributes, type MouseEvent, type PointerEvent } from "react"
+import type { EmblaCarouselType } from "embla-carousel"
+import {
+  useMemo,
+  type HTMLAttributes,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent,
+} from "react"
 
 const DRAG_CANCEL_THRESHOLD_PX = 10
 
-type InteractionEvent = PointerEvent<HTMLDivElement> | MouseEvent<HTMLDivElement>
+type InteractionEvent =
+  | PointerEvent<HTMLDivElement>
+  | ReactMouseEvent<HTMLDivElement>
 
 interface InteractionState {
   startX: number
@@ -11,6 +19,26 @@ interface InteractionState {
   activePointerId: number | null
   didCancelPointerGesture: boolean
   isDispatchingSyntheticPointerCancel: boolean
+}
+
+/** Returns the slide whose DOM subtree contains a click event. */
+export function getClickedSlideIndex(
+  event: Pick<globalThis.MouseEvent, "composedPath">,
+  slides: readonly HTMLElement[],
+): number {
+  const eventPath = event.composedPath()
+  return slides.findIndex((slide) => eventPath.includes(slide))
+}
+
+/** Routes a clicked slide to its own carousel or a connected main carousel. */
+export function scrollToClickedSlide(
+  event: Pick<globalThis.MouseEvent, "composedPath" | "defaultPrevented">,
+  sourceApi: EmblaCarouselType,
+  targetApi: EmblaCarouselType = sourceApi,
+): void {
+  if (event.defaultPrevented) return
+  const slideIndex = getClickedSlideIndex(event, sourceApi.slideNodes())
+  if (slideIndex >= 0) targetApi.scrollTo(slideIndex)
 }
 
 function getPointerId(event: InteractionEvent): number | null {

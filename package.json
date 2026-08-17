@@ -1,6 +1,6 @@
 {
   "name": "@kniff/framer-kit",
-  "version": "0.1.0-framer-test.1",
+  "version": "0.1.0-framer-test.2",
   "description": "Bundled, SSR-safe Embla carousel components and overrides for Framer.",
   "repository": {
     "type": "git",

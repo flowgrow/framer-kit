@@ -16,7 +16,7 @@ import { useEmblaStore } from "./store.js"
 
 export interface EmblaSlideCounterProps {
   carouselID?: string
-  componentSlot?: ReactNode[]
+  componentSlot?: ReactNode
   style?: CSSProperties
 }
 
@@ -26,6 +26,9 @@ const counterDefaults = {
 
 const fallbackStyle: CSSProperties = {
   appearance: "none",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
   width: "100%",
   height: "100%",
   padding: "8px 16px",
@@ -51,12 +54,12 @@ function useCounterState(carouselID: string) {
 
 function renderCounter(
   value: number,
-  componentSlot: ReactNode[] | undefined,
+  componentSlot: ReactNode | undefined,
   style: CSSProperties | undefined,
 ) {
   const component = getSlotElement(componentSlot)
   return component ? (
-    cloneWithInnermostText(component, value)
+    cloneWithInnermostText(component, String(value))
   ) : (
     <div aria-live="polite" style={{ ...fallbackStyle, ...style }}>
       {value}

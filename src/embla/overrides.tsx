@@ -94,6 +94,9 @@ function createEmblaOverride<P extends object>(
         <div
           {...dragClickGuard}
           className={EMBLA_VIEWPORT_CLASS}
+          data-kniff-embla-select-on-slide-click={
+            config.selectOnSlideClick ? "true" : undefined
+          }
           ref={viewportRef}
         >
           {React.createElement(Component, componentProps)}

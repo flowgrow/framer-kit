@@ -20,8 +20,8 @@ import { useEmblaStore } from "./store.js"
 
 export interface EmblaProgressBarProps {
   carouselID?: string
-  trackComponentSlot?: ReactNode[]
-  fillComponentSlot?: ReactNode[]
+  trackComponentSlot?: ReactNode
+  fillComponentSlot?: ReactNode
   style?: CSSProperties
 }
 

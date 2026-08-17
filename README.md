@@ -61,6 +61,10 @@ addPropertyControls(EmblaDots, emblaDotsPropertyControls)
 Use the same URL for the settings component and overrides so they share one
 store instance. The development server disables caching and serves all emitted
 chunks from `dist`; keep `npm run dev:framer` running while Framer loads them.
+If Framer keeps an already-compiled remote module after a source change, append
+the same cache-busting query to every wrapper import (for example,
+`/embla.js?v=2`). Never bump only one wrapper because distinct URLs create
+distinct store instances.
 The local function is required because Framer only discovers code components
 and overrides declared in the current code file; a direct re-export of a remote
 component does not appear in the Insert or Overrides menus.
@@ -106,7 +110,7 @@ Framer's override and property-control boundaries:
 | `EmblaCurrentIndex` | Writes the selected one-based index into a connected Slot |
 | `EmblaTotalSlides` | Writes the page count into a connected Slot |
 | `EmblaProgressBar` | Native progress or connected Track and Fill Slots |
-| `ThumbnailConnection` | Synchronizes main and thumbnail carousel IDs |
+| `ThumbnailConnection` | Synchronizes IDs and routes thumbnail clicks to the main carousel |
 
 Each one remains a separate Framer code file, but that file is only a thin
 proxy. Copy-ready wrappers for all six components, Carousel Settings, and the
@@ -117,14 +121,19 @@ identical is essential: separate module URLs can create separate Zustand stores
 that cannot see one another's carousel registrations.
 
 The overrides own Embla's structural CSS. No separate stylesheet is required:
-the viewport clips overflow, the container uses horizontal-carousel touch
-behavior, and its direct DOM children become slides. Existing Framer slide
-widths are preserved by default with `slideSize: "auto"`. Carousel Settings can
-override the structural values alongside regular Embla options:
+the added Embla viewport leaves overflow visible, the container uses
+horizontal-carousel touch behavior, and its direct DOM children become slides.
+Use the Framer stack's own Overflow setting when the carousel should clip.
+Existing Framer slide widths are preserved by default with
+`slideSize: "auto"`. In loop mode the override also reads the Framer stack's
+computed responsive gap, mirrors it as a final-slide margin at the loop seam,
+and re-initializes Embla when that measured gap changes. Advanced store usage
+can still override structural values alongside regular Embla options:
 
 ```tsx
 useEmblaStore.getState().addConfig("Featured", {
   options: { align: "start", loop: true },
+  selectOnSlideClick: true,
   styles: {
     slideSize: "80%",
     touchAction: "pan-y",

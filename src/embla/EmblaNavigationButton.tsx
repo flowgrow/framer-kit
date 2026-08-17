@@ -21,7 +21,7 @@ import { useEmblaStore } from "./store.js"
 export interface EmblaNavigationButtonProps {
   carouselID?: string
   action?: "Prev" | "Next"
-  componentSlot?: ReactNode[]
+  componentSlot?: ReactNode
   inactiveOpacity?: number
   style?: CSSProperties
 }

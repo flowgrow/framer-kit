@@ -6,6 +6,7 @@ import type { EmblaStore } from "./types.js"
 export const useEmblaStore = create<EmblaStore>((set, get) => ({
   configs: new Map(),
   emblaInstances: new Map(),
+  thumbnailConnections: new Map(),
   addConfig: (id, config) =>
     set((state) => {
       const configs = new Map(state.configs)
@@ -34,4 +35,24 @@ export const useEmblaStore = create<EmblaStore>((set, get) => ({
       return { emblaInstances }
     }),
   getInstance: (id) => get().emblaInstances.get(id),
+  addThumbnailConnection: (thumbnailId, mainId) =>
+    set((state) => {
+      const thumbnailConnections = new Map(state.thumbnailConnections)
+      thumbnailConnections.set(thumbnailId, mainId)
+      return { thumbnailConnections }
+    }),
+  removeThumbnailConnection: (thumbnailId, mainId) =>
+    set((state) => {
+      if (
+        mainId &&
+        state.thumbnailConnections.get(thumbnailId) !== mainId
+      ) {
+        return state
+      }
+      const thumbnailConnections = new Map(state.thumbnailConnections)
+      thumbnailConnections.delete(thumbnailId)
+      return { thumbnailConnections }
+    }),
+  getConnectedMainId: (thumbnailId) =>
+    get().thumbnailConnections.get(thumbnailId),
 }))

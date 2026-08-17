@@ -79,6 +79,16 @@ export function cloneWithInnermostText(
     return cloneElement(element, undefined, newText)
   }
 
+  // Framer Rich Text expects its single Fragment child to remain a single
+  // element. Converting it to a one-item array makes the text render empty.
+  if (isValidElement(children)) {
+    return cloneElement(
+      element,
+      undefined,
+      cloneWithInnermostText(children, newText),
+    )
+  }
+
   const childArray = Children.toArray(children)
   let targetIndex = -1
   for (let index = childArray.length - 1; index >= 0; index -= 1) {
@@ -101,8 +111,9 @@ export function cloneWithInnermostText(
   )
 }
 
-export function getSlotElement(slot: ReactNode[] | undefined) {
-  const element = slot?.[0]
+/** Reads a modern Framer Slot while retaining compatibility with old arrays. */
+export function getSlotElement(slot: ReactNode | undefined) {
+  const element = Children.toArray(slot)[0]
   return isValidElement(element) ? element : undefined
 }
 

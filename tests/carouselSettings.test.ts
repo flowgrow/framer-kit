@@ -22,6 +22,7 @@ import {
   CarouselSettings,
   type CarouselSettingsProps,
   carouselSettingsDefaults,
+  carouselSettingsPropertyControls,
   createCarouselOptions,
   createCarouselPlugins,
   registerCarouselSettingsPropertyControls,
@@ -44,6 +45,7 @@ describe("Carousel Settings", () => {
           justify: "end",
           startIndex: 2,
           draggable: false,
+          containEdges: false,
           slidesToScroll: -1,
         }),
       ),
@@ -53,6 +55,7 @@ describe("Carousel Settings", () => {
       align: "end",
       startIndex: 2,
       watchDrag: false,
+      containScroll: false,
       slidesToScroll: "auto",
     })
   })
@@ -107,10 +110,18 @@ describe("Carousel Settings", () => {
       expect.objectContaining({
         carouselID: expect.any(Object),
         slideEffect: expect.any(Object),
+        selectOnSlideClick: expect.objectContaining({
+          title: "Click to Select",
+          defaultValue: false,
+        }),
+        containEdges: expect.objectContaining({
+          title: "Contain Edges",
+          defaultValue: true,
+        }),
         autoMove: expect.any(Object),
         wheelGestures: expect.any(Object),
-        overflow: expect.any(Object),
       }),
     )
+    expect(carouselSettingsPropertyControls).not.toHaveProperty("overflow")
   })
 })

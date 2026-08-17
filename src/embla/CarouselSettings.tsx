@@ -29,6 +29,8 @@ export interface CarouselSettingsProps {
   justify: "start" | "center" | "end"
   autoHeight: boolean
   draggable: boolean
+  selectOnSlideClick: boolean
+  containEdges: boolean
   loop: boolean
   autoMove: AutoMoveType
   autoMoveDelay: number
@@ -38,7 +40,6 @@ export interface CarouselSettingsProps {
   autoMoveStopOnFocusIn: boolean
   autoMoveStopOnLastSlide: boolean
   wheelGestures: boolean
-  overflow: "hidden" | "visible"
   width?: string
   height?: string
   style?: CSSProperties
@@ -55,6 +56,8 @@ export const carouselSettingsDefaults = {
   justify: "center",
   autoHeight: false,
   draggable: true,
+  selectOnSlideClick: false,
+  containEdges: true,
   loop: false,
   autoMove: "none",
   autoMoveDelay: 8,
@@ -64,7 +67,6 @@ export const carouselSettingsDefaults = {
   autoMoveStopOnFocusIn: false,
   autoMoveStopOnLastSlide: false,
   wheelGestures: false,
-  overflow: "hidden",
 } as const satisfies Omit<
   CarouselSettingsProps,
   "width" | "height" | "style" | "id" | "layoutId"
@@ -120,6 +122,7 @@ export function createCarouselOptions(
     align: settings.justify,
     startIndex: settings.startIndex,
     watchDrag: settings.draggable,
+    containScroll: settings.containEdges ? "trimSnaps" : false,
     slidesToScroll:
       settings.slidesToScroll < 0 ? "auto" : settings.slidesToScroll,
   }
@@ -136,10 +139,11 @@ export function CarouselSettings(props: CarouselSettingsProps) {
     showInstructions,
     carouselID,
     slideEffect,
-    overflow,
     slidesToScroll,
     startIndex,
     draggable,
+    selectOnSlideClick,
+    containEdges,
     autoMove,
     autoMoveDelay,
     autoMoveSpeed,
@@ -172,16 +176,23 @@ export function CarouselSettings(props: CarouselSettingsProps) {
 
   const options = useMemo<EmblaOptionsType>(
     () => createCarouselOptions(settings),
-    [loop, justify, startIndex, draggable, slidesToScroll],
+    [
+      loop,
+      justify,
+      startIndex,
+      draggable,
+      containEdges,
+      slidesToScroll,
+    ],
   )
 
   const config = useMemo<EmblaConfig>(
     () => ({
       options,
       plugins,
-      styles: { overflow },
+      selectOnSlideClick,
     }),
-    [options, plugins, overflow],
+    [options, plugins, selectOnSlideClick],
   )
 
   useEffect(() => {
@@ -271,6 +282,11 @@ export const carouselSettingsPropertyControls = {
     title: "Draggable",
     defaultValue: carouselSettingsDefaults.draggable,
   },
+  selectOnSlideClick: {
+    type: ControlType.Boolean,
+    title: "Click to Select",
+    defaultValue: carouselSettingsDefaults.selectOnSlideClick,
+  },
   loop: {
     type: ControlType.Boolean,
     title: "Loop",
@@ -284,6 +300,11 @@ export const carouselSettingsPropertyControls = {
     displaySegmentedControl: true,
     defaultValue: carouselSettingsDefaults.justify,
   } as any,
+  containEdges: {
+    type: ControlType.Boolean,
+    title: "Contain Edges",
+    defaultValue: carouselSettingsDefaults.containEdges,
+  },
   autoMove: {
     type: ControlType.Enum,
     title: "Auto Move",
@@ -343,13 +364,6 @@ export const carouselSettingsPropertyControls = {
     type: ControlType.Boolean,
     title: "Wheel Gestures",
     defaultValue: carouselSettingsDefaults.wheelGestures,
-  },
-  overflow: {
-    type: ControlType.Enum,
-    title: "Overflow",
-    options: ["hidden", "visible"],
-    optionTitles: ["Hidden", "Visible"],
-    defaultValue: carouselSettingsDefaults.overflow,
   },
 } satisfies PropertyControls<CarouselSettingsProps>
 
