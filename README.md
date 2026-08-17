@@ -39,60 +39,57 @@ together:
 npm run dev:framer
 ```
 
-Then import the stable development URL from a Framer code file:
+Then use the stable development URL in the copy-ready files under
+[`examples/framer`](./examples/framer). For example:
 
 ```tsx
-import {
-  CarouselSettings,
-  registerCarouselSettingsPropertyControls,
-} from "https://framer-kit-dev.kniff.at/embla.js"
+import { addPropertyControls } from "framer"
+// @ts-expect-error Local HTTPS modules do not expose types to Framer.
+import { EmblaDots as KitComponent, emblaDotsPropertyControls } from "https://framer-kit-dev.kniff.at/embla.js"
 
-registerCarouselSettingsPropertyControls()
+interface Props {
+  [key: string]: unknown
+}
 
-export { CarouselSettings }
+export default function EmblaDots(props: Props) {
+  return <KitComponent {...props} />
+}
+
+addPropertyControls(EmblaDots, emblaDotsPropertyControls)
 ```
 
 Use the same URL for the settings component and overrides so they share one
 store instance. The development server disables caching and serves all emitted
 chunks from `dist`; keep `npm run dev:framer` running while Framer loads them.
+The local function is required because Framer only discovers code components
+and overrides declared in the current code file; a direct re-export of a remote
+component does not appear in the Insert or Overrides menus.
 
 ## Import from Framer
 
-Embla Carousel, its plugins, and Zustand are bundled into the `embla` entry. A
-Framer override file only needs to re-export the overrides it uses:
+Embla Carousel, its plugins, and Zustand are bundled into the `embla` entry.
+The Framer override file declares tiny local proxies so Framer can discover
+them:
 
 ```tsx
-export {
-  withCmsEmbla,
-  withEmbla,
-  withHideNavigationWhenNoScrollableSlides,
-} from "https://esm.sh/@kniff/framer-kit@0.1.0-framer-test.1/embla?external=react,react-dom,framer&target=es2022"
+import type { ComponentType } from "react"
+import { withEmbla as kitWithEmbla } from "https://esm.sh/@kniff/framer-kit@0.1.0-framer-test.1/embla?external=react,react-dom,framer&target=es2022"
+
+export function withEmbla(
+  Component: ComponentType<any>,
+): ComponentType<any> {
+  return kitWithEmbla(Component)
+}
 ```
 
 Use `withEmbla` for a regular stack and `withCmsEmbla` for a CMS collection.
 Apply `withHideNavigationWhenNoScrollableSlides` to navigation that should
 disappear when the connected carousel cannot scroll.
 
-The Carousel Settings code component is also a thin wrapper. All props,
-property controls, plugin setup, store registration, and canvas UI live in this
-package:
-
-```tsx
-import {
-  CarouselSettings,
-  registerCarouselSettingsPropertyControls,
-  type CarouselSettingsProps,
-} from "https://esm.sh/@kniff/framer-kit@0.1.0-framer-test.1/embla?external=react,react-dom,framer&target=es2022"
-
-registerCarouselSettingsPropertyControls()
-
-export { CarouselSettings }
-export type { CarouselSettingsProps }
-```
-
-That is the entire Framer code-component file. The type re-export is optional;
-it lets other Framer code use the package's prop contract without duplicating
-it. The carousel layer must have a custom Layers-panel name or an `aria-label`.
+Carousel Settings follows the same thin-proxy pattern. Its behavior, property
+controls, plugin setup, store registration, and canvas UI live in this package;
+the local file only declares the component and attaches the imported controls.
+The carousel layer must have a custom Layers-panel name or an `aria-label`.
 That value is the ID selected in Carousel Settings. The settings component and
 all overrides must import the same exact package version so they share one
 store instance.
@@ -112,22 +109,8 @@ Framer's override and property-control boundaries:
 | `ThumbnailConnection` | Synchronizes main and thumbnail carousel IDs |
 
 Each one remains a separate Framer code file, but that file is only a thin
-wrapper. For example, the complete local-development `EmblaDots.tsx` is:
-
-```tsx
-import {
-  EmblaDots,
-  registerEmblaDotsPropertyControls,
-  type EmblaDotsProps,
-} from "https://framer-kit-dev.kniff.at/embla.js"
-
-registerEmblaDotsPropertyControls()
-
-export default EmblaDots
-export type { EmblaDotsProps }
-```
-
-Copy-ready wrappers for all six components live in [`examples/framer`](./examples/framer).
+proxy. Copy-ready wrappers for all six components, Carousel Settings, and the
+overrides live in [`examples/framer`](./examples/framer).
 For npm usage, replace the development URL with the same exact versioned
 `esm.sh` URL used by Carousel Settings and the overrides. Keeping that URL
 identical is essential: separate module URLs can create separate Zustand stores

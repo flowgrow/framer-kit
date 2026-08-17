@@ -1,10 +1,24 @@
+import { addPropertyControls } from "framer"
+import type { CSSProperties } from "react"
+// @ts-expect-error Local HTTPS modules do not expose types to Framer.
 import {
-  CarouselSettings,
-  registerCarouselSettingsPropertyControls,
-  type CarouselSettingsProps,
-} from "https://esm.sh/@kniff/framer-kit@0.1.0-framer-test.1/embla?external=react,react-dom,framer&target=es2022"
+  CarouselSettings as KitComponent,
+  carouselSettingsPropertyControls,
+} from "https://framer-kit-dev.kniff.at/embla.js"
 
-registerCarouselSettingsPropertyControls()
+interface Props {
+  style?: CSSProperties
+  [key: string]: unknown
+}
 
-export { CarouselSettings }
-export type { CarouselSettingsProps }
+/**
+ * @framerIntrinsicWidth 200
+ * @framerIntrinsicHeight 80
+ * @framerSupportedLayoutWidth any-prefer-fixed
+ * @framerSupportedLayoutHeight any-prefer-fixed
+ */
+export default function CarouselSettings(props: Props) {
+  return <KitComponent {...props} />
+}
+
+addPropertyControls(CarouselSettings, carouselSettingsPropertyControls)
