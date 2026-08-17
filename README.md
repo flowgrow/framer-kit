@@ -1,8 +1,8 @@
 # @kniff/framer-kit
 
-Reusable, SSR-safe building blocks for Framer code components and overrides.
-The package keeps canvas files deliberately small while centralizing tested,
-versioned implementation code.
+Bundled, SSR-safe Embla carousel components and overrides for Framer. The
+package keeps canvas files deliberately small while centralizing tested,
+versioned carousel implementation code.
 
 ## Principles
 
@@ -21,32 +21,7 @@ npm install
 npm run check
 ```
 
-## Import from Framer
-
-After publishing a release, import an exact version through esm.sh:
-
-```tsx
-import {
-  useMeasuredSize,
-} from "https://esm.sh/@kniff/framer-kit@0.1.0/hooks?external=react,react-dom,framer"
-```
-
-For an override factory:
-
-```tsx
-import {
-  createDataAttributeOverride,
-} from "https://esm.sh/@kniff/framer-kit@0.1.0/overrides?external=react,react-dom,framer"
-
-export const withTrackingName = createDataAttributeOverride(
-  "data-tracking-name",
-  "hero-booking",
-)
-```
-
-Pinning the full version makes upgrades and rollbacks a one-line change.
-
-### Local Framer development
+## Local Framer development
 
 The stable hostname for this repository is already provisioned. These are the
 one-time commands used to create it; they do not need to run again on this Mac:
@@ -81,7 +56,7 @@ Use the same URL for the settings component and overrides so they share one
 store instance. The development server disables caching and serves all emitted
 chunks from `dist`; keep `npm run dev:framer` running while Framer loads them.
 
-### Embla overrides
+## Import from Framer
 
 Embla Carousel, its plugins, and Zustand are bundled into the `embla` entry. A
 Framer override file only needs to re-export the overrides it uses:
@@ -154,10 +129,8 @@ React, React DOM, and Framer remain host-provided externals.
 
 ## Package areas
 
-- `@kniff/framer-kit/core` — browser-safe utilities.
-- `@kniff/framer-kit/hooks` — reusable React hooks.
-- `@kniff/framer-kit/overrides` — override factories.
 - `@kniff/framer-kit/embla` — bundled Embla overrides and shared state.
+- `@kniff/framer-kit` — convenience root export of the same Embla API.
 
 ## Release workflow
 

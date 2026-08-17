@@ -9,7 +9,6 @@ import {
   useState,
 } from "react"
 
-import { useHydrated } from "../hooks/useHydrated.js"
 import { useDragClickGuard } from "./interaction.js"
 import {
   createEmblaWrapperStyle,
@@ -20,6 +19,7 @@ import {
 } from "./styles.js"
 import { useEmblaStore } from "./store.js"
 import type { FramerCarouselProps } from "./types.js"
+import { useHydrated } from "./useHydrated.js"
 import { useEmblaInstance } from "./useEmblaInstance.js"
 
 function cx(...classes: Array<string | undefined>): string {

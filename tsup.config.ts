@@ -3,9 +3,6 @@ import { defineConfig } from "tsup"
 export default defineConfig({
   entry: {
     index: "src/index.ts",
-    core: "src/core/index.ts",
-    hooks: "src/hooks/index.ts",
-    overrides: "src/overrides/index.ts",
     embla: "src/embla/index.ts",
   },
   format: ["esm"],

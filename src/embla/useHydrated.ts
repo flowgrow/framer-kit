@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react"
 
-/**
- * Returns false during SSR and the first client render, then true after mount.
- * Useful for browser-only behavior without causing hydration mismatches.
- */
+/** Waits until mount before enabling browser-only carousel behavior. */
 export function useHydrated(): boolean {
   const [hydrated, setHydrated] = useState(false)
 
@@ -13,4 +10,3 @@ export function useHydrated(): boolean {
 
   return hydrated
 }
-

@@ -1,7 +1,7 @@
 {
   "name": "@kniff/framer-kit",
   "version": "0.1.0-framer-test.1",
-  "description": "Reusable, SSR-safe building blocks for Framer code components and overrides.",
+  "description": "Bundled, SSR-safe Embla carousel components and overrides for Framer.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/flowgrow/framer-kit.git"
@@ -21,18 +21,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./core": {
-      "types": "./dist/core.d.ts",
-      "import": "./dist/core.js"
-    },
-    "./hooks": {
-      "types": "./dist/hooks.d.ts",
-      "import": "./dist/hooks.js"
-    },
-    "./overrides": {
-      "types": "./dist/overrides.d.ts",
-      "import": "./dist/overrides.js"
     },
     "./embla": {
       "types": "./dist/embla.d.ts",
