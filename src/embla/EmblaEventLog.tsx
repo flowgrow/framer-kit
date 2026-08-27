@@ -1,4 +1,4 @@
-import type { EmblaEventType } from 'embla-carousel';
+import type { EmblaCarouselType, EmblaEventType } from 'embla-carousel';
 import { ControlType, RenderTarget, type PropertyControls } from 'framer';
 import {
   useCallback,
@@ -72,6 +72,25 @@ function formatElapsed(elapsed: number): string {
   return `${(elapsed / 1000).toFixed(3)}s`;
 }
 
+function subscribeToEmblaEvents(
+  emblaApi: EmblaCarouselType,
+  onEvent: (event: EmblaEventType) => void,
+): () => void {
+  const listeners: Array<readonly [EmblaEventType, () => void]> = [];
+
+  for (const event of ALL_EVENTS) {
+    const listener = () => onEvent(event);
+    emblaApi.on(event, listener);
+    listeners.push([event, listener]);
+  }
+
+  return () => {
+    for (const [event, listener] of listeners) {
+      emblaApi.off(event, listener);
+    }
+  };
+}
+
 /** Shows a live, bounded event trace for one registered Embla carousel. */
 export function EmblaEventLog(props: EmblaEventLogProps) {
   const carouselID = props.carouselID ?? emblaEventLogDefaults.carouselID;
@@ -104,46 +123,35 @@ export function EmblaEventLog(props: EmblaEventLogProps) {
     clear();
     if (!emblaApi || isCanvas) return;
 
-    const listeners = ALL_EVENTS.map(event => {
-      const listener = () => {
-        if (event === 'scroll' && !showScroll) return;
+    return subscribeToEmblaEvents(emblaApi, event => {
+      if (event === 'scroll' && !showScroll) return;
 
-        const elapsed =
-          typeof performance === 'undefined'
-            ? 0
-            : performance.now() - startedAt.current;
-        const selected = emblaApi.selectedScrollSnap() + 1;
-        const total = emblaApi.scrollSnapList().length;
-        const progress = emblaApi.scrollProgress();
-        const scrollOffset = emblaApi.internalEngine().offsetLocation.get();
-        const scrollDelta = scrollOffset - lastScrollOffset.current;
-        lastScrollOffset.current = scrollOffset;
+      const elapsed =
+        typeof performance === 'undefined'
+          ? 0
+          : performance.now() - startedAt.current;
+      const selected = emblaApi.selectedScrollSnap() + 1;
+      const total = emblaApi.scrollSnapList().length;
+      const progress = emblaApi.scrollProgress();
+      const scrollOffset = emblaApi.internalEngine().offsetLocation.get();
+      const scrollDelta = scrollOffset - lastScrollOffset.current;
+      lastScrollOffset.current = scrollOffset;
 
-        setEntries(current => {
-          return [
-            ...current,
-            {
-              id: nextID.current++,
-              event,
-              elapsed,
-              selected,
-              total,
-              progress,
-              scrollDelta,
-            },
-          ].slice(-maxEvents);
-        });
-      };
-
-      emblaApi.on(event, listener);
-      return [event, listener] as const;
+      setEntries(current => {
+        return [
+          ...current,
+          {
+            id: nextID.current++,
+            event,
+            elapsed,
+            selected,
+            total,
+            progress,
+            scrollDelta,
+          },
+        ].slice(-maxEvents);
+      });
     });
-
-    return () => {
-      for (const [event, listener] of listeners) {
-        emblaApi.off(event, listener);
-      }
-    };
   }, [clear, emblaApi, isCanvas, maxEvents, showScroll]);
 
   const displayEntries = isCanvas

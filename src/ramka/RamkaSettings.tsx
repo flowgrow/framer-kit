@@ -16,47 +16,55 @@ import type {
   RamkaSettingsProps,
 } from "./types.js"
 
-function toGalleryConfig(
-  settings: RamkaSettingsProps,
-): RamkaGalleryConfig {
-  return {
-    loop: settings.loop,
-    viewTransition: settings.viewTransition,
-    morphTo: settings.morphTo,
-    pullToClose: settings.pullToClose,
-    preload: settings.preload,
-    zoom: settings.zoom,
-    showNavigation: settings.showNavigation,
-    showCounter: settings.showCounter,
-    syncEmbla: settings.syncEmbla,
-    stopEmblaAutoplay: settings.stopEmblaAutoplay,
-    backdropColor: settings.backdropColor,
-  }
-}
-
 /** Configures the nearest parent carrying the withRamkaGallery override. */
 export function RamkaSettings(props: RamkaSettingsProps) {
   const settings = { ...ramkaSettingsDefaults, ...props }
   const gallery = useContext(RamkaGalleryContext)
   const setGalleryConfig = gallery?.setConfig
+  const {
+    loop,
+    viewTransition,
+    morphTo,
+    pullToClose,
+    preload,
+    zoom,
+    showNavigation,
+    showCounter,
+    syncEmbla,
+    stopEmblaAutoplay,
+    backdropColor,
+  } = settings
 
   useEffect(() => {
     if (!setGalleryConfig) return
-    setGalleryConfig(toGalleryConfig(settings))
+    const config: RamkaGalleryConfig = {
+      loop,
+      viewTransition,
+      morphTo,
+      pullToClose,
+      preload,
+      zoom,
+      showNavigation,
+      showCounter,
+      syncEmbla,
+      stopEmblaAutoplay,
+      backdropColor,
+    }
+    setGalleryConfig(config)
     return () => setGalleryConfig(defaultRamkaGalleryConfig)
   }, [
     setGalleryConfig,
-    settings.loop,
-    settings.viewTransition,
-    settings.morphTo,
-    settings.pullToClose,
-    settings.preload,
-    settings.zoom,
-    settings.showNavigation,
-    settings.showCounter,
-    settings.syncEmbla,
-    settings.stopEmblaAutoplay,
-    settings.backdropColor,
+    loop,
+    viewTransition,
+    morphTo,
+    pullToClose,
+    preload,
+    zoom,
+    showNavigation,
+    showCounter,
+    syncEmbla,
+    stopEmblaAutoplay,
+    backdropColor,
   ])
 
   if (
