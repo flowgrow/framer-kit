@@ -121,6 +121,7 @@ server.on("error", (error) => {
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`[server] Serving dist at http://localhost:${PORT}`)
   console.log(`[tunnel] Framer URL: ${PUBLIC_URL}/embla.js`)
+  console.log(`[tunnel] Framer URL: ${PUBLIC_URL}/ramka.js`)
   run("npm", ["run", "dev"], "build")
   run(
     "cloudflared",

@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: "src/index.ts",
     embla: "src/embla/index.ts",
+    ramka: "src/ramka/index.ts",
   },
   format: ["esm"],
   target: "es2022",

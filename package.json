@@ -1,7 +1,7 @@
 {
   "name": "@kniff/framer-kit",
-  "version": "0.1.0-framer-test.2",
-  "description": "Bundled, SSR-safe Embla carousel components and overrides for Framer.",
+  "version": "0.1.0-framer-test.3",
+  "description": "Bundled, SSR-safe Embla carousel and Ramka lightbox integrations for Framer.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/flowgrow/framer-kit.git"
@@ -25,6 +25,10 @@
     "./embla": {
       "types": "./dist/embla.d.ts",
       "import": "./dist/embla.js"
+    },
+    "./ramka": {
+      "types": "./dist/ramka.d.ts",
+      "import": "./dist/ramka.js"
     }
   },
   "scripts": {
@@ -70,6 +74,7 @@
     "embla-carousel-fade": "8.6.0",
     "embla-carousel-react": "8.6.0",
     "embla-carousel-wheel-gestures": "8.1.0",
+    "ramka": "https://pkg.pr.new/arturbien/ramka@1d97a5a",
     "zustand": "5.0.14"
   }
 }
