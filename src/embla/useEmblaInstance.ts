@@ -1,6 +1,11 @@
 import useEmblaCarousel from "embla-carousel-react"
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 
+import { attachEmblaApiToElement } from "./domBridge.js"
+import {
+  createContinuousSlidesOptions,
+  observeContinuousSlides,
+} from "./dynamicSlides.js"
 import { scrollToClickedSlide } from "./interaction.js"
 import {
   observeEmblaLoopGap,
@@ -22,8 +27,12 @@ export function useEmblaInstance(id: string | undefined) {
       ? state.emblaInstances.get(connectedMainId)
       : undefined,
   )
+  const continuousSlidesOptions = useMemo(
+    () => createContinuousSlidesOptions(config?.options),
+    [config?.options],
+  )
   const [viewportRef, emblaApi] = useEmblaCarousel(
-    config?.options,
+    continuousSlidesOptions,
     config?.plugins,
   )
   const viewportElementRef = useRef<HTMLElement | null>(null)
@@ -64,7 +73,14 @@ export function useEmblaInstance(id: string | undefined) {
   useEffect(() => {
     if (!id || !emblaApi) return
     setInstance(id, emblaApi)
-    return () => removeInstance(id, emblaApi)
+    const removeDomBridge = attachEmblaApiToElement(
+      emblaApi.rootNode(),
+      emblaApi,
+    )
+    return () => {
+      removeDomBridge()
+      removeInstance(id, emblaApi)
+    }
   }, [id, emblaApi, setInstance, removeInstance])
 
   useEffect(() => {
@@ -73,6 +89,11 @@ export function useEmblaInstance(id: string | undefined) {
 
     return observeEmblaLoopGap(viewport, loop, () => emblaApi.reInit())
   }, [emblaApi, loop])
+
+  useEffect(() => {
+    if (!emblaApi) return
+    return observeContinuousSlides(emblaApi)
+  }, [emblaApi])
 
   useEffect(() => {
     if (!emblaApi || !selectOnSlideClick) return

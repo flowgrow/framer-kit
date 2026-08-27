@@ -1,8 +1,8 @@
 # @kniff/framer-kit
 
-Bundled, SSR-safe Embla carousel components and overrides for Framer. The
-package keeps canvas files deliberately small while centralizing tested,
-versioned carousel implementation code.
+Bundled, SSR-safe Embla carousel and Ramka lightbox integrations for Framer.
+The package keeps canvas files deliberately small while centralizing tested,
+versioned implementation code.
 
 ## Principles
 
@@ -69,6 +69,31 @@ The local function is required because Framer only discovers code components
 and overrides declared in the current code file; a direct re-export of a remote
 component does not appear in the Insert or Overrides menus.
 
+## Ramka lightboxes
+
+Ramka uses parent containment to decide which images belong to one lightbox:
+
+1. Apply `withRamkaGallery` to an outer Framer Frame.
+2. Apply `withRamkaTrigger` to the image/card descendants that should open.
+3. Optionally place `RamkaSettings` inside that outer Frame, as a sibling of
+   the gallery or carousel, to configure the nearest parent gallery.
+
+The trigger layers remain ordinary editable Framer layers. In Preview and on
+the published site, the parent discovers their rendered image sources and
+builds the fullscreen Ramka viewer. The canvas renders the original layers
+unchanged. Multiple parent galleries remain independent without matching IDs.
+
+When the triggers are Embla slides, Ramka navigation selects the matching
+Embla snap behind the overlay and opening the lightbox forwards the interaction
+to Embla's autoplay/auto-scroll plugin. The bridge is attached to the Embla DOM
+viewport, so it keeps working when `/embla.js` and `/ramka.js` are loaded as
+separate remote modules.
+
+Copy-ready thin files live at
+[`examples/framer/RamkaOverride.tsx`](./examples/framer/RamkaOverride.tsx) and
+[`examples/framer/RamkaSettings.tsx`](./examples/framer/RamkaSettings.tsx).
+Use the same cache-busting query on both remote imports during local testing.
+
 ## Import from Framer
 
 Embla Carousel, its plugins, and Zustand are bundled into the `embla` entry.
@@ -86,7 +111,12 @@ export function withEmbla(
 }
 ```
 
-Use `withEmbla` for a regular stack and `withCmsEmbla` for a CMS collection.
+Use `withEmbla` for regular stacks and CMS collection lists. Dynamic CMS
+items are incorporated on the first sub-pixel `scroll` event after active
+motion, so infinite loading does not interrupt the current animation. Empty
+CMS wrapper nodes (for example, a spinner container after the final page)
+are excluded from Embla's slide list and trigger a refresh when their contents
+disappear.
 Apply `withHideNavigationWhenNoScrollableSlides` to navigation that should
 disappear when the connected carousel cannot scroll.
 
@@ -158,6 +188,7 @@ React, React DOM, and Framer remain host-provided externals.
 ## Package areas
 
 - `@kniff/framer-kit/embla` — bundled Embla overrides and shared state.
+- `@kniff/framer-kit/ramka` — bundled Ramka gallery and trigger overrides.
 - `@kniff/framer-kit` — convenience root export of the same Embla API.
 
 ## Release workflow

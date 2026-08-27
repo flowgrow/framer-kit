@@ -21,6 +21,12 @@ export type {
   EmblaDotsProps,
 } from "./EmblaDots.js"
 export {
+  EmblaEventLog,
+  emblaEventLogDefaults,
+  emblaEventLogPropertyControls,
+} from "./EmblaEventLog.js"
+export type { EmblaEventLogProps } from "./EmblaEventLog.js"
+export {
   EmblaNavigationButton,
   emblaNavigationButtonDefaults,
   emblaNavigationButtonPropertyControls,
@@ -53,7 +59,6 @@ export type {
   ThumbnailConnectionProps,
 } from "./ThumbnailConnection.js"
 export {
-  withCmsEmbla,
   withEmbla,
   withHideNavigationWhenNoScrollableSlides,
 } from "./overrides.js"

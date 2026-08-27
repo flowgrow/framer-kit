@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react"
 import type {
   EmblaCarouselType,
   EmblaOptionsType,
@@ -41,4 +42,5 @@ export interface FramerCarouselProps {
   "data-framer-name"?: unknown
   children?: React.ReactNode
   className?: string
+  style?: CSSProperties
 }

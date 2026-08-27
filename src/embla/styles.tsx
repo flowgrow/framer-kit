@@ -1,12 +1,13 @@
-import type { CSSProperties } from "react"
+import type { CSSProperties } from 'react';
 
-import type { EmblaStyles } from "./types.js"
+import type { EmblaStyles } from './types.js';
 
-export const EMBLA_CLASS = "kniff-embla"
-export const EMBLA_VIEWPORT_CLASS = "kniff-embla__viewport"
-export const EMBLA_CONTAINER_CLASS = "kniff-embla__container"
+export const EMBLA_CLASS = 'kniff-embla';
+export const EMBLA_VIEWPORT_CLASS = 'kniff-embla__viewport';
+export const EMBLA_CONTAINER_CLASS = 'kniff-embla__container';
 
 export const EMBLA_STRUCTURAL_CSS = `
+@scope {
 .kniff-embla__viewport {
   overflow: var(--kniff-embla-overflow, visible);
   position: relative;
@@ -18,6 +19,13 @@ export const EMBLA_STRUCTURAL_CSS = `
 .kniff-embla__container > * {
   flex: 0 0 var(--kniff-embla-slide-size, auto);
   min-width: 0;
+}
+.kniff-embla__container > :empty {
+  pointer-events: none;
+  visibility: hidden;
+}
+.kniff-embla__container > [data-kniff-embla-empty-slide="true"] {
+  display: none;
 }
 .kniff-embla__viewport[data-kniff-embla-select-on-slide-click="true"] .kniff-embla__container > * {
   cursor: pointer;
@@ -34,34 +42,36 @@ export const EMBLA_STRUCTURAL_CSS = `
 .kniff-embla__container[data-kniff-embla-loop-gap-side="block-start"] > :last-child {
   margin-block-start: var(--kniff-embla-loop-gap, 0px);
 }
-`
+}
+`;
 
 export type EmblaLoopGapSide =
-  | "inline-end"
-  | "inline-start"
-  | "block-end"
-  | "block-start"
+  | 'inline-end'
+  | 'inline-start'
+  | 'block-end'
+  | 'block-start';
 
 interface EmblaContainerLayout {
-  columnGap: string
-  flexDirection: string
-  rowGap: string
+  columnGap: string;
+  flexDirection: string;
+  rowGap: string;
 }
 
 /** Resolves Framer's computed flex gap and the logical loop-seam side. */
-export function getEmblaLoopGap(
-  layout: EmblaContainerLayout,
-): { gap: string; side: EmblaLoopGapSide } {
+export function getEmblaLoopGap(layout: EmblaContainerLayout): {
+  gap: string;
+  side: EmblaLoopGapSide;
+} {
   switch (layout.flexDirection) {
-    case "row-reverse":
-      return { gap: layout.columnGap, side: "inline-start" }
-    case "column":
-      return { gap: layout.rowGap, side: "block-end" }
-    case "column-reverse":
-      return { gap: layout.rowGap, side: "block-start" }
-    case "row":
+    case 'row-reverse':
+      return { gap: layout.columnGap, side: 'inline-start' };
+    case 'column':
+      return { gap: layout.rowGap, side: 'block-end' };
+    case 'column-reverse':
+      return { gap: layout.rowGap, side: 'block-start' };
+    case 'row':
     default:
-      return { gap: layout.columnGap, side: "inline-end" }
+      return { gap: layout.columnGap, side: 'inline-end' };
   }
 }
 
@@ -73,107 +83,117 @@ export function getEmblaLoopGap(
  */
 export function syncEmblaLoopGap(
   viewport: HTMLElement,
-  loop: boolean,
+  loop: boolean
 ): boolean {
   const container = viewport.querySelector<HTMLElement>(
-    `:scope > .${EMBLA_CONTAINER_CLASS}`,
-  )
-  if (!container) return false
+    `:scope > .${EMBLA_CONTAINER_CLASS}`
+  );
+  if (!container) return false;
 
   const previousGap = container.style.getPropertyValue(
-    "--kniff-embla-loop-gap",
-  )
-  const previousSide = container.dataset.kniffEmblaLoopGapSide
+    '--kniff-embla-loop-gap'
+  );
+  const previousSide = container.dataset.kniffEmblaLoopGapSide;
 
   if (!loop) {
-    container.style.removeProperty("--kniff-embla-loop-gap")
-    delete container.dataset.kniffEmblaLoopGapSide
-    return Boolean(previousGap || previousSide)
+    container.style.removeProperty('--kniff-embla-loop-gap');
+    delete container.dataset.kniffEmblaLoopGapSide;
+    return Boolean(previousGap || previousSide);
   }
 
   // The active data attribute zeroes the native gap. Temporarily disable our
   // normalization so responsive values from Framer's stylesheet can be read.
-  if (previousSide) delete container.dataset.kniffEmblaLoopGapSide
-  const layout = window.getComputedStyle(container)
-  const { gap, side } = getEmblaLoopGap(layout)
-  const normalizedGap = gap === "normal" || gap.length === 0 ? "0px" : gap
+  if (previousSide) delete container.dataset.kniffEmblaLoopGapSide;
+  const layout = window.getComputedStyle(container);
+  const { gap, side } = getEmblaLoopGap(layout);
+  const normalizedGap = gap === 'normal' || gap.length === 0 ? '0px' : gap;
 
-  container.dataset.kniffEmblaLoopGapSide = side
+  container.dataset.kniffEmblaLoopGapSide = side;
 
-  if (previousGap === normalizedGap && previousSide === side) return false
+  if (previousGap === normalizedGap && previousSide === side) return false;
 
-  container.style.setProperty("--kniff-embla-loop-gap", normalizedGap)
-  return true
+  container.style.setProperty('--kniff-embla-loop-gap', normalizedGap);
+  return true;
 }
 
 /** Watches responsive Framer layout changes without polling every animation frame. */
 export function observeEmblaLoopGap(
   viewport: HTMLElement,
   loop: boolean,
-  onGapChange: () => void,
+  onGapChange: () => void
 ): () => void {
-  let animationFrame = 0
+  let animationFrame = 0;
 
   const measure = () => {
-    animationFrame = 0
-    if (syncEmblaLoopGap(viewport, loop)) onGapChange()
-  }
+    animationFrame = 0;
+    if (syncEmblaLoopGap(viewport, loop)) onGapChange();
+  };
   const scheduleMeasure = () => {
-    if (animationFrame !== 0) return
-    animationFrame = window.requestAnimationFrame(measure)
-  }
+    if (animationFrame !== 0) return;
+    animationFrame = window.requestAnimationFrame(measure);
+  };
 
   const resizeObserver =
-    typeof ResizeObserver === "undefined"
+    typeof ResizeObserver === 'undefined'
       ? undefined
-      : new ResizeObserver(scheduleMeasure)
-  resizeObserver?.observe(viewport)
+      : new ResizeObserver(scheduleMeasure);
+  resizeObserver?.observe(viewport);
 
   const container = viewport.querySelector<HTMLElement>(
-    `:scope > .${EMBLA_CONTAINER_CLASS}`,
-  )
-  if (container) resizeObserver?.observe(container)
+    `:scope > .${EMBLA_CONTAINER_CLASS}`
+  );
+  if (container) resizeObserver?.observe(container);
 
   const mutationObserver =
-    typeof MutationObserver === "undefined"
+    typeof MutationObserver === 'undefined'
       ? undefined
-      : new MutationObserver(scheduleMeasure)
+      : new MutationObserver(scheduleMeasure);
   if (container) {
     mutationObserver?.observe(container, {
       attributes: true,
-      attributeFilter: ["class"],
-    })
+      attributeFilter: ['class'],
+    });
   }
 
-  window.addEventListener("resize", scheduleMeasure)
-  window.addEventListener("orientationchange", scheduleMeasure)
-  scheduleMeasure()
+  window.addEventListener('resize', scheduleMeasure);
+  window.addEventListener('orientationchange', scheduleMeasure);
+  scheduleMeasure();
 
   return () => {
-    if (animationFrame !== 0) window.cancelAnimationFrame(animationFrame)
-    resizeObserver?.disconnect()
-    mutationObserver?.disconnect()
-    window.removeEventListener("resize", scheduleMeasure)
-    window.removeEventListener("orientationchange", scheduleMeasure)
-  }
+    if (animationFrame !== 0) window.cancelAnimationFrame(animationFrame);
+    resizeObserver?.disconnect();
+    mutationObserver?.disconnect();
+    window.removeEventListener('resize', scheduleMeasure);
+    window.removeEventListener('orientationchange', scheduleMeasure);
+  };
 }
 
 type EmblaWrapperStyle = CSSProperties & {
-  "--kniff-embla-overflow": "hidden" | "visible"
-  "--kniff-embla-slide-size": string
-  "--kniff-embla-touch-action": string
+  '--kniff-embla-overflow': 'hidden' | 'visible';
+  '--kniff-embla-slide-size': string;
+  '--kniff-embla-touch-action': string;
+};
+
+/** Keeps Embla's measured container on the same main-axis size as its viewport. */
+export function createEmblaContainerStyle(
+  style?: CSSProperties,
+  axis: 'x' | 'y' = 'x'
+): CSSProperties {
+  return {
+    ...style,
+    ...(axis === 'y' ? { height: '100%' } : { width: '100%' }),
+  };
 }
 
 export function createEmblaWrapperStyle(
-  styles?: EmblaStyles,
+  styles?: EmblaStyles
 ): EmblaWrapperStyle {
   return {
-    display: "block",
-    width: "100%",
-    height: "100%",
-    "--kniff-embla-overflow": styles?.overflow ?? "visible",
-    "--kniff-embla-slide-size": styles?.slideSize ?? "auto",
-    "--kniff-embla-touch-action":
-      styles?.touchAction ?? "pan-y pinch-zoom",
-  }
+    display: 'block',
+    width: '100%',
+    height: '100%',
+    '--kniff-embla-overflow': styles?.overflow ?? 'visible',
+    '--kniff-embla-slide-size': styles?.slideSize ?? 'auto',
+    '--kniff-embla-touch-action': styles?.touchAction ?? 'pan-y pinch-zoom',
+  };
 }

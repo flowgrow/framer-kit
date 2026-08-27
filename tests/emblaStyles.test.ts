@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
+  createEmblaContainerStyle,
   createEmblaWrapperStyle,
   EMBLA_STRUCTURAL_CSS,
   getEmblaLoopGap,
@@ -23,6 +24,12 @@ describe("Embla structural styles", () => {
       "overflow: var(--kniff-embla-overflow, visible)",
     )
     expect(EMBLA_STRUCTURAL_CSS).toContain("min-width: 0")
+    expect(EMBLA_STRUCTURAL_CSS).toContain(
+      ".kniff-embla__container > :empty",
+    )
+    expect(EMBLA_STRUCTURAL_CSS).toContain(
+      '[data-kniff-embla-empty-slide="true"]',
+    )
     expect(EMBLA_STRUCTURAL_CSS).toContain(
       'data-kniff-embla-loop-gap-side="inline-end"',
     )
@@ -47,6 +54,17 @@ describe("Embla structural styles", () => {
       "--kniff-embla-overflow": "hidden",
       "--kniff-embla-slide-size": "80%",
       "--kniff-embla-touch-action": "pan-y",
+    })
+  })
+
+  it("matches Embla's container measurement to the viewport axis", () => {
+    expect(createEmblaContainerStyle({ opacity: 0.8 })).toEqual({
+      opacity: 0.8,
+      width: "100%",
+    })
+    expect(createEmblaContainerStyle({ width: 240 }, "y")).toEqual({
+      width: 240,
+      height: "100%",
     })
   })
 
