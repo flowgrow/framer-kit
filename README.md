@@ -93,6 +93,8 @@ Copy-ready thin files live at
 [`examples/framer/RamkaOverride.tsx`](./examples/framer/RamkaOverride.tsx) and
 [`examples/framer/RamkaSettings.tsx`](./examples/framer/RamkaSettings.tsx).
 Use the same cache-busting query on both remote imports during local testing.
+Production-ready copies using the published package live in
+[`examples/framer/production`](./examples/framer/production).
 
 ## Import from Framer
 
