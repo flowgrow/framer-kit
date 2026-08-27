@@ -1,6 +1,6 @@
 {
   "name": "@kniff/framer-kit",
-  "version": "0.1.0-framer-test.3",
+  "version": "0.2.0",
   "description": "Bundled, SSR-safe Embla carousel and Ramka lightbox integrations for Framer.",
   "repository": {
     "type": "git",

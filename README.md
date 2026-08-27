@@ -102,7 +102,7 @@ them:
 
 ```tsx
 import type { ComponentType } from "react"
-import { withEmbla as kitWithEmbla } from "https://esm.sh/@kniff/framer-kit@0.1.0-framer-test.1/embla?external=react,react-dom,framer&target=es2022"
+import { withEmbla as kitWithEmbla } from "https://esm.sh/@kniff/framer-kit@0.2.0/embla?external=react,react-dom,framer&target=es2022"
 
 export function withEmbla(
   Component: ComponentType<any>,
@@ -110,6 +110,11 @@ export function withEmbla(
   return kitWithEmbla(Component)
 }
 ```
+
+The bundle keeps `react`, `react-dom`, and `framer` as host-provided imports.
+With esm.sh, keep the `external` query so it preserves those bare specifiers
+instead of rewriting them to CDN copies (which can create duplicate React
+runtimes in Framer).
 
 Use `withEmbla` for regular stacks and CMS collection lists. Dynamic CMS
 items are incorporated on the first sub-pixel `scroll` event after active
