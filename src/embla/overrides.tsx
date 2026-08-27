@@ -1,4 +1,3 @@
-import { RenderTarget } from 'framer';
 import * as React from 'react';
 import {
   forwardRef,
@@ -58,11 +57,7 @@ function createEmblaOverride<P extends object>(
 ): ComponentType<P> {
   const displayName = Component.displayName ?? Component.name ?? 'Component';
 
-  const CanvasOverride = forwardRef<unknown, P>((props, ref) =>
-    renderComponent(Component, props as unknown as P, ref)
-  );
-
-  const PreviewOverride = forwardRef<unknown, P>((props, ref) => {
+  const Override = forwardRef<unknown, P>((props, ref) => {
     const isHydrated = useHydrated();
     const framerProps = props as P & FramerCarouselProps;
     const id = getCarouselId(framerProps);
@@ -103,13 +98,7 @@ function createEmblaOverride<P extends object>(
     );
   });
 
-  CanvasOverride.displayName = `${overrideName}Canvas(${displayName})`;
-  PreviewOverride.displayName = `${overrideName}Preview(${displayName})`;
-
-  const Override =
-    RenderTarget.current() === RenderTarget.canvas
-      ? CanvasOverride
-      : PreviewOverride;
+  Override.displayName = `${overrideName}(${displayName})`;
 
   return Override as unknown as ComponentType<P>;
 }

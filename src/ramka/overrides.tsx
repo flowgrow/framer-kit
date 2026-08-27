@@ -1,5 +1,4 @@
 import type { EmblaCarouselType } from "embla-carousel"
-import { RenderTarget } from "framer"
 import { Lightbox } from "ramka"
 import * as React from "react"
 import {
@@ -314,11 +313,7 @@ function createGalleryOverride<P extends object>(
 ): ComponentType<P> {
   const displayName = Component.displayName ?? Component.name ?? "Component"
 
-  const CanvasOverride = forwardRef<unknown, P>((props, ref) =>
-    renderComponent(Component, props as unknown as P, ref),
-  )
-
-  const PreviewOverride = forwardRef<unknown, P>((props, forwardedRef) => {
+  const Override = forwardRef<unknown, P>((props, forwardedRef) => {
     const hydrated = useHydrated()
     const [rootElement, setRootElement] = useState<HTMLElement | null>(null)
     const [items, setItems] = useState<RamkaMediaItem[]>([])
@@ -444,12 +439,9 @@ function createGalleryOverride<P extends object>(
     )
   })
 
-  CanvasOverride.displayName = `withRamkaGalleryCanvas(${displayName})`
-  PreviewOverride.displayName = `withRamkaGalleryPreview(${displayName})`
+  Override.displayName = `withRamkaGallery(${displayName})`
 
-  return (RenderTarget.current() === RenderTarget.canvas
-    ? CanvasOverride
-    : PreviewOverride) as unknown as ComponentType<P>
+  return Override as unknown as ComponentType<P>
 }
 
 function createTriggerOverride<P extends object>(
@@ -457,11 +449,7 @@ function createTriggerOverride<P extends object>(
 ): ComponentType<P> {
   const displayName = Component.displayName ?? Component.name ?? "Component"
 
-  const CanvasOverride = forwardRef<unknown, P>((props, ref) =>
-    renderComponent(Component, props as unknown as P, ref),
-  )
-
-  const PreviewOverride = forwardRef<unknown, P>((props, forwardedRef) => {
+  const Override = forwardRef<unknown, P>((props, forwardedRef) => {
     const hydrated = useHydrated()
     const gallery = useContext(RamkaGalleryContext)
     const claimTriggerIndex = gallery?.claimTriggerIndex
@@ -586,8 +574,8 @@ function createTriggerOverride<P extends object>(
     }
 
     // Framer only exposes an override's DOM node after it mounts. Render the
-    // canvas component once without Ramka so an Embla descendant can resolve
-    // its real slide index, then mount Lightbox.Trigger with that final index.
+    // base component once without Ramka so an Embla descendant can resolve its
+    // real slide index, then mount Lightbox.Trigger with that final index.
     // This avoids index swaps inside Ramka's trigger registry entirely.
     if (!triggerReady) {
       return React.createElement(
@@ -626,12 +614,9 @@ function createTriggerOverride<P extends object>(
     )
   })
 
-  CanvasOverride.displayName = `withRamkaTriggerCanvas(${displayName})`
-  PreviewOverride.displayName = `withRamkaTriggerPreview(${displayName})`
+  Override.displayName = `withRamkaTrigger(${displayName})`
 
-  return (RenderTarget.current() === RenderTarget.canvas
-    ? CanvasOverride
-    : PreviewOverride) as unknown as ComponentType<P>
+  return Override as unknown as ComponentType<P>
 }
 
 /** Makes a Framer parent the scope and runtime owner for one lightbox. */
