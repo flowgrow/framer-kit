@@ -38,6 +38,35 @@ interface FramerLayerProps {
   children?: React.ReactNode
 }
 
+interface FramerImageBackground {
+  sizes?: string
+  [key: string]: unknown
+}
+
+interface FramerImageProps {
+  background?: unknown
+}
+
+/** Forces Framer's responsive image background to use its intrinsic size. */
+function withIntrinsicBackgroundSize<P extends object>(props: P): P {
+  const background = (props as P & FramerImageProps).background
+  if (
+    !background ||
+    typeof background !== "object" ||
+    Array.isArray(background)
+  ) {
+    return props
+  }
+
+  return {
+    ...props,
+    background: {
+      ...(background as FramerImageBackground),
+      sizes: "auto",
+    },
+  } as P
+}
+
 function assignRef(
   ref: React.ForwardedRef<unknown>,
   value: unknown,
@@ -583,11 +612,13 @@ function createTriggerOverride<P extends object>(
         { ref: probeRef, style: { display: "contents" } },
         renderComponent(
           Component,
-          props as unknown as P,
+          withIntrinsicBackgroundSize(props as unknown as P),
           forwardedRef,
         ),
       )
     }
+
+    const imageProps = withIntrinsicBackgroundSize(props as unknown as P)
 
     return (
       <Lightbox.Trigger
@@ -602,7 +633,7 @@ function createTriggerOverride<P extends object>(
         }}
         render={renderComponent(
           Component,
-          props as unknown as P,
+          imageProps,
           mergedRef,
         )}
       >
