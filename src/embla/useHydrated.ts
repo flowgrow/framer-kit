@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
+
+const subscribe = () => () => {}
+const getClientSnapshot = () => true
+const getServerSnapshot = () => false
 
 /** Waits until mount before enabling browser-only carousel behavior. */
 export function useHydrated(): boolean {
-  const [hydrated, setHydrated] = useState(false)
-
-  useEffect(() => {
-    setHydrated(true)
-  }, [])
-
-  return hydrated
+  return useSyncExternalStore(
+    subscribe,
+    getClientSnapshot,
+    getServerSnapshot,
+  )
 }
