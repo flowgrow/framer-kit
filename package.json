@@ -11,6 +11,7 @@
     "url": "https://github.com/flowgrow/framer-kit/issues"
   },
   "type": "module",
+  "packageManager": "pnpm@10.30.3",
   "license": "MIT",
   "sideEffects": false,
   "files": [
@@ -34,15 +35,15 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "dev:framer": "npm run build && node scripts/dev-framer.mjs",
+    "dev:framer": "pnpm run build && node scripts/dev-framer.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run typecheck && npm test && npm run build",
+    "check": "pnpm run typecheck && pnpm run test && pnpm run build",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "npm run check && changeset publish",
-    "prepublishOnly": "npm run check"
+    "release": "pnpm run check && changeset publish",
+    "prepublishOnly": "pnpm run check"
   },
   "publishConfig": {
     "access": "public"
