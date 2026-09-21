@@ -161,21 +161,46 @@ export function CarouselSettings(props: CarouselSettingsProps) {
   const addConfig = useEmblaStore((state) => state.addConfig)
   const removeConfig = useEmblaStore((state) => state.removeConfig)
 
-  const plugins = useMemo(() => createCarouselPlugins(settings), [
-    wheelGestures,
-    autoMove,
-    autoMoveSpeed,
-    autoMoveDelay,
-    autoMoveStopOnInteraction,
-    autoMoveStopOnMouseEnter,
-    autoMoveStopOnFocusIn,
-    autoMoveStopOnLastSlide,
-    autoHeight,
-    slideEffect,
-  ])
+  const plugins = useMemo(
+    () =>
+      createCarouselPlugins({
+        ...carouselSettingsDefaults,
+        wheelGestures,
+        autoMove,
+        autoMoveSpeed,
+        autoMoveDelay,
+        autoMoveStopOnInteraction,
+        autoMoveStopOnMouseEnter,
+        autoMoveStopOnFocusIn,
+        autoMoveStopOnLastSlide,
+        autoHeight,
+        slideEffect,
+      }),
+    [
+      wheelGestures,
+      autoMove,
+      autoMoveSpeed,
+      autoMoveDelay,
+      autoMoveStopOnInteraction,
+      autoMoveStopOnMouseEnter,
+      autoMoveStopOnFocusIn,
+      autoMoveStopOnLastSlide,
+      autoHeight,
+      slideEffect,
+    ],
+  )
 
   const options = useMemo<EmblaOptionsType>(
-    () => createCarouselOptions(settings),
+    () =>
+      createCarouselOptions({
+        ...carouselSettingsDefaults,
+        loop,
+        justify,
+        startIndex,
+        draggable,
+        containEdges,
+        slidesToScroll,
+      }),
     [
       loop,
       justify,

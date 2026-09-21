@@ -17,8 +17,8 @@ versioned implementation code.
 ## Install for local development
 
 ```bash
-npm install
-npm run check
+pnpm install
+pnpm run check
 ```
 
 ## Local Framer development
@@ -36,7 +36,7 @@ Run the build watcher, CORS-enabled local server, and named Cloudflare Tunnel
 together:
 
 ```bash
-npm run dev:framer
+pnpm run dev:framer
 ```
 
 Then use the stable development URL in the copy-ready files under
@@ -60,7 +60,7 @@ addPropertyControls(EmblaDots, emblaDotsPropertyControls)
 
 Use the same URL for the settings component and overrides so they share one
 store instance. The development server disables caching and serves all emitted
-chunks from `dist`; keep `npm run dev:framer` running while Framer loads them.
+chunks from `dist`; keep `pnpm run dev:framer` running while Framer loads them.
 If Framer keeps an already-compiled remote module after a source change, append
 the same cache-busting query to every wrapper import (for example,
 `/embla.js?v=2`). Never bump only one wrapper because distinct URLs create
@@ -201,7 +201,7 @@ React, React DOM, and Framer remain host-provided externals.
 ## Release workflow
 
 1. Implement and test a change.
-2. Run `npm run changeset` and choose patch, minor, or major.
+2. Run `pnpm run changeset` and choose patch, minor, or major.
 3. Push to `main`.
 4. The Changesets action opens or updates a release pull request.
 5. Merging that pull request publishes to npm using `NPM_TOKEN`.
