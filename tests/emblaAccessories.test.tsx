@@ -218,9 +218,11 @@ describe("Embla accessory components", () => {
   })
 
   it("renders navigation and controls connector Canvas instructions", () => {
-    expect(
-      renderToStaticMarkup(createElement(EmblaNavigationButton)),
-    ).toContain("Next")
+    const navigation = renderToStaticMarkup(
+      createElement(EmblaNavigationButton),
+    )
+    expect(navigation).toContain("Next")
+    expect(navigation).toContain('disabled=""')
     expect(
       renderToStaticMarkup(createElement(ThumbnailConnection)),
     ).toContain("Thumbnail Connection")

@@ -40,11 +40,11 @@ export function EmblaNavigationButton(props: EmblaNavigationButtonProps) {
   const emblaApi = useEmblaStore((state) =>
     carouselID ? state.emblaInstances.get(carouselID) : undefined,
   )
-  const [isDisabled, setIsDisabled] = useState(false)
+  const [isDisabled, setIsDisabled] = useState(true)
 
   const updateDisabled = useCallback(() => {
     if (!emblaApi) {
-      setIsDisabled(false)
+      setIsDisabled(true)
       return
     }
     setIsDisabled(
