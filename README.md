@@ -204,7 +204,9 @@ React, React DOM, and Framer remain host-provided externals.
 2. Run `pnpm run changeset` and choose patch, minor, or major.
 3. Push to `main`.
 4. The Changesets action opens or updates a release pull request.
-5. Merging that pull request publishes to npm using `NPM_TOKEN`.
+5. Merging that pull request publishes to npm using `NPM_TOKEN` and creates
+   a matching GitHub Release with a version tag and notes from the generated
+   changelog, using `GITHUB_TOKEN`.
 
 ## License
 
