@@ -30,16 +30,17 @@ export const EMBLA_STRUCTURAL_CSS = `
 .kniff-embla__viewport[data-kniff-embla-select-on-slide-click="true"] .kniff-embla__container > * {
   cursor: pointer;
 }
-.kniff-embla__container[data-kniff-embla-loop-gap-side="inline-end"] > :last-child {
+/* Match the non-empty slide list: CMS may leave an empty loading wrapper last. */
+.kniff-embla__container[data-kniff-embla-loop-gap-side="inline-end"] > :nth-last-child(1 of :not(:empty)) {
   margin-inline-end: var(--kniff-embla-loop-gap, 0px);
 }
-.kniff-embla__container[data-kniff-embla-loop-gap-side="inline-start"] > :last-child {
+.kniff-embla__container[data-kniff-embla-loop-gap-side="inline-start"] > :nth-last-child(1 of :not(:empty)) {
   margin-inline-start: var(--kniff-embla-loop-gap, 0px);
 }
-.kniff-embla__container[data-kniff-embla-loop-gap-side="block-end"] > :last-child {
+.kniff-embla__container[data-kniff-embla-loop-gap-side="block-end"] > :nth-last-child(1 of :not(:empty)) {
   margin-block-end: var(--kniff-embla-loop-gap, 0px);
 }
-.kniff-embla__container[data-kniff-embla-loop-gap-side="block-start"] > :last-child {
+.kniff-embla__container[data-kniff-embla-loop-gap-side="block-start"] > :nth-last-child(1 of :not(:empty)) {
   margin-block-start: var(--kniff-embla-loop-gap, 0px);
 }
 }

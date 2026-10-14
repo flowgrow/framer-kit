@@ -104,7 +104,7 @@ them:
 
 ```tsx
 import type { ComponentType } from "react"
-import { withEmbla as kitWithEmbla } from "https://esm.sh/@kniff/framer-kit@0.2.0/embla?external=react,react-dom,framer&target=es2022"
+import { withEmbla as kitWithEmbla } from "https://esm.sh/@kniff/framer-kit@0.3.0/embla?external=react,react-dom,framer&target=es2022"
 
 export function withEmbla(
   Component: ComponentType<any>,
