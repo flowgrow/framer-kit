@@ -183,10 +183,22 @@ When cleaning up a settings registration, pass the same config object to
 removing a newer registration that happens to use the same layer name. Calling
 `removeConfig(id)` remains supported for compatibility.
 
-The carousel activates after React hydration as soon as its matching config is
-available. Missing IDs or settings leave the original Framer component visible;
-a console warning is emitted for a missing ID instead of showing diagnostics to
-site visitors.
+Named carousels render their viewport, container, and structural slide CSS on
+the server and on the first client render. Registering settings activates Embla
+after hydration without remounting the Framer/CMS subtree. The inline stylesheet
+uses raw HTML so Framer's CSS minification does not cause a React hydration text
+mismatch. Missing settings keep the styled carousel content visible; missing
+IDs render the original component and emit a console warning.
+
+Carousel Settings also emit a scoped SSR visibility rule. The carousel keeps
+its layout space but becomes visible only once Embla has applied its initial
+snap and loop positioning. This prevents the first slide flashing at the left
+before moving to its configured alignment, without requiring explicit SSR sizes.
+Carousels without settings retain their visible fallback. Custom styles registered
+only on the client and CMS items loaded after first paint can still move content.
+Embla v9's SSR positioning requires explicit percentage slide sizes; Framer's
+intrinsic and responsive slide dimensions are not available to this v8 override
+on the server.
 
 `embla-carousel-react` and `zustand` are intentionally regular dependencies.
 The build bundles and tree-shakes all installed runtime packages by default;
@@ -200,11 +212,26 @@ React, React DOM, and Framer remain host-provided externals.
 
 ## Release workflow
 
+Releases use npm trusted publishing (OIDC), without an `NPM_TOKEN` secret.
+In the [npm package settings](https://www.npmjs.com/package/@kniff/framer-kit/access),
+add a GitHub Actions trusted publisher with these values:
+
+- Organization or user: `flowgrow`
+- Repository: `framer-kit`
+- Workflow filename: `release.yml`
+- Environment name: leave blank (the workflow does not use an environment).
+- Allowed actions: enable direct publishing (`npm publish`).
+
+The release job grants `id-token: write` and uses Node 24, whose bundled npm
+supports OIDC. pnpm and Changesets remain the commands used by the workflow;
+pnpm delegates registry publishing to that npm CLI. No static registry token is
+configured. See [npm's trusted publishing documentation](https://docs.npmjs.com/trusted-publishers/).
+
 1. Implement and test a change.
 2. Run `pnpm run changeset` and choose patch, minor, or major.
 3. Push to `main`.
 4. The Changesets action opens or updates a release pull request.
-5. Merging that pull request publishes to npm using `NPM_TOKEN` and creates
+5. Merging that pull request publishes to npm using OIDC and creates
    a matching GitHub Release with a version tag and notes from the generated
    changelog, using `GITHUB_TOKEN`.
 

@@ -6,6 +6,15 @@ export const EMBLA_CLASS = 'kniff-embla';
 export const EMBLA_VIEWPORT_CLASS = 'kniff-embla__viewport';
 export const EMBLA_CONTAINER_CLASS = 'kniff-embla__container';
 
+/** Settings can hide their carousel in SSR without registering global state. */
+export function createEmblaPendingCSS(id: string): string {
+  // Escape a CSS attribute string, including raw-style closing tags.
+  const selectorId = id.replace(/["\\\n\r\f<>]/g, character =>
+    `\\${character.charCodeAt(0).toString(16)} `
+  );
+  return `.kniff-embla[data-kniff-embla="${selectorId}"]:not([data-kniff-embla-ready="true"]) > .kniff-embla__viewport { visibility: hidden; }`;
+}
+
 export const EMBLA_STRUCTURAL_CSS = `
 @scope {
 .kniff-embla__viewport {

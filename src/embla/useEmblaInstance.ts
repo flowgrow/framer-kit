@@ -111,5 +111,5 @@ export function useEmblaInstance(id: string | undefined) {
     return () => root.removeEventListener("click", selectClickedSlide)
   }, [connectedMainApi, emblaApi, selectOnSlideClick])
 
-  return { config, viewportRef: responsiveViewportRef }
+  return { config, viewportRef: responsiveViewportRef, isReady: Boolean(emblaApi) }
 }

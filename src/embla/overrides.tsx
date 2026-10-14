@@ -61,19 +61,22 @@ function createEmblaOverride<P extends object>(
     const isHydrated = useHydrated();
     const framerProps = props as P & FramerCarouselProps;
     const id = getCarouselId(framerProps);
-    const { config, viewportRef } = useEmblaInstance(id);
+    const { config, viewportRef, isReady } = useEmblaInstance(id);
     const dragClickGuard = useDragClickGuard();
 
     useMissingIdWarning(id, overrideName);
 
-    if (!isHydrated || !id || !config) {
+    // The server and first client render must own the same layout. Settings
+    // register in an effect, so waiting for config here remounts the entire
+    // Framer/CMS subtree and changes slide sizing after the first paint.
+    if (!id) {
       return renderComponent(Component, props as unknown as P, ref);
     }
 
     const componentProps = {
       ...props,
       className: cx(framerProps.className, EMBLA_CONTAINER_CLASS),
-      style: createEmblaContainerStyle(framerProps.style, config.options?.axis),
+      style: createEmblaContainerStyle(framerProps.style, config?.options?.axis),
       ref,
     } as P & RefAttributes<unknown>;
 
@@ -81,16 +84,17 @@ function createEmblaOverride<P extends object>(
       <div
         className={EMBLA_CLASS}
         data-kniff-embla={id}
-        style={createEmblaWrapperStyle(config.styles)}
+        data-kniff-embla-ready={isReady ? 'true' : undefined}
+        style={createEmblaWrapperStyle(config?.styles)}
       >
-        <style>{EMBLA_STRUCTURAL_CSS}</style>
+        <style dangerouslySetInnerHTML={{ __html: EMBLA_STRUCTURAL_CSS }} />
         <div
           {...dragClickGuard}
           className={EMBLA_VIEWPORT_CLASS}
           data-kniff-embla-select-on-slide-click={
-            config.selectOnSlideClick ? 'true' : undefined
+            config?.selectOnSlideClick ? 'true' : undefined
           }
-          ref={viewportRef}
+          ref={isHydrated && config ? viewportRef : undefined}
         >
           <Component {...componentProps} />
         </div>

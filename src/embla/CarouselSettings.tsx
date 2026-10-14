@@ -16,6 +16,7 @@ import {
 import { useEffect, useMemo, type CSSProperties } from "react"
 
 import { useEmblaStore } from "./store.js"
+import { createEmblaPendingCSS } from "./styles.js"
 import type { EmblaConfig } from "./types.js"
 
 export type AutoMoveType = "none" | "scroll" | "perSlide"
@@ -131,7 +132,8 @@ export function createCarouselOptions(
 /**
  * Registers a complete Embla configuration in the shared store. On the Framer
  * Canvas it can optionally render a compact setup reminder; Preview and the
- * published site render no DOM.
+ * published site emit only CSS that reserves the carousel's layout while its
+ * initial snap is being positioned.
  */
 export function CarouselSettings(props: CarouselSettingsProps) {
   const settings = { ...carouselSettingsDefaults, ...props }
@@ -227,7 +229,9 @@ export function CarouselSettings(props: CarouselSettingsProps) {
   }, [carouselID, config, addConfig, removeConfig])
 
   if (RenderTarget.current() !== RenderTarget.canvas || !showInstructions) {
-    return null
+    return carouselID ? (
+      <style dangerouslySetInnerHTML={{ __html: createEmblaPendingCSS(carouselID) }} />
+    ) : null
   }
 
   return (

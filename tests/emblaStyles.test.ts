@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   createEmblaContainerStyle,
   createEmblaWrapperStyle,
+  createEmblaPendingCSS,
   EMBLA_STRUCTURAL_CSS,
   getEmblaLoopGap,
   observeEmblaLoopGap,
@@ -10,6 +11,14 @@ import {
 
 describe("Embla structural styles", () => {
   afterEach(() => vi.unstubAllGlobals())
+
+  it("safely scopes the readiness gate to a carousel name", () => {
+    const css = createEmblaPendingCSS('Carousel "quoted" </style>')
+    expect(css).not.toContain('</style>')
+    expect(css).toContain('\\22 quoted\\22 ')
+    expect(css).toContain('\\3c /style\\3e ')
+    expect(css).toContain('visibility: hidden')
+  })
 
   it("provides safe defaults without depending on external CSS", () => {
     expect(createEmblaWrapperStyle()).toMatchObject({
