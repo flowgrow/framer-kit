@@ -1,7 +1,7 @@
 {
   "name": "@kniff/framer-kit",
-  "version": "0.3.1",
-  "description": "Bundled, SSR-safe Embla carousel and Ramka lightbox integrations for Framer.",
+  "version": "0.4.0",
+  "description": "Native scroll-snap carousels and Ramka lightboxes for Framer.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/flowgrow/framer-kit.git"
@@ -23,13 +23,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./embla": {
-      "types": "./dist/embla.d.ts",
-      "import": "./dist/embla.js"
-    },
     "./ramka": {
       "types": "./dist/ramka.d.ts",
       "import": "./dist/ramka.js"
+    },
+    "./scroll-snap": {
+      "types": "./dist/scroll-snap.d.ts",
+      "import": "./dist/scroll-snap.js"
     }
   },
   "scripts": {
@@ -69,14 +69,6 @@
     "vitest": "4.1.10"
   },
   "dependencies": {
-    "embla-carousel": "8.6.0",
-    "embla-carousel-auto-height": "8.6.0",
-    "embla-carousel-auto-scroll": "8.6.0",
-    "embla-carousel-autoplay": "8.6.0",
-    "embla-carousel-fade": "8.6.0",
-    "embla-carousel-react": "8.6.0",
-    "embla-carousel-wheel-gestures": "8.1.0",
-    "ramka": "https://pkg.pr.new/arturbien/ramka@1d97a5a",
-    "zustand": "5.0.14"
+    "ramka": "https://pkg.pr.new/arturbien/ramka@1d97a5a"
   }
 }
