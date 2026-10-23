@@ -3,8 +3,8 @@ import { defineConfig } from "tsup"
 export default defineConfig({
   entry: {
     index: "src/index.ts",
-    embla: "src/embla/index.ts",
     ramka: "src/ramka/index.ts",
+    "scroll-snap": "src/scroll-snap/index.ts",
   },
   format: ["esm"],
   target: "es2022",

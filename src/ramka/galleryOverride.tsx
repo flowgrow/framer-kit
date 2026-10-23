@@ -1,4 +1,3 @@
-import type { EmblaCarouselType } from "embla-carousel"
 import { Lightbox } from "ramka"
 import * as React from "react"
 import {
@@ -11,12 +10,9 @@ import {
   useState,
 } from "react"
 
-import { pauseAutoplayForInteraction } from "../embla/accessoryUtils.js"
-import { getClosestEmblaApi } from "../embla/domBridge.js"
-import { useHydrated } from "../embla/useHydrated.js"
+import { useHydrated } from "../shared/useHydrated.js"
 import { RamkaGalleryContext } from "./context.js"
 import { defaultRamkaGalleryConfig } from "./defaults.js"
-import { getEmblaSlideIndex } from "./embla.js"
 import {
   extractRamkaMedia,
   isSameRamkaMedia,
@@ -63,32 +59,6 @@ function upsertMedia(
   const updated = items.filter((item) => item.id !== next.id)
   updated.push(next)
   return sortRamkaMedia(updated)
-}
-
-function getEmblaSnapForMedia(
-  api: EmblaCarouselType,
-  item: RamkaMediaItem,
-): number | undefined {
-  const slideIndex = getEmblaSlideIndex(api, item.element)
-  if (slideIndex === undefined) return undefined
-
-  const snapIndex = api
-    .internalEngine()
-    .slideRegistry.findIndex((slides) => slides.includes(slideIndex))
-  return snapIndex >= 0 ? snapIndex : slideIndex
-}
-
-function syncEmblaToMedia(item: RamkaMediaItem): void {
-  const api = getClosestEmblaApi(item.element)
-  if (!api) return
-  const snapIndex = getEmblaSnapForMedia(api, item)
-  if (snapIndex === undefined || api.selectedScrollSnap() === snapIndex) {
-    return
-  }
-  // The carousel is hidden behind the lightbox, so there is no useful visual
-  // transition to preserve here. Jumping makes the active trigger's final
-  // geometry available before Ramka captures its close-transition snapshot.
-  api.scrollTo(snapIndex, true)
 }
 
 const RAMKA_PORTAL_CSS = `
@@ -299,7 +269,6 @@ export function createGalleryOverride<P extends object>(
 
   const Override = forwardRef<unknown, P>((props, forwardedRef) => {
     const hydrated = useHydrated()
-    const [rootElement, setRootElement] = useState<HTMLElement | null>(null)
     const [items, setItems] = useState<RamkaMediaItem[]>([])
     const triggerIndicesRef = useRef(new Map<string, number>())
     const nextTriggerIndexRef = useRef(0)
@@ -350,33 +319,9 @@ export function createGalleryOverride<P extends object>(
 
     const mergedRootRef = useCallback(
       (node: unknown) => {
-        setRootElement(node instanceof HTMLElement ? node : null)
         assignRef(forwardedRef, node)
       },
       [forwardedRef],
-    )
-
-    const handleValueChange = useCallback(
-      (index: number) => {
-        if (!config.syncEmbla) return
-        const item = items[index]
-        if (item) syncEmblaToMedia(item)
-      },
-      [config.syncEmbla, items],
-    )
-
-    const handleOpenChange = useCallback(
-      (open: boolean) => {
-        if (!open || !config.stopEmblaAutoplay) return
-        const activeItem =
-          items.find((item) => rootElement?.contains(item.element)) ??
-          items[0]
-        if (!activeItem) return
-        pauseAutoplayForInteraction(
-          getClosestEmblaApi(activeItem.element),
-        )
-      },
-      [config.stopEmblaAutoplay, items, rootElement],
     )
 
     if (!hydrated) {
@@ -393,24 +338,6 @@ export function createGalleryOverride<P extends object>(
           loop={config.loop}
           viewTransition={config.viewTransition}
           morphTo={config.morphTo}
-          scrollTriggerIntoView={
-            config.syncEmbla
-              ? [
-                  {
-                    type: "onChange",
-                    behavior: "instant",
-                    inline: "center",
-                  },
-                  {
-                    type: "onOpenComplete",
-                    behavior: "instant",
-                    inline: "center",
-                  },
-                ]
-              : null
-          }
-          onValueChange={handleValueChange}
-          onOpenChange={handleOpenChange}
         >
           {renderComponent(
             Component,

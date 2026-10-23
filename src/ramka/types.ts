@@ -11,8 +11,6 @@ export interface RamkaGalleryConfig {
   zoom: boolean
   showNavigation: boolean
   showCounter: boolean
-  syncEmbla: boolean
-  stopEmblaAutoplay: boolean
   backdropColor: string
 }
 

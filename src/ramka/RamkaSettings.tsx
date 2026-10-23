@@ -30,8 +30,6 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     zoom,
     showNavigation,
     showCounter,
-    syncEmbla,
-    stopEmblaAutoplay,
     backdropColor,
   } = settings
 
@@ -46,8 +44,6 @@ export function RamkaSettings(props: RamkaSettingsProps) {
       zoom,
       showNavigation,
       showCounter,
-      syncEmbla,
-      stopEmblaAutoplay,
       backdropColor,
     }
     setGalleryConfig(config)
@@ -62,8 +58,6 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     zoom,
     showNavigation,
     showCounter,
-    syncEmbla,
-    stopEmblaAutoplay,
     backdropColor,
   ])
 
@@ -158,17 +152,6 @@ export const ramkaSettingsPropertyControls = {
     type: ControlType.Boolean,
     title: "Counter",
     defaultValue: ramkaSettingsDefaults.showCounter,
-  },
-  syncEmbla: {
-    type: ControlType.Boolean,
-    title: "Sync Embla",
-    defaultValue: ramkaSettingsDefaults.syncEmbla,
-  },
-  stopEmblaAutoplay: {
-    type: ControlType.Boolean,
-    title: "Stop Auto Move",
-    defaultValue: ramkaSettingsDefaults.stopEmblaAutoplay,
-    hidden: (props) => props.syncEmbla === false,
   },
   backdropColor: {
     type: ControlType.Color,

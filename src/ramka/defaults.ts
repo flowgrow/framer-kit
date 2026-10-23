@@ -10,8 +10,6 @@ export const ramkaSettingsDefaults = {
   zoom: true,
   showNavigation: true,
   showCounter: true,
-  syncEmbla: true,
-  stopEmblaAutoplay: true,
   backdropColor: "rgba(0, 0, 0, 0.92)",
 } as const
 
@@ -24,7 +22,5 @@ export const defaultRamkaGalleryConfig: RamkaGalleryConfig = {
   zoom: ramkaSettingsDefaults.zoom,
   showNavigation: ramkaSettingsDefaults.showNavigation,
   showCounter: ramkaSettingsDefaults.showCounter,
-  syncEmbla: ramkaSettingsDefaults.syncEmbla,
-  stopEmblaAutoplay: ramkaSettingsDefaults.stopEmblaAutoplay,
   backdropColor: ramkaSettingsDefaults.backdropColor,
 }

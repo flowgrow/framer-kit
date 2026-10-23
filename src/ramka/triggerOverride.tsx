@@ -13,9 +13,8 @@ import {
   useState,
 } from "react"
 
-import { useHydrated } from "../embla/useHydrated.js"
+import { useHydrated } from "../shared/useHydrated.js"
 import { RamkaGalleryContext } from "./context.js"
-import { resolveEmblaSlideIndex } from "./embla.js"
 
 interface FramerLayerProps {
   children?: React.ReactNode
@@ -82,8 +81,6 @@ export function createTriggerOverride<P extends object>(
     const refreshTrigger = gallery?.refreshTrigger
     const triggerId = useId()
     const [element, setElement] = useState<HTMLElement | null>(null)
-    const [emblaIndex, setEmblaIndex] = useState<number | undefined>()
-    const resolvedEmblaIndexRef = useRef<number | undefined>()
     const [triggerReady, setTriggerReady] = useState(false)
     const triggerStateRef = useRef<{
       imageRef: (node: HTMLImageElement | null) => void
@@ -95,51 +92,28 @@ export function createTriggerOverride<P extends object>(
     // for the DOM registry made every Framer trigger briefly mount at index 0;
     // Ramka could then retain a stale morph target for that index.
     const claimedIndex = claimTriggerIndex?.(triggerId) ?? 0
-    const index =
-      emblaIndex ?? resolvedEmblaIndexRef.current ?? claimedIndex
+    const index = claimedIndex
     const item = gallery?.items.find((entry) => entry.id === triggerId)
-
-    const syncEmblaIndex = useCallback((node: HTMLElement) => {
-      const nextIndex = resolveEmblaSlideIndex(node)
-      if (nextIndex === undefined) return
-      resolvedEmblaIndexRef.current = nextIndex
-      setEmblaIndex((current) =>
-        current === nextIndex ? current : nextIndex,
-      )
-    }, [])
 
     const mergedRef = useCallback(
       (node: unknown) => {
         const nextElement = node instanceof HTMLElement ? node : null
         setElement(nextElement)
         if (nextElement) {
-          syncEmblaIndex(nextElement)
           setTriggerReady(true)
         }
         assignRef(forwardedRef, node)
       },
-      [forwardedRef, syncEmblaIndex],
+      [forwardedRef],
     )
 
     const probeRef = useCallback(
       (node: HTMLSpanElement | null) => {
         if (!node) return
-        syncEmblaIndex(node)
         setTriggerReady(true)
       },
-      [syncEmblaIndex],
+      [],
     )
-
-    useLayoutEffect(() => {
-      if (!element || typeof window === "undefined") return
-      if (!element.closest(".kniff-embla__viewport")) return
-
-      syncEmblaIndex(element)
-      const frame = window.requestAnimationFrame(() =>
-        syncEmblaIndex(element),
-      )
-      return () => window.cancelAnimationFrame(frame)
-    }, [element, syncEmblaIndex])
 
     useLayoutEffect(() => {
       if (!registerTrigger || !element) return
@@ -198,10 +172,7 @@ export function createTriggerOverride<P extends object>(
       )
     }
 
-    // Framer only exposes an override's DOM node after it mounts. Render the
-    // base component once without Ramka so an Embla descendant can resolve its
-    // real slide index, then mount Lightbox.Trigger with that final index.
-    // This avoids index swaps inside Ramka's trigger registry entirely.
+    // Resolve the trigger DOM node before mounting the lightbox trigger.
     if (!triggerReady) {
       return React.createElement(
         "span",
