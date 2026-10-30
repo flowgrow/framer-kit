@@ -161,9 +161,9 @@ export function createGalleryOverride<P extends object>(
     return (
       <RamkaGalleryContext.Provider value={context}>
         <Lightbox.Root
-          loop={config.loop}
-          viewTransition={config.viewTransition}
-          morphTo={config.morphTo}
+          loop={false}
+          viewTransition={true}
+          morphTo="active"
           scrollTriggerIntoView={null}
           onValueChange={handleValueChange}
           onOpenChange={(nextOpen) => {
@@ -184,7 +184,7 @@ export function createGalleryOverride<P extends object>(
     )
   })
 
-  Override.displayName = `withRamkaGallery(${displayName})`
+  Override.displayName = `withKniffLightboxGallery(${displayName})`
 
   return Override as unknown as ComponentType<P>
 }

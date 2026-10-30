@@ -44,7 +44,11 @@
     "version-packages": "changeset version",
     "release": "pnpm run check && changeset publish",
     "prepublishOnly": "pnpm run check",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "worker:prepare": "pnpm run build && node scripts/prepare-worker.mjs",
+    "worker:dev": "pnpm exec wrangler dev --config worker/wrangler.jsonc",
+    "worker:deploy": "pnpm run worker:prepare && pnpm exec wrangler deploy --config worker/wrangler.jsonc",
+    "worker:verify": "node scripts/verify-worker.mjs"
   },
   "publishConfig": {
     "access": "public"
@@ -70,7 +74,8 @@
     "tsup": "8.5.1",
     "typescript": "5.9.3",
     "vite": "8.3.4",
-    "vitest": "4.1.10"
+    "vitest": "4.1.10",
+    "wrangler": "4.96.0"
   },
   "dependencies": {
     "ramka": "https://pkg.pr.new/arturbien/ramka@1d97a5a"

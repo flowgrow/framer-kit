@@ -38,7 +38,7 @@ import {
   VisibleScrollOverflowSettings as KitComponent,
   visibleScrollOverflowSettingsPropertyControls,
 // @ts-ignore Framer resolves remote HTTPS modules.
-} from "https://esm.sh/@kniff/framer-kit@0.5.1/scroll-snap?external=react,react-dom,framer&target=es2022"
+} from "https://framer-kit-prod.kniff.at/builds/3c1b881ec7a2c897d33b20e0/scroll-snap.js?external=react,react-dom,framer&target=es2022"
 
 export default function ScrollSettings(props: Record<string, unknown>) {
   return <KitComponent {...props} />
@@ -51,10 +51,14 @@ registration is explicit; importing the library does not register components.
 
 ## Ramka lightbox
 
-The `@kniff/framer-kit/ramka` entry exports `RamkaSettings`, `withRamkaGallery`,
-and `withRamkaTrigger`. Apply the gallery override to a parent and the trigger
+The `@kniff/framer-kit/ramka` entry exports `RamkaSettings`, `withKniffLightboxGallery`,
+and `withKniffLightboxTrigger`. Apply the gallery override to a parent and the trigger
 override to each image. Place Ramka Settings inside the gallery parent.
 The lightbox includes neighboring images, zoom controls, and thumbnail previews.
+Lightbox looping is always off. Morph transitions and pull to close are always
+enabled, and closing morphs to the active image. Settings control preload, zoom,
+counter visibility, carousel synchronization, and backdrop color, including on
+React loop copies.
 Opening an image always pauses carousel automove until the close morph finishes.
 `syncKniffCarousel` synchronizes subsequent lightbox navigation using the same
 alignment as carousel buttons; the initially clicked slide stays in place.
@@ -82,6 +86,13 @@ swift scripts/macos-wheel.swift --app safari --test --runs 40
 Use `chrome` or `firefox` for the other browsers. The tool captures the browser
 window, watches a 30px strip at the carousel center on the left edge, and saves
 candidate blank frames plus gesture results under `/tmp` for visual inspection.
+
+## Production module hosting
+
+The production CDN runs on a Cloudflare Worker at `https://framer-kit-prod.kniff.at`.
+See [worker/README.md](worker/README.md) for versioned imports, external dependency
+handling, verification, and deployment. Copy-ready production adapters live in
+`examples/framer/prod`.
 
 ## Release workflow
 

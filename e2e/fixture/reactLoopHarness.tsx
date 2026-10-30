@@ -1,16 +1,19 @@
-import React, { forwardRef, useState } from 'react'
+import React, { forwardRef, useState, useContext } from 'react'
 import { createRoot } from 'react-dom/client'
 import { withKniffCarouselLoop } from '../../src/scroll-snap/withKniffCarouselLoop'
 import { VisibleScrollOverflowSettings } from '../../src/scroll-snap/VisibleScrollOverflowSettings'
-import { withRamkaGallery, withRamkaTrigger } from '../../src/ramka/overrides'
+import { withKniffLightboxGallery, withKniffLightboxTrigger } from '../../src/ramka/overrides'
 import CSSScrollSnapButton from '../../src/scroll-snap/CSSScrollSnap'
 import { RamkaSettings } from '../../src/ramka/RamkaSettings'
+import { RamkaGalleryContext } from '../../src/ramka/context'
+import type { RamkaSettingsProps } from '../../src/ramka/types'
 import { ramkaSettingsDefaults } from '../../src/ramka/defaults'
 const Frame = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => <div {...props} ref={ref} />)
-const GalleryCarousel = withRamkaGallery(withKniffCarouselLoop(Frame))
-const Trigger = withRamkaTrigger(Frame)
-interface Options { align?: "start" | "center" | "end"; sync?: boolean; autoMove?: boolean | "off" | "per-slide" | "scroll" }
-function App({align="start",sync=true,autoMove=false}: Options) {
+const GalleryCarousel = withKniffLightboxGallery(withKniffCarouselLoop(Frame))
+const Trigger = withKniffLightboxTrigger(Frame)
+function ConfigProbe() { const gallery=useContext(RamkaGalleryContext); return <output data-gallery-config hidden>{JSON.stringify(gallery?.config)}</output> }
+interface Options { ramka?: Partial<RamkaSettingsProps>; align?: "start" | "center" | "end"; sync?: boolean; autoMove?: boolean | "off" | "per-slide" | "scroll" }
+function App({align="start",sync=true,autoMove=false,ramka={}}: Options) {
   const [clicks, setClicks] = useState(0)
   const [count, setCount] = useState(4)
   const [loop, setLoop] = useState(true)
@@ -22,9 +25,9 @@ function App({align="start",sync=true,autoMove=false}: Options) {
       <div aria-label="Loop test" style={{width:360,display:'flex',gap:24}}>
         <GalleryCarousel id="react-loop" style={{display:'flex',gap:24,width:360,overflowX:'auto'}}>
           {Array.from({length:count},(_,i) => <Trigger key={i} data-slide={i} onClick={() => setClicks(c => c+1)} style={{flex:'0 0 240px',height:180}}>
-            <img src={`/image.svg?loop=${i}`} width={320} height={240} alt={`Photo ${i}`} style={{width:'100%',height:'100%'}} />
+            <ConfigProbe /><img src={`/image.svg?loop=${i}`} width={320} height={240} alt={`Photo ${i}`} style={{width:'100%',height:'100%'}} />
           </Trigger>)}
-          <RamkaSettings {...ramkaSettingsDefaults} syncKniffCarousel={sync} />
+          <RamkaSettings {...ramkaSettingsDefaults} syncKniffCarousel={sync} {...ramka} />
         </GalleryCarousel>
       </div>
       <VisibleScrollOverflowSettings containerID="Loop test" boundaryID="Loop boundary" align={align} edgeSpace={false} loop={loop} autoMove={autoMove === true ? "scroll" : autoMove === false ? "off" : autoMove} />

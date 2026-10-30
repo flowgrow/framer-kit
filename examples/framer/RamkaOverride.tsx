@@ -1,17 +1,17 @@
 import type { ComponentType } from "react"
 import {
-  withRamkaGallery as kitWithRamkaGallery,
-  withRamkaTrigger as kitWithRamkaTrigger,
+  withKniffLightboxGallery as kitWithKniffLightboxGallery,
+  withKniffLightboxTrigger as kitWithKniffLightboxTrigger,
 } from "https://framer-kit-dev.kniff.at/ramka.js"
 
-export function withRamkaGallery(
+export function withKniffLightboxGallery(
   Component: ComponentType<any>,
 ): ComponentType<any> {
-  return kitWithRamkaGallery(Component)
+  return kitWithKniffLightboxGallery(Component)
 }
 
-export function withRamkaTrigger(
+export function withKniffLightboxTrigger(
   Component: ComponentType<any>,
 ): ComponentType<any> {
-  return kitWithRamkaTrigger(Component)
+  return kitWithKniffLightboxTrigger(Component)
 }

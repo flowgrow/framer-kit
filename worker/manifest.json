@@ -1,0 +1,44 @@
+{
+  "latest": "0.5.1",
+  "versions": [
+    "0.5.1"
+  ],
+  "current": "builds/3c1b881ec7a2c897d33b20e0",
+  "builds": {
+    "builds/3c1b881ec7a2c897d33b20e0": [
+      "autoMove-U2RSUYF3.js",
+      "autoMove-U2RSUYF3.js.map",
+      "chunk-3HEMALD3.js",
+      "chunk-3HEMALD3.js.map",
+      "chunk-4XNUDQ3E.js",
+      "chunk-4XNUDQ3E.js.map",
+      "chunk-52M4KSJK.js",
+      "chunk-52M4KSJK.js.map",
+      "chunk-DWKCIRCH.js",
+      "chunk-DWKCIRCH.js.map",
+      "chunk-ESP65WAU.js",
+      "chunk-ESP65WAU.js.map",
+      "chunk-P53UX5PN.js",
+      "chunk-P53UX5PN.js.map",
+      "chunk-R6GCUNPY.js",
+      "chunk-R6GCUNPY.js.map",
+      "chunk-WPWJH2RG.js",
+      "chunk-WPWJH2RG.js.map",
+      "index.d.ts",
+      "index.js",
+      "index.js.map",
+      "lightbox-morph-runtime-2AFPCVPV-P2FSY3P4.js",
+      "lightbox-morph-runtime-2AFPCVPV-P2FSY3P4.js.map",
+      "lightbox-pull-runtime-UQ7VEQS6-AHAYJYTA.js",
+      "lightbox-pull-runtime-UQ7VEQS6-AHAYJYTA.js.map",
+      "lightbox-zoom-runtime-ZANHZWWE-MJFJSSXB.js",
+      "lightbox-zoom-runtime-ZANHZWWE-MJFJSSXB.js.map",
+      "ramka.d.ts",
+      "ramka.js",
+      "ramka.js.map",
+      "scroll-snap.d.ts",
+      "scroll-snap.js",
+      "scroll-snap.js.map"
+    ]
+  }
+}

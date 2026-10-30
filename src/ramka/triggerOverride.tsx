@@ -215,7 +215,7 @@ export function createTriggerOverride<P extends object>(
     )
   })
 
-  Override.displayName = `withRamkaTrigger(${displayName})`
+  Override.displayName = `withKniffLightboxTrigger(${displayName})`
 
   return Override as unknown as ComponentType<P>
 }

@@ -25,8 +25,8 @@ export function RamkaPortal({ items, config }: { items: RamkaMediaItem[]; config
     <Lightbox.Portal data-kniff-ramka-portal="" className={`${classes("lb-portal")}${backdropIsDark(config.backdropColor) ? " dark" : ""}`} style={{ position: "fixed", inset: 0, zIndex: 2147483647 }}>
       <style>{ramkaPresetCSS}</style>
       <Lightbox.Backdrop className={classes("lb-backdrop")} style={{ backgroundColor: config.backdropColor }} />
-      <Lightbox.Content aria-label="Image viewer" pullToClose={config.pullToClose} className={classes("lb-content", snug && "lb-content-snug", solo && "lb-content-solo")}>
-        <Lightbox.Slides key={String(snug)} aria-label="Full-size images" aria-roledescription="carousel" preload={Math.max(config.preload, 2)}
+      <Lightbox.Content aria-label="Image viewer" pullToClose={true} className={classes("lb-content", snug && "lb-content-snug", solo && "lb-content-solo")}>
+        <Lightbox.Slides key={String(snug)} aria-label="Full-size images" aria-roledescription="carousel" preload={config.preload}
           className={classes("lb-slides", snug && "lb-slides-snug")}
           style={{ "--lb-snug-ratio-start": ratio(items[0]!), "--lb-snug-ratio-end": ratio(items[items.length - 1]!) } as React.CSSProperties}>
           {items.map((item, index) => {
