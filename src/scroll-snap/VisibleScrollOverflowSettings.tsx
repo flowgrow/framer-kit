@@ -260,52 +260,63 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
     }).catch(() => {})
     return () => { cancelled = true; cancelAnimationFrame(frame); dispose?.() }
   }, [canvas, autoMoveMode, autoMoveInterval, autoMoveSpeed, autoMoveDirection, containerID, loop, align])
-  // Canvas has no scroll position: place the first slide at its snap alignment.
+  // Each canvas breakpoint is a separate rendered frame, even when layer names
+  // are identical. Keep measurements on each viewport rather than the first match.
   useEffect(() => {
     if (!canvas || !containerID.trim()) return
-    let frame = 0
-    let observer: ResizeObserver | undefined
-    let attributes: MutationObserver | undefined
-    let viewport: HTMLElement | undefined
-    let attempts = 0
-    const install = () => {
-      const sizing = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(target(containerID))
-      viewport = sizing?.firstElementChild as HTMLElement | undefined
-      const first = viewport ? slideBoxes(viewport)[0] : undefined
-      if (!viewport || !first) {
-        if (++attempts < 120) frame = requestAnimationFrame(install)
-        return
-      }
-      const update = () => {
-        if (!viewport) return
-        const css = getComputedStyle(viewport)
-        const gap = css.columnGap === "normal" ? "0px" : css.columnGap
-        const values = {
-          "--kniff-canvas-first-width": first.offsetWidth + "px",
-          "--kniff-canvas-gap": gap,
+    const style = styleRef.current
+    const doc = style?.ownerDocument ?? document
+    const scope = style?.closest(target(boundaryID)) ?? doc.body
+    const selector = target(containerID)
+    const entries = new Map<HTMLElement, { first: HTMLElement; dispose(): void; update(): void }>()
+    const refresh = () => {
+      const active = new Set<HTMLElement>()
+      for (const sizing of scope.querySelectorAll<HTMLElement>(selector)) {
+        const viewport = sizing.firstElementChild
+        if (!(viewport instanceof HTMLElement)) continue
+        const first = slideBoxes(viewport)[0]
+        if (!first) continue
+        active.add(viewport)
+        const previous = entries.get(viewport)
+        if (previous?.first === first) { previous.update(); continue }
+        previous?.dispose()
+        const savedWidth = viewport.style.getPropertyValue("--kniff-canvas-first-width")
+        const savedGap = viewport.style.getPropertyValue("--kniff-canvas-gap")
+        const update = () => {
+          const css = getComputedStyle(viewport)
+          const values = {
+            "--kniff-canvas-first-width": first.offsetWidth + "px",
+            "--kniff-canvas-gap": css.columnGap === "normal" ? "0px" : css.columnGap,
+          }
+          for (const [name, value] of Object.entries(values)) {
+            if (viewport.style.getPropertyValue(name) !== value) viewport.style.setProperty(name, value)
+          }
         }
-        for (const [name, value] of Object.entries(values)) {
-          if (viewport.style.getPropertyValue(name) !== value) viewport.style.setProperty(name, value)
-        }
+        const resize = new ResizeObserver(update)
+        resize.observe(first)
+        resize.observe(viewport)
+        resize.observe(sizing)
+        entries.set(viewport, { first, update, dispose() {
+          resize.disconnect()
+          for (const [name, value] of [["--kniff-canvas-first-width", savedWidth], ["--kniff-canvas-gap", savedGap]]) {
+            if (value) viewport.style.setProperty(name!, value)
+            else viewport.style.removeProperty(name!)
+          }
+        } })
+        update()
       }
-      update()
-      observer = new ResizeObserver(update)
-      observer.observe(first)
-      observer.observe(viewport)
-      if (sizing) observer.observe(sizing)
-      attributes = new MutationObserver(update)
-      attributes.observe(viewport, { attributes: true, attributeFilter: ["style", "class"] })
-      if (sizing) attributes.observe(sizing, { attributes: true, attributeFilter: ["style", "class"] })
+      for (const [viewport, entry] of entries) {
+        if (!active.has(viewport)) { entry.dispose(); entries.delete(viewport) }
+      }
     }
-    frame = requestAnimationFrame(install)
+    refresh()
+    const mutations = new MutationObserver(refresh)
+    mutations.observe(scope, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] })
     return () => {
-      cancelAnimationFrame(frame)
-      observer?.disconnect()
-      attributes?.disconnect()
-      viewport?.style.removeProperty("--kniff-canvas-first-width")
-      viewport?.style.removeProperty("--kniff-canvas-gap")
+      mutations.disconnect()
+      for (const entry of entries.values()) entry.dispose()
     }
-  }, [containerID])
+  }, [canvas, containerID, boundaryID])
   if(!containerID.trim() || !boundaryID.trim()) return null
   const reference=target(containerID), boundary=target(boundaryID)
   const viewport=`${reference} > :first-child`
