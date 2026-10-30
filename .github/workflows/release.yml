@@ -25,9 +25,11 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - uses: changesets/action@v1
+      - uses: changesets/action@v2
         with:
-          publish: pnpm run release
-          createGithubReleases: true
+          publish-script: pnpm run release
+          create-github-releases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify published version
+        run: node scripts/verify-release.mjs
