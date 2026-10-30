@@ -6,7 +6,7 @@ import { RamkaLoopScope } from "../ramka/galleryOverride.js"
 interface LayerProps { children?: ReactNode }
 
 /** Apply to the actual overflow viewport. React owns every repeated slide. */
-export function withKniffCarousel<P extends object>(Component: ComponentType<P>): ComponentType<P> {
+export function withKniffCarouselLoop<P extends object>(Component: ComponentType<P>): ComponentType<P> {
   const Override = forwardRef<unknown, P>((props, forwardedRef) => {
     const canvas = RenderTarget.current() === RenderTarget.canvas
     const [viewport, setViewport] = useState<HTMLElement | null>(null)
@@ -42,6 +42,6 @@ export function withKniffCarousel<P extends object>(Component: ComponentType<P>)
         : <RamkaLoopScope key={cycle} data-kniff-loop-copy="" aria-hidden="true" style={{ display: "contents" }}>{slides}</RamkaLoopScope>
     }))
   })
-  Override.displayName = `withKniffCarousel(${Component.displayName ?? Component.name ?? "Component"})`
+  Override.displayName = `withKniffCarouselLoop(${Component.displayName ?? Component.name ?? "Component"})`
   return Override as unknown as ComponentType<P>
 }

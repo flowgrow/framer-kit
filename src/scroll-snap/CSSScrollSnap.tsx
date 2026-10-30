@@ -19,7 +19,7 @@ const css = `
   justify-content: flex-start !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
-  scroll-snap-type: x var(--snap-strength, mandatory);
+  scroll-snap-type: x mandatory;
   scroll-behavior: var(--snap-motion, smooth);
   overscroll-behavior-x: contain;
   scrollbar-width: none !important;
@@ -54,7 +54,7 @@ export function useCSSScrollSnap(id: string) {
   return useSyncExternalStore(subscribeRegistry, () => galleries.get(id), () => undefined)
 }
 
-export interface CSSScrollSnapGalleryProps { carouselID?: string; align?: "start" | "center" | "end"; snapStrength?: "mandatory" | "proximity"; stopAlways?: boolean; smoothScroll?: boolean; contentWidth?: number; contentMaxWidth?: number }
+export interface CSSScrollSnapGalleryProps { carouselID?: string; align?: "start" | "center" | "end"; stopAlways?: boolean; smoothScroll?: boolean; contentWidth?: number; contentMaxWidth?: number }
 function selectorFor(id: string) {
   const value = JSON.stringify(id).replace(/</g, "\\3c ")
   return `:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`
@@ -65,7 +65,7 @@ function selectorFor(id: string) {
  * @framerSupportedLayoutWidth fixed
  * @framerSupportedLayoutHeight fixed
  */
-export function CSSScrollSnapGallery({carouselID="CSS Scroll Snap Gallery", align="start", snapStrength="mandatory", stopAlways=false, smoothScroll=true,  contentWidth=87.5, contentMaxWidth=1040}: CSSScrollSnapGalleryProps) {
+export function CSSScrollSnapGallery({carouselID="CSS Scroll Snap Gallery", align="start", stopAlways=false, smoothScroll=true,  contentWidth=87.5, contentMaxWidth=1040}: CSSScrollSnapGalleryProps) {
     const canvas = RenderTarget.current() === RenderTarget.canvas
     const id = carouselID.trim()
     const selector = selectorFor(id)
@@ -151,14 +151,13 @@ export function CSSScrollSnapGallery({carouselID="CSS Scroll Snap Gallery", alig
       discovery.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:["data-framer-name","aria-label"]})
       window.addEventListener("resize", schedule)
       return () => { cancelAnimationFrame(frame); discovery.disconnect(); window.removeEventListener("resize",schedule); disconnect?.() }
-    }, [id, selector, canvas, align, smoothScroll, snapStrength, stopAlways, contentWidth, contentMaxWidth])
+    }, [id, selector, canvas, align, smoothScroll, stopAlways, contentWidth, contentMaxWidth])
     const scoped = css.split("[data-css-snap-shell]").join(`:has(> ${selector})`).split("[data-css-snap]").join(selector)
-    const settings = `${selector} { --snap-align:${align}; --snap-strength:${snapStrength}; --snap-stop:${stopAlways ? "always" : "normal"}; --snap-motion:${smoothScroll ? "smooth" : "auto"}; --snap-content-percent:${contentWidth}%; --snap-max-width:${contentMaxWidth}px; --snap-card-limit:${contentWidth}cqw; }`
+    const settings = `${selector} { --snap-align:${align}; --snap-strength:mandatory; --snap-stop:${stopAlways ? "always" : "normal"}; --snap-motion:${smoothScroll ? "smooth" : "auto"}; --snap-content-percent:${contentWidth}%; --snap-max-width:${contentMaxWidth}px; --snap-card-limit:${contentWidth}cqw; }`
     return id ? <style dangerouslySetInnerHTML={{ __html: scoped + settings }} /> : null
 }
 addPropertyControls(CSSScrollSnapGallery, {
   align:{title:"Snap Align",type:ControlType.Enum,options:["start","center","end"],optionIcons:["align-left","align-center","align-right"],displaySegmentedControl:true,defaultValue:"start"} as any,
-  snapStrength:{title:"Snapping",type:ControlType.Enum,options:["mandatory","proximity"],optionTitles:["Mandatory","Proximity"],displaySegmentedControl:true,defaultValue:"mandatory"},
   stopAlways:{title:"Stop Each Slide",type:ControlType.Boolean,defaultValue:false,description:"Prevent swipe gestures from skipping snap points."},
   smoothScroll:{title:"Smooth Scroll",type:ControlType.Boolean,defaultValue:true,description:"Arrow navigation always respects reduced-motion preferences."},
   contentWidth:{title:"Content Width",type:ControlType.Number,defaultValue:87.5,min:10,max:100,step:0.5,unit:"%"},

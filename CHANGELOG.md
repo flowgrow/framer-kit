@@ -1,5 +1,15 @@
 # @kniff/framer-kit
 
+## 0.5.1
+
+### Patch Changes
+
+- Replace the Auto Move boolean with Off, Per Slide, and Scroll modes. Per Slide advances between authored snap positions on an adjustable interval; Scroll retains continuous motion. Both modes pause for interaction and lightbox morphs.
+
+  Remove snapping-strength controls and always use mandatory scroll snapping.
+
+  Rename the loop viewport override to `withKniffCarouselLoop`.
+
 ## 0.5.0
 
 ### Minor Changes

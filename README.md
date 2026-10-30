@@ -11,10 +11,14 @@ slides inside that viewport. Percentage slide widths stay based on the sizing
 frame. The component adds full-width bleed gutters to your authored padding.
 
 `VisibleScrollOverflowSettings` accepts `containerID`, `boundaryID`, `align`
-(`start`, `center`, `end`), `strength`, `stopEach`, `showScrollbar`, `edgeSpace`,
-and `loop`. Targets match an aria-label or custom Framer layer name.
+(`start`, `center`, `end`), `stopEach`, `showScrollbar`, `edgeSpace`,
+and `loop`. Snapping is always mandatory. Targets match an aria-label or custom Framer layer name.
 
-Apply the `withKniffCarousel` override to the viewport frame. Loop is enabled by
+Auto Move selects `off`, `per-slide` (advances on `autoMoveInterval`, in seconds),
+or `scroll` (continuous motion at `autoMoveSpeed`, in px/s). Direction applies to
+both motion modes.
+
+Apply the `withKniffCarouselLoop` override to the viewport frame. Loop is enabled by
 default in preview and published pages. React clones the slides and the carousel
 normalizes the position after `scrollend`. Safari resets its scrolling layer at
 loop jumps to avoid missing slide paint. Disabling Loop keeps the layout CSS-only.
@@ -34,7 +38,7 @@ import {
   VisibleScrollOverflowSettings as KitComponent,
   visibleScrollOverflowSettingsPropertyControls,
 // @ts-ignore Framer resolves remote HTTPS modules.
-} from "https://esm.sh/@kniff/framer-kit@0.5.0/scroll-snap?external=react,react-dom,framer&target=es2022"
+} from "https://esm.sh/@kniff/framer-kit@0.5.1/scroll-snap?external=react,react-dom,framer&target=es2022"
 
 export default function ScrollSettings(props: Record<string, unknown>) {
   return <KitComponent {...props} />

@@ -4,16 +4,16 @@ export interface VisibleScrollOverflowSettingsProps {
   containerID?: string
   boundaryID?: string
   align?: "start" | "center" | "end"
-  strength?: "mandatory" | "proximity"
   showScrollbar?: boolean
   stopEach?: boolean
   loop?: boolean
-  autoMove?: boolean
+  autoMove?: "off" | "per-slide" | "scroll"
+  autoMoveInterval?: number
   autoMoveSpeed?: number
   autoMoveDirection?: "left" | "right"
   edgeSpace?: boolean
 }
-type AutoMoveInstaller = (viewport: HTMLElement, options: { speed: number; direction: "left" | "right" }) => () => void
+type AutoMoveInstaller = (viewport: HTMLElement, options: { speed: number; direction: "left" | "right"; mode: "per-slide" | "scroll"; interval: number }) => () => void
 
 function target(id:string) {
   const value=JSON.stringify(id.trim()).replace(/</g,"\\3c ")
@@ -33,8 +33,10 @@ function slideBoxes(parent: Element): HTMLElement[] {
  * @framerSupportedLayoutWidth fixed
  * @framerSupportedLayoutHeight fixed
  */
-export function VisibleScrollOverflowSettings({containerID="Percentage Sized Carousel",boundaryID="CSS Full Width Overflow Experiment",align="center",strength="mandatory",showScrollbar=false,stopEach=false,edgeSpace=true,loop=true,autoMove=false,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
+export function VisibleScrollOverflowSettings({containerID="Percentage Sized Carousel",boundaryID="CSS Full Width Overflow Experiment",align="center",showScrollbar=false,stopEach=false,edgeSpace=true,loop=true,autoMove="off",autoMoveInterval=3,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
   const styleRef = useRef<HTMLStyleElement>(null)
+  // Preserve saved values from the former boolean control.
+  const autoMoveMode = typeof autoMove === "boolean" ? (autoMove ? "scroll" : "off") : autoMove
   const canvas = RenderTarget.current() === RenderTarget.canvas
   const useEdgeSpace = loop || edgeSpace
   // Keep native snapping aligned with authored padding plus the additive CSS animation gutters.
@@ -276,7 +278,7 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
         }
     }, [containerID, align, loop])
   useEffect(() => {
-    if (canvas || !autoMove || !containerID.trim()) return
+    if (canvas || autoMoveMode === "off" || !containerID.trim()) return
     let frame = 0, attempts = 0
     let cancelled = false
     let dispose: (() => void) | undefined
@@ -289,7 +291,7 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
         if (++attempts < 120) frame = requestAnimationFrame(() => install(installAutoMove))
         return
       }
-      dispose = installAutoMove(viewport, { speed: autoMoveSpeed, direction: autoMoveDirection })
+      dispose = installAutoMove(viewport, { speed: autoMoveSpeed, direction: autoMoveDirection, mode: autoMoveMode, interval: autoMoveInterval * 1000 })
     }
     // @ts-ignore Framer resolves sibling code files at runtime; the repo build checks this path.
     const load: Promise<AutoMoveInstaller> = import("./autoMove.tsx").then(module => module.installAutoMove)
@@ -297,7 +299,7 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
       if (!cancelled) frame = requestAnimationFrame(() => install(installAutoMove))
     }).catch(() => {})
     return () => { cancelled = true; cancelAnimationFrame(frame); dispose?.() }
-  }, [canvas, autoMove, autoMoveSpeed, autoMoveDirection, containerID, loop, align])
+  }, [canvas, autoMoveMode, autoMoveInterval, autoMoveSpeed, autoMoveDirection, containerID, loop, align])
   // Canvas has no scroll position: place the first slide at its snap alignment.
   useEffect(() => {
     if (!canvas || !containerID.trim()) return
@@ -356,7 +358,7 @@ ${viewport} {
   display:flex !important; flex-wrap:nowrap !important;
   gap:inherit !important; align-items:inherit !important; justify-content:flex-start !important;
   overflow:visible !important;
-  scroll-snap-type:x ${strength};
+  scroll-snap-type:x mandatory;
   scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
 
   ${slides} {
@@ -424,7 +426,7 @@ ${viewport} {
   overflow-x:auto !important; overflow-y:hidden !important;
   overscroll-behavior-x:none; overflow-anchor:none;
   gap:inherit !important; align-items:inherit !important; justify-content:flex-start !important;
-  scroll-snap-type:x ${strength};
+  scroll-snap-type:x mandatory;
   scroll-padding-inline:calc((var(--kniff-bleed-page-span) - 100cqw) / 2);
   scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
 
@@ -452,14 +454,14 @@ ${viewport} {
 }
 export const visibleScrollOverflowSettingsPropertyControls = {
   showScrollbar:{title:"Scrollbar",type:ControlType.Boolean,defaultValue:false},
-  autoMove:{title:"Auto Move",type:ControlType.Boolean,defaultValue:false},
-  autoMoveSpeed:{title:"Speed",type:ControlType.Number,defaultValue:30,min:1,max:500,unit:"px/s",hidden:props=>!props.autoMove},
-  autoMoveDirection:{title:"Direction",type:ControlType.Enum,options:["left","right"],optionTitles:["Left","Right"],defaultValue:"left",displaySegmentedControl:true,hidden:props=>!props.autoMove},
-  loop:{title:"Loop",type:ControlType.Boolean,defaultValue:true,description:"Apply withKniffCarousel to the overflow viewport. Loop copies are rendered through React in preview and on the published site."},
+  autoMove:{title:"Auto Move",type:ControlType.Enum,options:["off","per-slide","scroll"],optionTitles:["Off","Per Slide","Scroll"],defaultValue:"off"},
+  autoMoveInterval:{title:"Time per slide",type:ControlType.Number,defaultValue:3,min:0.5,max:60,unit:"s",hidden:props=>props.autoMove!=="per-slide"},
+  autoMoveSpeed:{title:"Speed",type:ControlType.Number,defaultValue:30,min:1,max:500,unit:"px/s",hidden:props=>props.autoMove!=="scroll"},
+  autoMoveDirection:{title:"Direction",type:ControlType.Enum,options:["left","right"],optionTitles:["Left","Right"],defaultValue:"left",displaySegmentedControl:true,hidden:props=>!props.autoMove || props.autoMove==="off"},
+  loop:{title:"Loop",type:ControlType.Boolean,defaultValue:true,description:"Continuously loop through slides. Requires the Kniff Carousel Loop override on the viewport."},
   containerID:{title:"Container",type:ControlType.String,defaultValue:"Percentage Sized Carousel",description:"Match aria-label or the custom layer name. This sizing container holds one viewport frame containing the slides."},
   boundaryID:{title:"Boundary",type:ControlType.String,defaultValue:"CSS Full Width Overflow Experiment",description:"Name of the full-width ancestor. Keep the sizing container centered inside it."},
   align:{title:"Snap Align",type:ControlType.Enum,options:["start","center","end"],optionIcons:["align-left","align-center","align-right"],displaySegmentedControl:true,defaultValue:"center"} as PropertyControls<VisibleScrollOverflowSettingsProps>["align"] & { optionIcons: string[] },
-  strength:{title:"Snapping",type:ControlType.Enum,options:["mandatory","proximity"],optionTitles:["Mandatory","Proximity"],displaySegmentedControl:true,defaultValue:"mandatory"},
   stopEach:{title:"Stop Each Slide",type:ControlType.Boolean,defaultValue:false},
   edgeSpace:{title:"Edge Space",type:ControlType.Boolean,defaultValue:true,hidden:props=>props.loop !== false,description:"This allows us to align first and last slide as well"},
 } satisfies PropertyControls<VisibleScrollOverflowSettingsProps>

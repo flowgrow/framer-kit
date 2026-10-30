@@ -14,7 +14,7 @@ export {
 } from "./CSSScrollSnap.js"
 export type { CSSScrollSnapButtonProps, CSSScrollSnapGalleryProps } from "./CSSScrollSnap.js"
 
-export { withKniffCarousel } from "./withKniffCarousel.js"
+export { withKniffCarouselLoop } from "./withKniffCarouselLoop.js"
 
 // Shared with native Framer code-file adapters for overflow navigation.
 export { slideBoxes, overflowSnapPoints } from "./snapGeometry.js"
