@@ -1,5 +1,13 @@
 # @kniff/framer-kit
 
+## 0.5.0
+
+### Minor Changes
+
+- Add React-owned loop copies, carousel navigation controls, and automatic motion for the native CSS scroll-snap carousel. Apply `withKniffCarousel` to the viewport to enable looping. Preserve canvas slide dimensions and padding with CSS-only positioning, and always enable Edge Space when looping.
+
+  Match Ramka's default lightbox presentation with neighboring images, zoom controls, and thumbnails. Always pause carousel motion while opening or closing the lightbox; resume only after the close morph completes. Synchronize subsequent navigation using the carousel's authored snap alignment with `syncKniffCarousel`. Each React copy supplies its own morph source. Remove lightbox previous/next buttons and runtime console output. Embla remains completely removed.
+
 ## 0.4.0
 
 ### Minor Changes

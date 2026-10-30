@@ -1,6 +1,6 @@
 {
   "name": "@kniff/framer-kit",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Native scroll-snap carousels and Ramka lightboxes for Framer.",
   "repository": {
     "type": "git",
@@ -43,7 +43,8 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm run check && changeset publish",
-    "prepublishOnly": "pnpm run check"
+    "prepublishOnly": "pnpm run check",
+    "test:e2e": "playwright test"
   },
   "publishConfig": {
     "access": "public"
@@ -59,6 +60,8 @@
   "devDependencies": {
     "@changesets/changelog-github": "1.0.0",
     "@changesets/cli": "3.0.0",
+    "@playwright/test": "1.64.0",
+    "@types/node": "24.19.2",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
     "react": "18.3.1",
@@ -66,6 +69,7 @@
     "react-dom": "18.3.1",
     "tsup": "8.5.1",
     "typescript": "5.9.3",
+    "vite": "8.3.4",
     "vitest": "4.1.10"
   },
   "dependencies": {

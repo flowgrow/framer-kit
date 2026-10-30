@@ -172,7 +172,9 @@ export function createTriggerOverride<P extends object>(
       )
     }
 
-    // Resolve the trigger DOM node before mounting the lightbox trigger.
+    // Framer only exposes an override's DOM node after it mounts. Render the
+    // base component once without Ramka, then mount Lightbox.Trigger.
+    // This avoids index swaps inside Ramka's trigger registry entirely.
     if (!triggerReady) {
       return React.createElement(
         "span",
@@ -191,8 +193,9 @@ export function createTriggerOverride<P extends object>(
       <Lightbox.Trigger
         id={`kniff-ramka-trigger-${triggerId.replace(/:/g, "")}`}
         index={index}
+        onClickCapture={(event) => gallery.prepareOpen(index, event.currentTarget)}
         role="button"
-        tabIndex={0}
+        tabIndex={gallery.isLoopCopy ? -1 : 0}
         onKeyDown={(event) => {
           if (event.key !== "Enter" && event.key !== " ") return
           event.preventDefault()

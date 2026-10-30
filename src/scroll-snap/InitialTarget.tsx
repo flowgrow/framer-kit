@@ -1,4 +1,5 @@
-import type { CSSProperties } from "react"
+import { useContext, type CSSProperties } from "react"
+import { RamkaGalleryContext } from "../ramka/context.js"
 export interface InitialTargetProps { style?: CSSProperties }
 /**
  * Place inside the chosen slide, set Position to Absolute and pin all four edges.
@@ -10,6 +11,8 @@ export interface InitialTargetProps { style?: CSSProperties }
  * @framerSupportedLayoutHeight fixed
  */
 export function InitialTarget({ style }: InitialTargetProps) {
+    const gallery = useContext(RamkaGalleryContext)
+    if (gallery?.isLoopCopy) return null
     return <div aria-hidden="true" style={{ ...style, pointerEvents: "none" }}>
         <style>{`
 .kniff-initial-target-marker {

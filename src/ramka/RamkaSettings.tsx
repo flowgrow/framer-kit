@@ -28,8 +28,8 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     pullToClose,
     preload,
     zoom,
-    showNavigation,
     showCounter,
+    syncKniffCarousel,
     backdropColor,
   } = settings
 
@@ -42,8 +42,8 @@ export function RamkaSettings(props: RamkaSettingsProps) {
       pullToClose,
       preload,
       zoom,
-      showNavigation,
       showCounter,
+      syncKniffCarousel,
       backdropColor,
     }
     setGalleryConfig(config)
@@ -56,8 +56,8 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     pullToClose,
     preload,
     zoom,
-    showNavigation,
     showCounter,
+    syncKniffCarousel,
     backdropColor,
   ])
 
@@ -70,6 +70,7 @@ export function RamkaSettings(props: RamkaSettingsProps) {
 
   return (
     <div
+      data-kniff-ramka-settings=""
       style={{
         ...settings.style,
         boxSizing: "border-box",
@@ -143,15 +144,15 @@ export const ramkaSettingsPropertyControls = {
     title: "Zoom",
     defaultValue: ramkaSettingsDefaults.zoom,
   },
-  showNavigation: {
-    type: ControlType.Boolean,
-    title: "Navigation",
-    defaultValue: ramkaSettingsDefaults.showNavigation,
-  },
   showCounter: {
     type: ControlType.Boolean,
     title: "Counter",
     defaultValue: ramkaSettingsDefaults.showCounter,
+  },
+  syncKniffCarousel: {
+    type: ControlType.Boolean,
+    title: "Sync Kniff Carousel",
+    defaultValue: ramkaSettingsDefaults.syncKniffCarousel,
   },
   backdropColor: {
     type: ControlType.Color,

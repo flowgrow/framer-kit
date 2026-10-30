@@ -14,10 +14,13 @@ frame. The component adds full-width bleed gutters to your authored padding.
 (`start`, `center`, `end`), `strength`, `stopEach`, `showScrollbar`, `edgeSpace`,
 and `loop`. Targets match an aria-label or custom Framer layer name.
 
-Loop is enabled by default in preview and published pages. It clones slides and
+Apply the `withKniffCarousel` override to the viewport frame. Loop is enabled by
+default in preview and published pages. React clones the slides and the carousel
 normalizes the position after `scrollend`. Safari resets its scrolling layer at
 loop jumps to avoid missing slide paint. Disabling Loop keeps the layout CSS-only.
-Canvas preserves visible overflow so every original slide remains editable.
+Canvas preserves visible overflow so every original slide remains editable. A
+CSS-only preview places the last slide before the first, preserving its own size
+and accounting for viewport padding. Edge Space is always enabled with Loop.
 
 `InitialTarget` is an experimental CSS initial-position helper. Place it inside
 the chosen slide, make it absolute, and pin all four edges. It uses Roma
@@ -31,7 +34,7 @@ import {
   VisibleScrollOverflowSettings as KitComponent,
   visibleScrollOverflowSettingsPropertyControls,
 // @ts-ignore Framer resolves remote HTTPS modules.
-} from "https://esm.sh/@kniff/framer-kit@0.4.0/scroll-snap?external=react,react-dom,framer&target=es2022"
+} from "https://esm.sh/@kniff/framer-kit@0.5.0/scroll-snap?external=react,react-dom,framer&target=es2022"
 
 export default function ScrollSettings(props: Record<string, unknown>) {
   return <KitComponent {...props} />
@@ -47,8 +50,14 @@ registration is explicit; importing the library does not register components.
 The `@kniff/framer-kit/ramka` entry exports `RamkaSettings`, `withRamkaGallery`,
 and `withRamkaTrigger`. Apply the gallery override to a parent and the trigger
 override to each image. Place Ramka Settings inside the gallery parent.
-Examples are in `examples/framer`. Embla integration has been retired; there is
-no Embla entry or Embla synchronization in this version.
+The lightbox includes neighboring images, zoom controls, and thumbnail previews.
+Opening an image always pauses carousel automove until the close morph finishes.
+`syncKniffCarousel` synchronizes subsequent lightbox navigation using the same
+alignment as carousel buttons; the initially clicked slide stays in place.
+React loop copies each retain their own morph source.
+
+Examples are in `examples/framer`. There is no Embla dependency or entry point.
+The old `syncEmbla`, `stopAutomove`, and lightbox navigation-button props are removed.
 
 ## Development
 

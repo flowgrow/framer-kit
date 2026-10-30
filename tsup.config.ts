@@ -14,6 +14,9 @@ export default defineConfig({
   treeshake: true,
   sourcemap: true,
   clean: true,
+  esbuildOptions(options) {
+    options.drop = ["console"]
+  },
   external: ["framer", "react", "react-dom", "react/jsx-runtime"],
   // Bundle every installed runtime package for Framer. Only the host-provided
   // packages listed above remain external.
