@@ -22,8 +22,8 @@ Apply the `withKniffCarousel` override to the viewport frame, including when Loo
 is off. It mirrors the viewport's authored padding and gap into CSS variables,
 preserving breakpoint and variant rules. The server-emitted variables survive
 hydration; padding and scroll padding use CSS calculations without padding
-observers or additive animations. The current gap layout still inherits the
-sizing container's gap.
+observers or additive animations. Set the slide gap on the viewport frame itself;
+the sizing container only controls its width and alignment.
 
 Loop is enabled by
 default in preview and published pages. React clones the slides and the carousel

@@ -343,7 +343,7 @@ ${viewport} {
   --kniff-initial-align:${align};
   --kniff-initial-position:${align === "start" ? "0%" : align === "end" ? "100%" : "50%"};
   display:flex !important; flex-wrap:nowrap !important;
-  gap:inherit !important; align-items:inherit !important; justify-content:flex-start !important;
+  align-items:inherit !important; justify-content:flex-start !important;
   overflow:visible !important;
   scroll-snap-type:x mandatory;
   scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
@@ -405,7 +405,7 @@ ${viewport} {
   padding-right:calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter)) !important;
   overflow-x:auto !important; overflow-y:hidden !important;
   overscroll-behavior-x:none; overflow-anchor:none;
-  gap:inherit !important; align-items:inherit !important; justify-content:flex-start !important;
+  align-items:inherit !important; justify-content:flex-start !important;
   scroll-snap-type:x mandatory;
   scroll-padding-left:calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter));
   scroll-padding-right:calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter));

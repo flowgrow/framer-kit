@@ -11,7 +11,7 @@ const Viewport = withKniffCarousel(Frame)
 export function AuthoredPadding() {
   if (typeof document === 'undefined') cssCollector.styles.add(authoredCSS)
   return <div className="authored-page" aria-label="Authored boundary" style={{width:'100%'}}>
-    <div aria-label="Authored sizing" style={{width:'70%',margin:'auto',gap:24}}>
+    <div aria-label="Authored sizing" style={{width:'70%',margin:'auto',gap:99}}>
       <Viewport id="authored-viewport" className="authored-viewport"><div style={{flex:'0 0 200px'}}>One</div><div style={{flex:'0 0 200px'}}>Two</div><div style={{flex:'0 0 200px'}}>Three</div></Viewport>
     </div>
     <VisibleScrollOverflowSettings containerID="Authored sizing" boundaryID="Authored boundary" align="start" loop={false} edgeSpace={false} />

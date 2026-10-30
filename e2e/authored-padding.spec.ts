@@ -6,6 +6,7 @@ test('SSR padding variables survive an empty client collector, hydration and bre
   const viewport=page.locator('#authored-viewport')
   const values=()=>viewport.evaluate(el=>{const s=getComputedStyle(el);return {left:parseFloat(s.paddingLeft),right:parseFloat(s.paddingRight),snapLeft:parseFloat(s.scrollPaddingLeft),snapRight:parseFloat(s.scrollPaddingRight),gap:s.getPropertyValue('--kniff-authored-column-gap').trim(),inline:(el as HTMLElement).style.scrollPaddingLeft}})
   await expect.poll(values).toEqual({left:182,right:246,snapLeft:182,snapRight:246,gap:'24px',inline:''})
+  await expect(viewport).toHaveCSS('column-gap','24px')
   const ssr=await page.locator('[data-kniff-authored-css]').textContent()
   expect(ssr).toContain('--kniff-authored-padding-right:96px')
   await page.evaluate(async()=>{
@@ -18,6 +19,7 @@ test('SSR padding variables survive an empty client collector, hydration and bre
   await expect.poll(values).toEqual({left:182,right:246,snapLeft:182,snapRight:246,gap:'24px',inline:''})
   await page.setViewportSize({width:600,height:600})
   await expect.poll(values).toEqual({left:102,right:140,snapLeft:102,snapRight:140,gap:'16px',inline:''})
+  await expect(viewport).toHaveCSS('column-gap','16px')
   await page.locator('.authored-page').evaluate(el=>el.classList.add('variant'))
   await expect.poll(values).toEqual({left:134,right:140,snapLeft:134,snapRight:140,gap:'16px',inline:''})
   await page.setViewportSize({width:1000,height:600})
