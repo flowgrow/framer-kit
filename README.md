@@ -1,6 +1,6 @@
 # @kniff/framer-kit
 
-Native scroll-snap carousels and Ramka lightboxes for Framer. React, React DOM,
+Native scroll-snap carousels and Kniff lightboxes for Framer. React, React DOM,
 and Framer are supplied by the host; implementations are safe to import during SSR.
 
 ## Scroll-snap carousel
@@ -56,11 +56,11 @@ addPropertyControls(ScrollSettings, visibleScrollOverflowSettingsPropertyControl
 Keep exact versions and the `external` query in remote imports. Property control
 registration is explicit; importing the library does not register components.
 
-## Ramka lightbox
+## Kniff Lightbox
 
 The `@kniff/framer-kit/ramka` entry exports `RamkaSettings`, `withKniffLightboxGallery`,
 and `withKniffLightboxTrigger`. Apply the gallery override to a parent and the trigger
-override to each image. Place Ramka Settings inside the gallery parent.
+override to each image. Place Kniff Lightbox Settings inside the gallery parent.
 The lightbox includes neighboring images, zoom controls, and thumbnail previews.
 Lightbox looping is always off. Morph transitions and pull to close are always
 enabled, and closing morphs to the active image. Settings control preload, zoom,

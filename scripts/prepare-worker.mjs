@@ -5,6 +5,10 @@ import { resolve, join } from "node:path"
 import { execFileSync } from "node:child_process"
 
 const root = resolve(import.meta.dirname, "..")
+// Allow a copy-only stable rebuild without promoting the working Dev bundle.
+const distFlag = process.argv.indexOf("--dist-dir")
+if (distFlag !== -1 && !process.argv[distFlag + 1]) throw new Error("--dist-dir requires a directory")
+const dist = resolve(root, distFlag === -1 ? "dist" : process.argv[distFlag + 1])
 const generated = join(root, "worker/.generated")
 const assets = join(generated, "assets")
 const releases = JSON.parse(await readFile(join(root, "worker/releases.json"), "utf8"))
@@ -29,12 +33,12 @@ for (const [prefix, names] of Object.entries(previous.builds)) {
     await writeFile(join(assets, prefix, name), Buffer.from(await response.arrayBuffer()))
   }
 }
-const files = (await readdir(join(root, "dist"))).filter(name => /\.(js|js\.map|d\.ts)$/.test(name)).sort()
+const files = (await readdir(dist)).filter(name => /\.(js|js\.map|d\.ts)$/.test(name)).sort()
 const hash = createHash("sha256")
-for (const name of files) { hash.update(name); hash.update(await readFile(join(root, "dist", name))) }
+for (const name of files) { hash.update(name); hash.update(await readFile(join(dist, name))) }
 const current = `builds/${hash.digest("hex").slice(0, 24)}`
 await mkdir(join(assets, current), { recursive: true })
-for (const name of files) await cp(join(root, "dist", name), join(assets, current, name))
+for (const name of files) await cp(join(dist, name), join(assets, current, name))
 
 for (const version of versions) {
   if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`Invalid release: ${version}`)

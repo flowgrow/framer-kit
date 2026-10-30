@@ -92,7 +92,7 @@ export function RamkaSettings(props: RamkaSettingsProps) {
         lineHeight: 1.4,
       }}
     >
-      <strong>Ramka Settings</strong>
+      <strong>Kniff Lightbox Settings</strong>
       <span>
         Place this inside the parent using the Kniff Lightbox Gallery override.
       </span>
