@@ -4,7 +4,7 @@ import {
   CSSScrollSnapGallery as KitGallery,
   cssScrollSnapButtonPropertyControls,
 // @ts-ignore Framer resolves remote HTTPS modules without TypeScript declarations.
-} from "https://framer-kit.kniff.at/builds/3c1b881ec7a2c897d33b20e0/index.js?external=react,react-dom,framer&target=es2022"
+} from "https://framer-kit.kniff.at/builds/3c1b881ec7a2c897d33b20e0/index.js?external=react,react-dom,framer&target=es2022&v=editor-20261030"
 
 /**
  * @framerIntrinsicWidth 44
