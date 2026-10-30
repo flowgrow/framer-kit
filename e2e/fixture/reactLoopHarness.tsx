@@ -1,6 +1,6 @@
 import React, { forwardRef, useState, useContext } from 'react'
 import { createRoot } from 'react-dom/client'
-import { withKniffCarouselLoop } from '../../src/scroll-snap/withKniffCarouselLoop'
+import { withKniffCarousel } from '../../src/scroll-snap/withKniffCarousel'
 import { VisibleScrollOverflowSettings } from '../../src/scroll-snap/VisibleScrollOverflowSettings'
 import { withKniffLightboxGallery, withKniffLightboxTrigger } from '../../src/ramka/overrides'
 import CSSScrollSnapButton from '../../src/scroll-snap/CSSScrollSnap'
@@ -9,7 +9,7 @@ import { RamkaGalleryContext } from '../../src/ramka/context'
 import type { RamkaSettingsProps } from '../../src/ramka/types'
 import { ramkaSettingsDefaults } from '../../src/ramka/defaults'
 const Frame = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => <div {...props} ref={ref} />)
-const GalleryCarousel = withKniffLightboxGallery(withKniffCarouselLoop(Frame))
+const GalleryCarousel = withKniffLightboxGallery(withKniffCarousel(Frame))
 const Trigger = withKniffLightboxTrigger(Frame)
 function ConfigProbe() { const gallery=useContext(RamkaGalleryContext); return <output data-gallery-config hidden>{JSON.stringify(gallery?.config)}</output> }
 interface Options { ramka?: Partial<RamkaSettingsProps>; align?: "start" | "center" | "end"; sync?: boolean; autoMove?: boolean | "off" | "per-slide" | "scroll" }

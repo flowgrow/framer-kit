@@ -18,7 +18,14 @@ Auto Move selects `off`, `per-slide` (advances on `autoMoveInterval`, in seconds
 or `scroll` (continuous motion at `autoMoveSpeed`, in px/s). Direction applies to
 both motion modes.
 
-Apply the `withKniffCarouselLoop` override to the viewport frame. Loop is enabled by
+Apply the `withKniffCarousel` override to the viewport frame, including when Loop
+is off. It mirrors the viewport's authored padding and gap into CSS variables,
+preserving breakpoint and variant rules. The server-emitted variables survive
+hydration; padding and scroll padding use CSS calculations without padding
+observers or additive animations. The current gap layout still inherits the
+sizing container's gap.
+
+Loop is enabled by
 default in preview and published pages. React clones the slides and the carousel
 normalizes the position after `scrollend`. Safari resets its scrolling layer at
 loop jumps to avoid missing slide paint. Disabling Loop keeps the layout CSS-only.

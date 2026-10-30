@@ -1,0 +1,25 @@
+import {test, expect} from '@playwright/test'
+
+test('SSR padding variables survive an empty client collector, hydration and breakpoint/variant changes',async({page})=>{
+  await page.setViewportSize({width:1000,height:600})
+  await page.goto('/authored-padding')
+  const viewport=page.locator('#authored-viewport')
+  const values=()=>viewport.evaluate(el=>{const s=getComputedStyle(el);return {left:parseFloat(s.paddingLeft),right:parseFloat(s.paddingRight),snapLeft:parseFloat(s.scrollPaddingLeft),snapRight:parseFloat(s.scrollPaddingRight),gap:s.getPropertyValue('--kniff-authored-column-gap').trim(),inline:(el as HTMLElement).style.scrollPaddingLeft}})
+  await expect.poll(values).toEqual({left:182,right:246,snapLeft:182,snapRight:246,gap:'24px',inline:''})
+  const ssr=await page.locator('[data-kniff-authored-css]').textContent()
+  expect(ssr).toContain('--kniff-authored-padding-right:96px')
+  await page.evaluate(async()=>{
+    const module=await import(String('/e2e/fixture/authoredPadding.tsx'))
+    ;(window as any).authoredHydration=module.hydrateAuthoredPadding()
+  })
+  await expect(viewport).toHaveAttribute('data-kniff-react-loop','')
+  await expect.poll(()=>page.evaluate(()=>(window as any).authoredHydration.errors)).toEqual([])
+  expect(await page.evaluate(()=>(window as any).authoredHydration.collectorSize)).toBe(0)
+  await expect.poll(values).toEqual({left:182,right:246,snapLeft:182,snapRight:246,gap:'24px',inline:''})
+  await page.setViewportSize({width:600,height:600})
+  await expect.poll(values).toEqual({left:102,right:140,snapLeft:102,snapRight:140,gap:'16px',inline:''})
+  await page.locator('.authored-page').evaluate(el=>el.classList.add('variant'))
+  await expect.poll(values).toEqual({left:134,right:140,snapLeft:134,snapRight:140,gap:'16px',inline:''})
+  await page.setViewportSize({width:1000,height:600})
+  await expect.poll(values).toEqual({left:194,right:246,snapLeft:194,snapRight:246,gap:'24px',inline:''})
+})

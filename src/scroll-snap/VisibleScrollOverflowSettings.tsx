@@ -39,46 +39,6 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
   const autoMoveMode = typeof autoMove === "boolean" ? (autoMove ? "scroll" : "off") : autoMove
   const canvas = RenderTarget.current() === RenderTarget.canvas
   const useEdgeSpace = loop || edgeSpace
-  // Keep native snapping aligned with authored padding plus the additive CSS animation gutters.
-  useEffect(() => {
-    if (canvas || !containerID.trim()) return
-    let frame = 0
-    let attempts = 0
-    let dispose: (() => void) | undefined
-    const install = () => {
-      const sizing = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(target(containerID))
-      const viewport = sizing?.firstElementChild as HTMLElement | null
-      if (!viewport || !sizing) {
-        if (++attempts < 120) frame = requestAnimationFrame(install)
-        return
-      }
-      const previousLeft = viewport.style.scrollPaddingLeft
-      const previousRight = viewport.style.scrollPaddingRight
-      const sync = () => {
-        const css = getComputedStyle(viewport)
-        if (viewport.style.scrollPaddingLeft !== css.paddingLeft) viewport.style.scrollPaddingLeft = css.paddingLeft
-        if (viewport.style.scrollPaddingRight !== css.paddingRight) viewport.style.scrollPaddingRight = css.paddingRight
-      }
-      const resize = new ResizeObserver(sync)
-      resize.observe(viewport)
-      resize.observe(sizing)
-      const boundary = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(target(boundaryID))
-      if (boundary) resize.observe(boundary)
-      const attributes = new MutationObserver(sync)
-      attributes.observe(viewport, {attributes:true, attributeFilter:["style","class"]})
-      attributes.observe(sizing, {attributes:true, attributeFilter:["style","class"]})
-      sync()
-      dispose = () => {
-        resize.disconnect()
-        attributes.disconnect()
-        viewport.style.scrollPaddingLeft = previousLeft
-        viewport.style.scrollPaddingRight = previousRight
-      }
-    }
-    // Register before the loop effect so its initial geometry sees the full insets.
-    frame = requestAnimationFrame(install)
-    return () => { cancelAnimationFrame(frame); dispose?.() }
-  }, [containerID, boundaryID])
 
     useEffect(() => {
         if (
@@ -404,12 +364,6 @@ ${viewport} {
   }
   const css=`
 @property --kniff-bleed-page-span { syntax:"<length>"; inherits:true; initial-value:0px; }
-@keyframes kniff-bleed-gutters {
-  from, to {
-    padding-left:calc((var(--kniff-bleed-page-span) - 100cqw) / 2);
-    padding-right:calc((var(--kniff-bleed-page-span) - 100cqw) / 2);
-  }
-}
 ${boundary} { container-type:inline-size; }
 ${reference} { --kniff-bleed-page-span:100cqw; container-type:inline-size; overflow:visible !important; }
 ${viewport} {
@@ -419,15 +373,15 @@ ${viewport} {
   flex:none !important; width:var(--kniff-bleed-page-span) !important; max-width:none !important;
   min-width:0;
   margin-inline:calc((100cqw - var(--kniff-bleed-page-span)) / 2) !important;
-  /* Add bleed gutters to Framer's authored padding instead of replacing it.
-     Both keyframes are identical and paused: there is no moving animation. */
-  animation:kniff-bleed-gutters 1s linear both paused;
-  animation-composition:add;
+  --kniff-gutter:calc((var(--kniff-bleed-page-span) - 100cqw) / 2);
+  padding-left:calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter)) !important;
+  padding-right:calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter)) !important;
   overflow-x:auto !important; overflow-y:hidden !important;
   overscroll-behavior-x:none; overflow-anchor:none;
   gap:inherit !important; align-items:inherit !important; justify-content:flex-start !important;
   scroll-snap-type:x mandatory;
-  scroll-padding-inline:calc((var(--kniff-bleed-page-span) - 100cqw) / 2);
+  scroll-padding-left:calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter));
+  scroll-padding-right:calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter));
   scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
 
   ${slides} {
@@ -458,8 +412,8 @@ export const visibleScrollOverflowSettingsPropertyControls = {
   autoMoveInterval:{title:"Time per slide",type:ControlType.Number,defaultValue:3,min:0.5,max:60,unit:"s",hidden:props=>props.autoMove!=="per-slide"},
   autoMoveSpeed:{title:"Speed",type:ControlType.Number,defaultValue:30,min:1,max:500,unit:"px/s",hidden:props=>props.autoMove!=="scroll"},
   autoMoveDirection:{title:"Direction",type:ControlType.Enum,options:["left","right"],optionTitles:["Left","Right"],defaultValue:"left",displaySegmentedControl:true,hidden:props=>!props.autoMove || props.autoMove==="off"},
-  loop:{title:"Loop",type:ControlType.Boolean,defaultValue:true,description:"Continuously loop through slides. Requires the Kniff Carousel Loop override on the viewport."},
-  containerID:{title:"Container",type:ControlType.String,defaultValue:"Percentage Sized Carousel",description:"Match aria-label or the custom layer name. This sizing container holds one viewport frame containing the slides."},
+  loop:{title:"Loop",type:ControlType.Boolean,defaultValue:true,description:"Continuously loop through slides. Requires the Kniff Carousel override on the viewport."},
+  containerID:{title:"Container",type:ControlType.String,defaultValue:"Percentage Sized Carousel",description:"Match aria-label or the custom layer name. This sizing container holds one viewport frame containing the slides. Apply withKniffCarousel to that viewport, including when Loop is off."},
   boundaryID:{title:"Boundary",type:ControlType.String,defaultValue:"CSS Full Width Overflow Experiment",description:"Name of the full-width ancestor. Keep the sizing container centered inside it."},
   align:{title:"Snap Align",type:ControlType.Enum,options:["start","center","end"],optionIcons:["align-left","align-center","align-right"],displaySegmentedControl:true,defaultValue:"center"} as PropertyControls<VisibleScrollOverflowSettingsProps>["align"] & { optionIcons: string[] },
   stopEach:{title:"Stop Each Slide",type:ControlType.Boolean,defaultValue:false},
