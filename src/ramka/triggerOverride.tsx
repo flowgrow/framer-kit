@@ -64,6 +64,7 @@ function renderComponent<P extends object>(
 ) {
   return React.createElement(Component, {
     ...props,
+    style: { ...(props as { style?: React.CSSProperties }).style, cursor: "pointer" },
     ref,
   } as P & RefAttributes<unknown>)
 }

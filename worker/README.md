@@ -37,7 +37,7 @@ pnpm exec wrangler deploy --config worker/wrangler.jsonc
 pnpm run worker:verify
 ```
 
-For a stable copy-only rebuild, run `node scripts/prepare-worker.mjs --dist-dir /path/to/stable/dist` instead of `worker:prepare`, then deploy normally. This keeps experimental Dev changes out of Prod. The current copy-only build uses source commit `07213e4` with the canvas lightbox label changed to “Kniff Lightbox Settings”.
+For a targeted stable rebuild, run `node scripts/prepare-worker.mjs --dist-dir /path/to/stable/dist` instead of `worker:prepare`, then deploy normally. This keeps experimental Dev changes out of Prod. The current stable build uses source commit `07213e4` with the “Kniff Lightbox Settings” canvas label and a pointer cursor on lightbox triggers.
 
 To host a new npm release, add its exact version to `releases.json` before
 preparing. Preparation retains previously deployed builds and versions from
