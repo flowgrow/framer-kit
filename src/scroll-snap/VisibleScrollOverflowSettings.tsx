@@ -265,6 +265,7 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
     if (!canvas || !containerID.trim()) return
     let frame = 0
     let observer: ResizeObserver | undefined
+    let attributes: MutationObserver | undefined
     let viewport: HTMLElement | undefined
     let attempts = 0
     const install = () => {
@@ -276,18 +277,33 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
         return
       }
       const update = () => {
-        viewport?.style.setProperty("--kniff-canvas-first-width", first.offsetWidth + "px")
-
+        if (!viewport) return
+        const css = getComputedStyle(viewport)
+        const gap = css.columnGap === "normal" ? "0px" : css.columnGap
+        const values = {
+          "--kniff-canvas-first-width": first.offsetWidth + "px",
+          "--kniff-canvas-gap": gap,
+        }
+        for (const [name, value] of Object.entries(values)) {
+          if (viewport.style.getPropertyValue(name) !== value) viewport.style.setProperty(name, value)
+        }
       }
       update()
       observer = new ResizeObserver(update)
       observer.observe(first)
+      observer.observe(viewport)
+      if (sizing) observer.observe(sizing)
+      attributes = new MutationObserver(update)
+      attributes.observe(viewport, { attributes: true, attributeFilter: ["style", "class"] })
+      if (sizing) attributes.observe(sizing, { attributes: true, attributeFilter: ["style", "class"] })
     }
     frame = requestAnimationFrame(install)
     return () => {
       cancelAnimationFrame(frame)
       observer?.disconnect()
+      attributes?.disconnect()
       viewport?.style.removeProperty("--kniff-canvas-first-width")
+      viewport?.style.removeProperty("--kniff-canvas-gap")
     }
   }, [containerID])
   if(!containerID.trim() || !boundaryID.trim()) return null

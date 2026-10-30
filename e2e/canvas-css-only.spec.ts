@@ -18,6 +18,11 @@ for (const padding of ['0px','40px 96px 40px 32px']) for (const size of [{width:
     return {gap:first.left-last.right,width:last.width,height:last.height,top:first.top-last.top}
   })
   await expect.poll(async()=>{const actual=await geometry();return Math.max(Math.abs(actual.gap-24),Math.abs(actual.width-authored.width),Math.abs(actual.height-authored.height),Math.abs(actual.top))}).toBeLessThan(0.5)
+  // Changing only gap does not resize the first slide.
+  for (const gap of [0, 12, 53]) {
+    await page.locator('[aria-label="Canvas slides"]').evaluate((el,gap)=>{(el as HTMLElement).style.gap=gap+'px'},gap)
+    await expect.poll(async()=>{const actual=await geometry();return Math.max(Math.abs(actual.gap-gap),Math.abs(actual.width-authored.width),Math.abs(actual.height-authored.height),Math.abs(actual.top))}).toBeLessThan(0.5)
+  }
   await page.locator('.slide').first().evaluate(el=>{(el as HTMLElement).style.setProperty('margin-inline-start','110px','important')})
-  await expect.poll(async()=>{const actual=await geometry();return Math.max(Math.abs(actual.gap-24),Math.abs(actual.width-authored.width),Math.abs(actual.height-authored.height),Math.abs(actual.top))}).toBeLessThan(0.5)
+  await expect.poll(async()=>{const actual=await geometry();return Math.max(Math.abs(actual.gap-53),Math.abs(actual.width-authored.width),Math.abs(actual.height-authored.height),Math.abs(actual.top))}).toBeLessThan(0.5)
 })
