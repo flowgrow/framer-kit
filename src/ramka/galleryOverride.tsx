@@ -1,10 +1,14 @@
-import { Lightbox } from "ramka"
+import { Lightbox, type NavigationSource } from "ramka"
+import { findSnapViewport, freezeSnapViewport, syncSnapToElement } from "./carouselSync.js"
+import { RamkaPortal } from "./RamkaPortal.js"
 import * as React from "react"
 import {
   forwardRef,
   type ComponentType,
   type RefAttributes,
   useCallback,
+  useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -61,220 +65,23 @@ function upsertMedia(
   return sortRamkaMedia(updated)
 }
 
-const RAMKA_PORTAL_CSS = `
-[data-kniff-ramka-portal] [data-ramka-backdrop] {
-  opacity: 0;
-  transition: opacity 220ms ease;
-}
-[data-kniff-ramka-portal] [data-ramka-backdrop][data-open] {
-  opacity: 1;
-}
-[data-kniff-ramka-portal] [data-ramka-backdrop][data-pulling] {
-  opacity: calc(1 - var(--lightbox-pull-progress, 0) * 0.65);
-  transition: none;
-}
-[data-kniff-ramka-portal] button:focus-visible {
-  outline: 2px solid white;
-  outline-offset: 3px;
-}
-`
-
-const controlStyle: React.CSSProperties = {
-  position: "absolute",
-  zIndex: 3,
-  display: "grid",
-  placeItems: "center",
-  width: 44,
-  height: 44,
-  margin: 0,
-  padding: 0,
-  border: "1px solid rgba(255,255,255,0.28)",
-  borderRadius: 999,
-  background: "rgba(0,0,0,0.34)",
-  color: "white",
-  font: "500 20px/1 Inter, sans-serif",
-  cursor: "pointer",
-  backdropFilter: "blur(12px)",
-  WebkitBackdropFilter: "blur(12px)",
-}
-
-function RamkaPortal({
-  items,
-  config,
-}: {
-  items: RamkaMediaItem[]
-  config: RamkaGalleryConfig
-}) {
-  if (items.length === 0) return null
-
-  return (
-    <Lightbox.Portal
-      data-kniff-ramka-portal=""
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 2147483647,
-      }}
-    >
-      <style>{RAMKA_PORTAL_CSS}</style>
-      <Lightbox.Backdrop
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: config.backdropColor,
-        }}
-      />
-      <Lightbox.Content
-        aria-label="Image viewer"
-        pullToClose={config.pullToClose}
-        style={{
-          position: "absolute",
-          inset: 0,
-          color: "white",
-        }}
-      >
-        <Lightbox.Stage
-          style={{ position: "absolute", inset: 0 }}
-        >
-          <Lightbox.Slides
-            aria-label="Images"
-            preload={config.preload}
-            style={{ width: "100%", height: "100%" }}
-          >
-            {items.map((item, index) => (
-              <Lightbox.Slide
-                key={item.id}
-                style={{
-                  flex: "0 0 100%",
-                  width: "100%",
-                  height: "100%",
-                  boxSizing: "border-box",
-                  padding:
-                    "max(24px, env(safe-area-inset-top)) clamp(24px, 6vw, 96px) max(24px, env(safe-area-inset-bottom))",
-                }}
-              >
-                <Lightbox.Item
-                  index={index}
-                  caption={item.caption}
-                  style={{ width: "100%", height: "100%" }}
-                >
-                  {config.zoom ? (
-                    <Lightbox.Zoom>
-                      <Lightbox.Media
-                        {...(item.width ? { width: item.width } : {})}
-                        {...(item.height ? { height: item.height } : {})}
-                      >
-                        <img
-                          src={item.src}
-                          {...(item.srcSet
-                            ? { srcSet: item.srcSet }
-                            : {})}
-                          {...(item.sizes ? { sizes: item.sizes } : {})}
-                          alt={item.alt}
-                          draggable={false}
-                          loading="eager"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "contain",
-                          }}
-                        />
-                      </Lightbox.Media>
-                    </Lightbox.Zoom>
-                  ) : (
-                    <Lightbox.Media
-                      {...(item.width ? { width: item.width } : {})}
-                      {...(item.height ? { height: item.height } : {})}
-                    >
-                      <img
-                        src={item.src}
-                        {...(item.srcSet ? { srcSet: item.srcSet } : {})}
-                        {...(item.sizes ? { sizes: item.sizes } : {})}
-                        alt={item.alt}
-                        draggable={false}
-                        loading="eager"
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                        }}
-                      />
-                    </Lightbox.Media>
-                  )}
-                </Lightbox.Item>
-              </Lightbox.Slide>
-            ))}
-          </Lightbox.Slides>
-
-          <Lightbox.Close
-            style={{ ...controlStyle, top: 20, right: 20 }}
-          >
-            ×
-          </Lightbox.Close>
-
-          {config.showNavigation && items.length > 1 ? (
-            <>
-              <Lightbox.Previous
-                style={{
-                  ...controlStyle,
-                  top: "50%",
-                  left: 20,
-                  transform: "translateY(-50%)",
-                }}
-              >
-                ‹
-              </Lightbox.Previous>
-              <Lightbox.Next
-                style={{
-                  ...controlStyle,
-                  top: "50%",
-                  right: 20,
-                  transform: "translateY(-50%)",
-                }}
-              >
-                ›
-              </Lightbox.Next>
-            </>
-          ) : null}
-
-          {config.showCounter ? (
-            <Lightbox.Counter
-              style={{
-                position: "absolute",
-                zIndex: 3,
-                left: "50%",
-                bottom: 20,
-                transform: "translateX(-50%)",
-                padding: "8px 12px",
-                borderRadius: 999,
-                background: "rgba(0,0,0,0.34)",
-                color: "white",
-                font: "500 13px/1 Inter, sans-serif",
-                fontVariantNumeric: "tabular-nums",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
-              }}
-            />
-          ) : null}
-        </Lightbox.Stage>
-      </Lightbox.Content>
-    </Lightbox.Portal>
-  )
-}
-
 export function createGalleryOverride<P extends object>(
   Component: ComponentType<P>,
+  inheritConfig = false,
 ): ComponentType<P> {
   const displayName = Component.displayName ?? Component.name ?? "Component"
 
   const Override = forwardRef<unknown, P>((props, forwardedRef) => {
+    const parentGallery = useContext(RamkaGalleryContext)
     const hydrated = useHydrated()
     const [items, setItems] = useState<RamkaMediaItem[]>([])
     const triggerIndicesRef = useRef(new Map<string, number>())
     const nextTriggerIndexRef = useRef(0)
-    const [config, setConfig] = useState<RamkaGalleryConfig>(
+    const [ownConfig, setConfig] = useState<RamkaGalleryConfig>(
       defaultRamkaGalleryConfig,
     )
+
+    const config = inheritConfig && parentGallery ? parentGallery.config : ownConfig
 
     const claimTriggerIndex = useCallback((id: string) => {
       const existingIndex = triggerIndicesRef.current.get(id)
@@ -306,23 +113,42 @@ export function createGalleryOverride<P extends object>(
       [refreshTrigger],
     )
 
-    const context = useMemo<RamkaGalleryContextValue>(
-      () => ({
-        items,
-        claimTriggerIndex,
-        registerTrigger,
-        refreshTrigger,
-        setConfig,
-      }),
-      [items, claimTriggerIndex, registerTrigger, refreshTrigger],
-    )
+    const releaseRef = useRef<(() => void) | null>(null)
+    const activeRef = useRef(false)
+    const valueRef = useRef<number | null>(null)
+    const release = useCallback(() => {
+      releaseRef.current?.()
+      releaseRef.current = null
+      activeRef.current = false
+      valueRef.current = null
+    }, [])
+    const prepareOpen = useCallback((index: number, element: HTMLElement) => {
+      release()
+      const viewport = findSnapViewport(element)
+      if (viewport) releaseRef.current = freezeSnapViewport(viewport)
+      activeRef.current = true
+      valueRef.current = index
+    }, [release])
+    useEffect(() => release, [release])
 
-    const mergedRootRef = useCallback(
-      (node: unknown) => {
-        assignRef(forwardedRef, node)
-      },
-      [forwardedRef],
+    const handleValueChange = useCallback((index: number, metadata: { source: NavigationSource }) => {
+      if (metadata.source === "trigger") {
+        valueRef.current = index
+        return
+      }
+      if (!activeRef.current || index === valueRef.current) return
+      valueRef.current = index
+      if (config.syncKniffCarousel) {
+        const item = items.find(item => item.index === index)
+        if (item) syncSnapToElement(item.element)
+      }
+    }, [config.syncKniffCarousel, items])
+
+    const context = useMemo<RamkaGalleryContextValue>(
+      () => ({ config, isLoopCopy: inheritConfig, prepareOpen, items, claimTriggerIndex, registerTrigger, refreshTrigger, setConfig }),
+      [config, prepareOpen, items, claimTriggerIndex, registerTrigger, refreshTrigger],
     )
+    const mergedRootRef = useCallback((node: unknown) => assignRef(forwardedRef, node), [forwardedRef])
 
     if (!hydrated) {
       return renderComponent(
@@ -338,6 +164,14 @@ export function createGalleryOverride<P extends object>(
           loop={config.loop}
           viewTransition={config.viewTransition}
           morphTo={config.morphTo}
+          scrollTriggerIntoView={null}
+          onValueChange={handleValueChange}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) activeRef.current = false
+          }}
+          onOpenChangeComplete={(nextOpen) => {
+            if (!nextOpen) release()
+          }}
         >
           {renderComponent(
             Component,
@@ -354,3 +188,8 @@ export function createGalleryOverride<P extends object>(
 
   return Override as unknown as ComponentType<P>
 }
+
+// Each React-rendered loop cycle owns its real triggers and morph targets.
+// Its logical gallery contains one set of images, never all repeated cycles.
+const LoopScopeFrame = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>((props, ref) => <span {...props} ref={ref} />)
+export const RamkaLoopScope = createGalleryOverride(LoopScopeFrame, true)

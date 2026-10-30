@@ -1,10 +1,4 @@
 {
   "$schema": "https://react.doctor/schema/config.json",
-  "ignore": {
-    "files": [
-      "examples/framer/**",
-      "tests/emblaOverrides.typecheck.tsx",
-      "src/embla/EmblaEventLog.tsx"
-    ]
-  }
+  "ignore": { "files": ["examples/framer/**"] }
 }

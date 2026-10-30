@@ -9,8 +9,8 @@ export interface RamkaGalleryConfig {
   pullToClose: boolean
   preload: number
   zoom: boolean
-  showNavigation: boolean
   showCounter: boolean
+  syncKniffCarousel: boolean
   backdropColor: string
 }
 
@@ -37,6 +37,9 @@ export interface RamkaMediaItem {
 }
 
 export interface RamkaGalleryContextValue {
+  config: RamkaGalleryConfig
+  isLoopCopy: boolean
+  prepareOpen: (index: number, element: HTMLElement) => void
   items: RamkaMediaItem[]
   claimTriggerIndex: (id: string) => number
   registerTrigger: (

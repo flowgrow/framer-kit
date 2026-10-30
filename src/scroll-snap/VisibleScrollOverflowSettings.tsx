@@ -1,18 +1,31 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { addPropertyControls, ControlType, RenderTarget, type PropertyControls } from "framer"
 export interface VisibleScrollOverflowSettingsProps {
   containerID?: string
   boundaryID?: string
   align?: "start" | "center" | "end"
   strength?: "mandatory" | "proximity"
-  stopEach?: boolean
   showScrollbar?: boolean
+  stopEach?: boolean
   loop?: boolean
+  autoMove?: boolean
+  autoMoveSpeed?: number
+  autoMoveDirection?: "left" | "right"
   edgeSpace?: boolean
 }
+type AutoMoveInstaller = (viewport: HTMLElement, options: { speed: number; direction: "left" | "right" }) => () => void
+
 function target(id:string) {
   const value=JSON.stringify(id.trim()).replace(/</g,"\\3c ")
   return `:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`
+}
+// Responsive Framer variants use boxless wrappers; measure their rendered slide.
+function slideBoxes(parent: Element): HTMLElement[] {
+  return Array.from(parent.children).flatMap(child => {
+    if (!(child instanceof HTMLElement) || ["STYLE", "SCRIPT"].includes(child.tagName)) return []
+    if (getComputedStyle(child).display === "contents") return slideBoxes(child)
+    return child.getClientRects().length ? [child] : []
+  })
 }
 /**
  * @framerIntrinsicWidth 1
@@ -20,7 +33,51 @@ function target(id:string) {
  * @framerSupportedLayoutWidth fixed
  * @framerSupportedLayoutHeight fixed
  */
-export function VisibleScrollOverflowSettings({containerID="Percentage Sized Carousel",boundaryID="CSS Full Width Overflow Experiment",align="center",strength="mandatory",stopEach=false,showScrollbar=false,edgeSpace=true,loop=true}:VisibleScrollOverflowSettingsProps) {
+export function VisibleScrollOverflowSettings({containerID="Percentage Sized Carousel",boundaryID="CSS Full Width Overflow Experiment",align="center",strength="mandatory",showScrollbar=false,stopEach=false,edgeSpace=true,loop=true,autoMove=false,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
+  const styleRef = useRef<HTMLStyleElement>(null)
+  const canvas = RenderTarget.current() === RenderTarget.canvas
+  const useEdgeSpace = loop || edgeSpace
+  // Keep native snapping aligned with authored padding plus the additive CSS animation gutters.
+  useEffect(() => {
+    if (canvas || !containerID.trim()) return
+    let frame = 0
+    let attempts = 0
+    let dispose: (() => void) | undefined
+    const install = () => {
+      const sizing = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(target(containerID))
+      const viewport = sizing?.firstElementChild as HTMLElement | null
+      if (!viewport || !sizing) {
+        if (++attempts < 120) frame = requestAnimationFrame(install)
+        return
+      }
+      const previousLeft = viewport.style.scrollPaddingLeft
+      const previousRight = viewport.style.scrollPaddingRight
+      const sync = () => {
+        const css = getComputedStyle(viewport)
+        if (viewport.style.scrollPaddingLeft !== css.paddingLeft) viewport.style.scrollPaddingLeft = css.paddingLeft
+        if (viewport.style.scrollPaddingRight !== css.paddingRight) viewport.style.scrollPaddingRight = css.paddingRight
+      }
+      const resize = new ResizeObserver(sync)
+      resize.observe(viewport)
+      resize.observe(sizing)
+      const boundary = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(target(boundaryID))
+      if (boundary) resize.observe(boundary)
+      const attributes = new MutationObserver(sync)
+      attributes.observe(viewport, {attributes:true, attributeFilter:["style","class"]})
+      attributes.observe(sizing, {attributes:true, attributeFilter:["style","class"]})
+      sync()
+      dispose = () => {
+        resize.disconnect()
+        attributes.disconnect()
+        viewport.style.scrollPaddingLeft = previousLeft
+        viewport.style.scrollPaddingRight = previousRight
+      }
+    }
+    // Register before the loop effect so its initial geometry sees the full insets.
+    frame = requestAnimationFrame(install)
+    return () => { cancelAnimationFrame(frame); dispose?.() }
+  }, [containerID, boundaryID])
+
     useEffect(() => {
         if (
             !loop ||
@@ -28,85 +85,46 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
             !containerID.trim()
         )
             return
-        const trace = (event: string, details: Record<string, unknown> = {}) => {
-            console.log(`[ScrollLoop: ${containerID}] ${event}`, {
-                time: Math.round(performance.now() * 100) / 100,
-                ...details,
-            })
-        }
-        trace("effect:start", { align, loop })
+
         let dispose: (() => void) | undefined
         let frame = 0
         let retry = 0
         let cancelled = false
         const install = () => {
-            const sizing = document.querySelector<HTMLElement>(
+            const sizing = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(
                 target(containerID)
             )
             const scroller = sizing?.firstElementChild as HTMLElement | null
             if (!scroller) {
-                trace("install:waiting-for-viewport", { attempt: retry + 1 })
+
                 return false
             }
-            const originals = Array.from(scroller.children).filter(
-                (el): el is HTMLElement => el instanceof HTMLElement
-            )
-            if (
-                originals.length < 2 ||
-                scroller.hasAttribute("data-kniff-loop")
-            ) {
-                trace("install:skipped", { originalCount: originals.length, alreadyLooping: scroller.hasAttribute("data-kniff-loop"), attempt: retry + 1 })
+            if (!scroller.hasAttribute("data-kniff-react-loop")) {
+
                 return false
             }
-            trace("install:ready", { originalCount: originals.length, scrollLeft: scroller.scrollLeft })
-            const clones: HTMLElement[] = []
-            const copy = (slide: HTMLElement) => {
-                const clone = slide.cloneNode(true) as HTMLElement
-                clone.setAttribute("data-kniff-loop-copy", "")
-                clone.setAttribute("aria-hidden", "true")
-                clone.setAttribute("inert", "")
-                for (const el of [
-                    clone,
-                    ...Array.from(clone.querySelectorAll("[id]")),
-                ])
-                    el.removeAttribute("id")
-                clone
-                    .querySelectorAll(".kniff-initial-target-marker")
-                    .forEach((el) => el.remove())
-                clone.querySelectorAll("img").forEach((img) => {
-                    img.loading = "eager"
-                })
-                clones.push(clone)
-                trace("clone:created", { originalIndex: originals.indexOf(slide), cloneNumber: clones.length, name: slide.getAttribute("data-framer-name"), inert: true, ariaHidden: true, idsRemoved: true, markersRemoved: true, imagesEager: true })
-                return clone
-            }
-            // Keep copies ready to paint before a fast fling reaches them.
-            const before = document.createDocumentFragment()
-            const after = document.createDocumentFragment()
-            for (let i = 0; i < 3; i++) {
-                originals.forEach((slide) => before.appendChild(copy(slide)))
-                originals.forEach((slide) => after.appendChild(copy(slide)))
-            }
+            const originalCycle = scroller.querySelector<HTMLElement>(":scope > [data-kniff-loop-original]")
+            if (!originalCycle || slideBoxes(originalCycle).length < 2) return false
+            scroller.dispatchEvent(new CustomEvent("kniff-loop-render", { detail: true }))
+            const copies = scroller.querySelectorAll<HTMLElement>(":scope > [data-kniff-loop-copy]")
+            if (!copies.length || scroller.hasAttribute("data-kniff-loop")) return false
             const previousSnap = scroller.style.scrollSnapType
             const previousBehavior = scroller.style.scrollBehavior
             const previousTransform = scroller.style.transform
-            trace("install:disable-snap", { previousSnap, previousBehavior })
+
             scroller.style.scrollSnapType = "none"
             scroller.style.scrollBehavior = "auto"
             scroller.setAttribute("data-kniff-loop", "")
-            const beforeCount = before.childElementCount
-            const afterCount = after.childElementCount
-            scroller.prepend(before)
-            trace("children:prepend", { added: beforeCount, childCount: scroller.childElementCount, scrollLeft: scroller.scrollLeft })
-            scroller.append(after)
-            trace("children:append", { added: afterCount, childCount: scroller.childElementCount, scrollLeft: scroller.scrollLeft })
-            const first = originals[0]
-            const nextCycle = originals[originals.length - 1]
-                ?.nextElementSibling as HTMLElement | null
+            const nextWrapper = originalCycle.nextElementSibling
             let restoreFrame = 0
             let jumping = false
             let pointerDown = false
+            let touchDown = false
+            let settleTimer = 0
+            const needsScrollEndFallback = !Reflect.has(scroller, "onscrollend")
             const geometry = () => {
+                const first = slideBoxes(originalCycle)[0]
+                const nextCycle = nextWrapper ? slideBoxes(nextWrapper)[0] : null
                 if (!first || !nextCycle) return null
                 const box = scroller.getBoundingClientRect()
                 const firstBox = first.getBoundingClientRect()
@@ -131,7 +149,7 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
                 return { cycle, start }
             }
             const jump = (position: number, reason: string) => {
-                trace("jump:start", { reason, from: scroller.scrollLeft, requested: position, delta: position - scroller.scrollLeft, snap: scroller.style.scrollSnapType, behavior: scroller.style.scrollBehavior })
+
                 jumping = true
                 scroller.style.transform = "translateZ(0)"
                 scroller.style.scrollSnapType = "none"
@@ -147,98 +165,190 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
                     void scroller.offsetWidth
                     scroller.style.setProperty("overflow-x", overflowX, priority)
                     void scroller.offsetWidth
-                    trace("jump:rebuild-scroll-layer", { scrollLeft: scroller.scrollLeft })
+
                 } else {
                     scroller.scrollLeft = position
                 }
-                trace("scrollLeft:assigned", { requested: position, actual: scroller.scrollLeft })
+
                 cancelAnimationFrame(restoreFrame)
                 restoreFrame = requestAnimationFrame(() => {
                     scroller.style.scrollSnapType = previousSnap
                     scroller.style.scrollBehavior = previousBehavior
-                    trace("jump:restore-snap", { snap: previousSnap, behavior: previousBehavior, scrollLeft: scroller.scrollLeft })
+
                     restoreFrame = requestAnimationFrame(() => {
                         jumping = false
-                        trace("jump:complete", { scrollLeft: scroller.scrollLeft })
+                        scroller.setAttribute("data-kniff-loop-ready", "")
+
                     })
                 })
             }
             const normalize = (event: Event) => {
-                trace("normalize:start", { source: event.type, scrollLeft: scroller.scrollLeft, jumping, pointerDown })
-                if (jumping || pointerDown) {
-                    trace("normalize:skipped", { jumping, pointerDown })
+
+                if (jumping || pointerDown || touchDown || scroller.hasAttribute("data-kniff-auto-move") || scroller.hasAttribute("data-kniff-lightbox-open")) {
+
                     return
                 }
                 const g = geometry()
                 if (!g) {
-                    trace("normalize:no-geometry")
+
                     return
                 }
                 const offset = scroller.scrollLeft - g.start
                 const cycles = Math.floor((offset + 0.5) / g.cycle)
-                trace("normalize:calculated", { ...g, offset, cycles, scrollLeft: scroller.scrollLeft })
+
                 if (cycles !== 0) jump(scroller.scrollLeft - cycles * g.cycle, "normalize")
-                else trace("normalize:no-jump")
+
             }
+            // Older iOS Safari has no scrollend. Wait for momentum/snap scrolling
+            // to stop, and never reset while a touch is still held.
+            const scheduleSettle = () => {
+                if (!needsScrollEndFallback) return
+                window.clearTimeout(settleTimer)
+                settleTimer = window.setTimeout(() => {
+                    if (!pointerDown && !touchDown) normalize(new Event("scrollidle"))
+                }, 180)
+            }
+            const touchStart = () => { touchDown = true; window.clearTimeout(settleTimer) }
+            const touchEnd = (event: TouchEvent) => { touchDown = event.touches.length > 0; scheduleSettle() }
             const press = () => {
                 pointerDown = true
-                trace("pointer:down", { scrollLeft: scroller.scrollLeft })
+
             }
             const release = (event: PointerEvent) => {
                 pointerDown = false
-                trace(event.type, { scrollLeft: scroller.scrollLeft })
+                scheduleSettle()
+
             }
             scroller.addEventListener("scrollend", normalize)
+            if (needsScrollEndFallback) {
+                scroller.addEventListener("scroll", scheduleSettle, { passive: true })
+                scroller.addEventListener("touchstart", touchStart, { passive: true })
+                window.addEventListener("touchend", touchEnd, { passive: true })
+                window.addEventListener("touchcancel", touchEnd, { passive: true })
+            }
             scroller.addEventListener("pointerdown", press, { passive: true })
             window.addEventListener("pointerup", release)
             window.addEventListener("pointercancel", release)
-            trace("listeners:attached", { normalizationEvent: "scrollend" })
+
             const g = geometry()
-            trace("install:geometry", { geometry: g })
+
             if (g) jump(g.start, "initial-position")
             else {
-                trace("install:no-geometry-restore-snap", { previousSnap, previousBehavior })
+
                 scroller.style.scrollSnapType = previousSnap
                 scroller.style.scrollBehavior = previousBehavior
             }
             dispose = () => {
-                trace("cleanup:start", { childCount: scroller.childElementCount, cloneCount: clones.length, scrollLeft: scroller.scrollLeft })
+
                 scroller.style.transform = previousTransform
                 cancelAnimationFrame(restoreFrame)
+                window.clearTimeout(settleTimer)
+                scroller.removeEventListener("scroll", scheduleSettle)
+                scroller.removeEventListener("touchstart", touchStart)
+                window.removeEventListener("touchend", touchEnd)
+                window.removeEventListener("touchcancel", touchEnd)
                 scroller.removeEventListener("scrollend", normalize)
                 scroller.removeEventListener("pointerdown", press)
                 window.removeEventListener("pointerup", release)
                 window.removeEventListener("pointercancel", release)
-                clones.forEach((clone, index) => {
-                    clone.remove()
-                    trace("children:remove-clone", { cloneNumber: index + 1, childCount: scroller.childElementCount })
-                })
+                scroller.dispatchEvent(new CustomEvent("kniff-loop-render", { detail: false }))
+                scroller.removeAttribute("data-kniff-loop-ready")
                 scroller.removeAttribute("data-kniff-loop")
                 scroller.style.scrollSnapType = previousSnap
                 scroller.style.scrollBehavior = previousBehavior
-                trace("cleanup:complete", { childCount: scroller.childElementCount, scrollLeft: scroller.scrollLeft, snap: previousSnap, behavior: previousBehavior })
+
             }
-            trace("install:complete", { childCount: scroller.childElementCount, cloneCount: clones.length })
+
             return true
         }
         const attempt = () => {
             if (cancelled || dispose) return
             if (install()) return
             if (++retry < 120) frame = requestAnimationFrame(attempt)
-            else trace("install:retry-limit", { attempts: retry })
+
         }
         frame = requestAnimationFrame(attempt)
         return () => {
-            trace("effect:cleanup", { retry, installed: !!dispose })
+
             cancelled = true
             cancelAnimationFrame(frame)
             dispose?.()
         }
     }, [containerID, align, loop])
+  useEffect(() => {
+    if (canvas || !autoMove || !containerID.trim()) return
+    let frame = 0, attempts = 0
+    let cancelled = false
+    let dispose: (() => void) | undefined
+    const install = (installAutoMove: AutoMoveInstaller) => {
+      if (cancelled) return
+      const doc = styleRef.current?.ownerDocument ?? document
+      const sizing = Array.from(doc.querySelectorAll<HTMLElement>(target(containerID))).find(el => el.getClientRects().length && el.clientWidth)
+      const viewport = sizing?.firstElementChild as HTMLElement | null
+      if (!viewport || (loop && !viewport.hasAttribute("data-kniff-loop-ready"))) {
+        if (++attempts < 120) frame = requestAnimationFrame(() => install(installAutoMove))
+        return
+      }
+      dispose = installAutoMove(viewport, { speed: autoMoveSpeed, direction: autoMoveDirection })
+    }
+    // @ts-ignore Framer resolves sibling code files at runtime; the repo build checks this path.
+    const load: Promise<AutoMoveInstaller> = import("./autoMove.tsx").then(module => module.installAutoMove)
+    void load.then(installAutoMove => {
+      if (!cancelled) frame = requestAnimationFrame(() => install(installAutoMove))
+    }).catch(() => {})
+    return () => { cancelled = true; cancelAnimationFrame(frame); dispose?.() }
+  }, [canvas, autoMove, autoMoveSpeed, autoMoveDirection, containerID, loop, align])
+  // Canvas has no scroll position: place the first slide at its snap alignment.
+  useEffect(() => {
+    if (!canvas || !containerID.trim()) return
+    let frame = 0
+    let observer: ResizeObserver | undefined
+    let viewport: HTMLElement | undefined
+    let attempts = 0
+    const install = () => {
+      const sizing = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(target(containerID))
+      viewport = sizing?.firstElementChild as HTMLElement | undefined
+      const first = viewport ? slideBoxes(viewport)[0] : undefined
+      if (!viewport || !first) {
+        if (++attempts < 120) frame = requestAnimationFrame(install)
+        return
+      }
+      const update = () => {
+        viewport?.style.setProperty("--kniff-canvas-first-width", first.offsetWidth + "px")
+
+      }
+      update()
+      observer = new ResizeObserver(update)
+      observer.observe(first)
+    }
+    frame = requestAnimationFrame(install)
+    return () => {
+      cancelAnimationFrame(frame)
+      observer?.disconnect()
+      viewport?.style.removeProperty("--kniff-canvas-first-width")
+    }
+  }, [containerID])
   if(!containerID.trim() || !boundaryID.trim()) return null
   const reference=target(containerID), boundary=target(boundaryID)
   const viewport=`${reference} > :first-child`
+  // Relative selectors stay inside the viewport's native CSS nesting block.
+  const cycle = ':where([data-kniff-loop-original], [data-kniff-loop-copy])'
+  const slides = `
+  > :where(:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy])),
+  > :where(.ssr-variant) > *,
+  > ${cycle} > :where(:not(.ssr-variant)),
+  > ${cycle} > :where(.ssr-variant) > *`
+  const firstSlide = `
+  > :where(:first-child:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy])),
+  > :where(.ssr-variant:first-child) > *,
+  > ${cycle}:first-child > :first-child`
+  const lastSlide = `
+  > :where(:last-child:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy])),
+  > :where(.ssr-variant:last-child) > *,
+  > ${cycle}:last-child > :last-child`
   if (RenderTarget.current() === RenderTarget.canvas) {
+    const canvasFirstSlide = `> :where([data-framer-name]):nth-child(1 of [data-framer-name])`
+    const canvasLastSlide = `> :where([data-framer-name]):nth-last-child(1 of [data-framer-name])`
     const canvasCSS = `
 ${viewport} {
   --kniff-initial-align:${align};
@@ -247,14 +357,48 @@ ${viewport} {
   gap:inherit !important; align-items:inherit !important; justify-content:flex-start !important;
   overflow:visible !important;
   scroll-snap-type:x ${strength};
-  scrollbar-width:${showScrollbar ? "thin" : "none"} !important;
+  scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
+
+  ${slides} {
+    flex-shrink:0 !important;
+    scroll-snap-align:${align};
+    scroll-snap-stop:${stopEach ? "always" : "normal"};
+  }
+  ${firstSlide} { margin-inline-start:${!useEdgeSpace || align === "start" ? "0px" : `calc((100% - var(--kniff-canvas-first-width, 0px)) * ${align === "end" ? 1 : 0.5})`}; }
+  ${lastSlide} { margin-inline-end:0px; }
+  ${loop ? `anchor-scope:--kniff-canvas-first, --kniff-canvas-content;
+
+  &::before {
+    content:"";
+    flex:0 0 100%;
+    align-self:stretch;
+    margin-inline-end:calc(-100% - var(--kniff-canvas-gap, 24px));
+    pointer-events:none;
+    anchor-name:--kniff-canvas-content;
+  }
+
+  ${canvasFirstSlide} {
+    anchor-name:--kniff-canvas-first;
+  }
+
+  ${canvasLastSlide} {
+    position:absolute !important;
+    position-anchor:--kniff-canvas-content;
+    position-area:center;
+    justify-self:unsafe start;
+    align-self:unsafe start;
+    top:anchor(--kniff-canvas-first top) !important;
+    right:auto !important;
+    translate:calc(-100% - var(--kniff-canvas-gap, 24px)) 0 !important;
+    bottom:auto !important;
+    left:anchor(--kniff-canvas-first left) !important;
+    margin:0 !important;
+    opacity:0.5 !important;
+  }` : ""}
+  &::-webkit-scrollbar { display:${showScrollbar ? "block" : "none"} !important; }
 }
-${viewport} > * { flex-shrink:0 !important; scroll-snap-align:${align}; scroll-snap-stop:${stopEach ? "always" : "normal"}; }
-${viewport} > :first-child { margin-inline-start:${edgeSpace ? (align === "end" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
-${viewport} > :last-child { margin-inline-end:${edgeSpace ? (align === "start" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
-${viewport}::-webkit-scrollbar { display:${showScrollbar ? "block" : "none"} !important; }
 `
-    return <style dangerouslySetInnerHTML={{ __html: canvasCSS }} />
+    return <style ref={styleRef} dangerouslySetInnerHTML={{ __html: canvasCSS }} />
   }
   const css=`
 @property --kniff-bleed-page-span { syntax:"<length>"; inherits:true; initial-value:0px; }
@@ -282,28 +426,42 @@ ${viewport} {
   gap:inherit !important; align-items:inherit !important; justify-content:flex-start !important;
   scroll-snap-type:x ${strength};
   scroll-padding-inline:calc((var(--kniff-bleed-page-span) - 100cqw) / 2);
-  scrollbar-width:${showScrollbar ? "thin" : "none"} !important;
+  scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
+
+  ${slides} {
+    flex-shrink:0 !important;
+    scroll-snap-align:${align};
+    scroll-snap-stop:${stopEach ? "always" : "normal"};
+  }
+  ${firstSlide} { margin-inline-start:${useEdgeSpace ? (align === "end" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
+  ${lastSlide} { margin-inline-end:${useEdgeSpace ? (align === "start" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
+  /* Retain the accepted Safari compositor workaround. */
+  &[data-kniff-loop] {
+    transform:translateZ(0);
+
+    ${cycle} > *,
+    :where(.ssr-variant) > * {
+      margin-inline:0 !important;
+    }
+  }
+  &::-webkit-scrollbar { display:${showScrollbar ? "block" : "none"} !important; }
+  &:focus-visible { outline:2px solid #456849; outline-offset:-2px; }
 }
-${viewport} > * { flex-shrink:0 !important; scroll-snap-align:${align}; scroll-snap-stop:${stopEach ? "always" : "normal"}; }
-${viewport} > :first-child { margin-inline-start:${edgeSpace ? (align === "end" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
-${viewport} > :last-child { margin-inline-end:${edgeSpace ? (align === "start" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
-/* Retain the accepted Safari compositor workaround. */
-${viewport}[data-kniff-loop] { transform:translateZ(0); }
-${viewport}[data-kniff-loop] > * { margin-inline:0 !important; }
-${viewport}::-webkit-scrollbar { display:${showScrollbar ? "block" : "none"} !important; }
-${viewport}:focus-visible { outline:2px solid #456849; outline-offset:-2px; }
 `
-  return <style dangerouslySetInnerHTML={{__html:css}} />
+  return <style ref={styleRef} dangerouslySetInnerHTML={{__html:css}} />
 }
 export const visibleScrollOverflowSettingsPropertyControls = {
-  loop:{title:"Loop",type:ControlType.Boolean,defaultValue:true,description:"Loop slides in preview and on the published site. Canvas keeps every slide visible for editing."},
+  showScrollbar:{title:"Scrollbar",type:ControlType.Boolean,defaultValue:false},
+  autoMove:{title:"Auto Move",type:ControlType.Boolean,defaultValue:false},
+  autoMoveSpeed:{title:"Speed",type:ControlType.Number,defaultValue:30,min:1,max:500,unit:"px/s",hidden:props=>!props.autoMove},
+  autoMoveDirection:{title:"Direction",type:ControlType.Enum,options:["left","right"],optionTitles:["Left","Right"],defaultValue:"left",displaySegmentedControl:true,hidden:props=>!props.autoMove},
+  loop:{title:"Loop",type:ControlType.Boolean,defaultValue:true,description:"Apply withKniffCarousel to the overflow viewport. Loop copies are rendered through React in preview and on the published site."},
   containerID:{title:"Container",type:ControlType.String,defaultValue:"Percentage Sized Carousel",description:"Match aria-label or the custom layer name. This sizing container holds one viewport frame containing the slides."},
   boundaryID:{title:"Boundary",type:ControlType.String,defaultValue:"CSS Full Width Overflow Experiment",description:"Name of the full-width ancestor. Keep the sizing container centered inside it."},
   align:{title:"Snap Align",type:ControlType.Enum,options:["start","center","end"],optionIcons:["align-left","align-center","align-right"],displaySegmentedControl:true,defaultValue:"center"} as PropertyControls<VisibleScrollOverflowSettingsProps>["align"] & { optionIcons: string[] },
   strength:{title:"Snapping",type:ControlType.Enum,options:["mandatory","proximity"],optionTitles:["Mandatory","Proximity"],displaySegmentedControl:true,defaultValue:"mandatory"},
   stopEach:{title:"Stop Each Slide",type:ControlType.Boolean,defaultValue:false},
-  showScrollbar:{title:"Scrollbar",type:ControlType.Boolean,defaultValue:false},
-  edgeSpace:{title:"Edge Space",type:ControlType.Boolean,defaultValue:true,description:"Give the first and last slides enough room to reach the selected alignment. Center: 50% on both ends; start: 100% at the end; end: 100% at the start."},
+  edgeSpace:{title:"Edge Space",type:ControlType.Boolean,defaultValue:true,hidden:props=>props.loop !== false,description:"This allows us to align first and last slide as well"},
 } satisfies PropertyControls<VisibleScrollOverflowSettingsProps>
 
 let propertyControlsRegistered = false
@@ -314,3 +472,5 @@ export function registerVisibleScrollOverflowSettingsPropertyControls(): void {
   propertyControlsRegistered = true
 }
 
+registerVisibleScrollOverflowSettingsPropertyControls()
+export default VisibleScrollOverflowSettings
