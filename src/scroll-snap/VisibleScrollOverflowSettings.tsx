@@ -4,7 +4,6 @@ export interface VisibleScrollOverflowSettingsProps {
   containerID?: string
   boundaryID?: string
   align?: "start" | "center" | "end"
-  showScrollbar?: boolean
   stopEach?: boolean
   loop?: boolean
   autoMove?: "off" | "per-slide" | "scroll"
@@ -33,7 +32,7 @@ function slideBoxes(parent: Element): HTMLElement[] {
  * @framerSupportedLayoutWidth fixed
  * @framerSupportedLayoutHeight fixed
  */
-export function VisibleScrollOverflowSettings({containerID="Percentage Sized Carousel",boundaryID="CSS Full Width Overflow Experiment",align="center",showScrollbar=false,stopEach=false,edgeSpace=true,loop=true,autoMove="off",autoMoveInterval=3,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
+export function VisibleScrollOverflowSettings({containerID="Percentage Sized Carousel",boundaryID="CSS Full Width Overflow Experiment",align="center",stopEach=false,edgeSpace=true,loop=true,autoMove="off",autoMoveInterval=3,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
   const styleRef = useRef<HTMLStyleElement>(null)
   // Preserve saved values from the former boolean control.
   const autoMoveMode = typeof autoMove === "boolean" ? (autoMove ? "scroll" : "off") : autoMove
@@ -347,7 +346,7 @@ ${viewport} {
   overflow:visible !important;
   margin-inline:auto !important;
   scroll-snap-type:x mandatory;
-  scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
+  scrollbar-width:none !important;
 
   ${slides} {
     flex-shrink:0 !important;
@@ -385,7 +384,7 @@ ${viewport} {
     margin:0 !important;
     opacity:0.5 !important;
   }` : ""}
-  &::-webkit-scrollbar { display:${showScrollbar ? "block" : "none"} !important; }
+  &::-webkit-scrollbar { display:none !important; }
 }
 `
     return <style ref={styleRef} dangerouslySetInnerHTML={{ __html: canvasCSS }} />
@@ -411,7 +410,7 @@ ${viewport} {
   scroll-snap-type:x mandatory;
   scroll-padding-left:calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter));
   scroll-padding-right:calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter));
-  scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
+  scrollbar-width:none !important;
 
   ${slides} {
     flex-shrink:0 !important;
@@ -429,14 +428,13 @@ ${viewport} {
       margin-inline:0 !important;
     }
   }
-  &::-webkit-scrollbar { display:${showScrollbar ? "block" : "none"} !important; }
+  &::-webkit-scrollbar { display:none !important; }
   &:focus-visible { outline:2px solid #456849; outline-offset:-2px; }
 }
 `
   return <style ref={styleRef} dangerouslySetInnerHTML={{__html:css}} />
 }
 export const visibleScrollOverflowSettingsPropertyControls = {
-  showScrollbar:{title:"Scrollbar",type:ControlType.Boolean,defaultValue:false},
   autoMove:{title:"Auto Move",type:ControlType.Enum,options:["off","per-slide","scroll"],optionTitles:["Off","Per Slide","Scroll"],defaultValue:"off"},
   autoMoveInterval:{title:"Time per slide",type:ControlType.Number,defaultValue:3,min:0.5,max:60,unit:"s",hidden:props=>props.autoMove!=="per-slide"},
   autoMoveSpeed:{title:"Speed",type:ControlType.Number,defaultValue:30,min:1,max:500,unit:"px/s",hidden:props=>props.autoMove!=="scroll"},

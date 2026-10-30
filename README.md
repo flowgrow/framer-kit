@@ -11,8 +11,8 @@ slides inside that viewport. Percentage slide widths stay based on the sizing
 frame. The component adds full-width bleed gutters to your authored padding.
 
 `VisibleScrollOverflowSettings` accepts `containerID`, `boundaryID`, `align`
-(`start`, `center`, `end`), `stopEach`, `showScrollbar`, `edgeSpace`,
-and `loop`. Snapping is always mandatory. Targets match an aria-label or custom Framer layer name.
+(`start`, `center`, `end`), `stopEach`, `edgeSpace`,
+and `loop`. Snapping is always mandatory and scrollbars are always hidden. Targets match an aria-label or custom Framer layer name.
 
 Auto Move selects `off`, `per-slide` (advances on `autoMoveInterval`, in seconds),
 or `scroll` (continuous motion at `autoMoveSpeed`, in px/s). Direction applies to
