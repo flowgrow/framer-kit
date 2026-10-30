@@ -28,7 +28,7 @@ describe("authored carousel styles", () => {
   })
   it("resolves authored percentage max-width against the sizing frame", () => {
     expect(authoredVariableCSS(".viewport{max-width:calc(100% - 40px)}", "viewport")).toContain("--kniff-authored-max-width:calc(100cqw - 40px)")
-    expect(inlineAuthoredVariables({maxWidth: 1000})).toEqual({"--kniff-authored-max-width":"1000px"})
+    expect(inlineAuthoredVariables({width:"70%",maxWidth: 1000})).toEqual({"--kniff-authored-width":"70cqw","--kniff-authored-max-width":"1000px"})
     expect(authoredVariableCSS(".viewport{max-width:none}", "viewport")).toContain("--kniff-authored-max-width:100cqw")
   })
 

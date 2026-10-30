@@ -5,10 +5,9 @@ and Framer are supplied by the host; implementations are safe to import during S
 
 ## Scroll-snap carousel
 
-Use a full-width boundary containing a centered sizing frame with your usual
-Framer width. Place one viewport frame inside the sizing frame, set its max width, and put the
-slides inside that viewport. Percentage slide widths stay based on the sizing
-frame. The component adds full-width bleed gutters to your authored padding.
+Use a full-width boundary containing the viewport frame and its slides. Set the
+viewport’s width, max-width, padding and gap in Framer. Percentage slide widths
+use that authored content area; no separate sizing frame is required. The component adds full-width bleed gutters to your authored padding.
 
 `VisibleScrollOverflowSettings` accepts `containerID`, `boundaryID`, `align`
 (`start`, `center`, `end`), `stopEach`, `edgeSpace`,
@@ -23,7 +22,8 @@ is off. It mirrors the viewport's authored padding, gap and max-width into CSS v
 preserving breakpoint and variant rules. The server-emitted variables survive
 hydration; padding and scroll padding use CSS calculations without padding
 observers or additive animations. Set the slide gap on the viewport frame itself;
-the sizing container controls available width and alignment, while the viewport owns the max-width cap.
+the viewport also owns its authored width and max-width cap. Settings and overflow
+navigation buttons target the viewport itself by its aria-label or layer name.
 
 Loop is enabled by
 default in preview and published pages. React clones the slides and the carousel

@@ -22,14 +22,12 @@ function App({align="start",sync=true,autoMove=false,ramka={}}: Options) {
     <button id="toggle-loop" onClick={() => setLoop(!loop)}>Toggle loop</button>
     <output id="clicks">{clicks}</output>
     <Frame aria-label="Loop boundary" style={{width:360}}>
-      <div aria-label="Loop test" style={{width:360,display:'flex',gap:24}}>
-        <GalleryCarousel id="react-loop" style={{display:'flex',gap:24,width:360,overflowX:'auto'}}>
+        <GalleryCarousel aria-label="Loop test" id="react-loop" style={{display:'flex',gap:24,width:360,overflowX:'auto'}}>
           {Array.from({length:count},(_,i) => <Trigger key={i} data-slide={i} onClick={() => setClicks(c => c+1)} style={{flex:'0 0 240px',height:180}}>
             <ConfigProbe /><img src={`/image.svg?loop=${i}`} width={320} height={240} alt={`Photo ${i}`} style={{width:'100%',height:'100%'}} />
           </Trigger>)}
           <RamkaSettings {...ramkaSettingsDefaults} syncKniffCarousel={sync} {...ramka} />
         </GalleryCarousel>
-      </div>
       <VisibleScrollOverflowSettings containerID="Loop test" boundaryID="Loop boundary" align={align} edgeSpace={false} loop={loop} autoMove={autoMove === true ? "scroll" : autoMove === false ? "off" : autoMove} />
       <div style={{display:"flex",width:100,height:44}}><CSSScrollSnapButton carouselID="Loop test" overflowViewport action="Next" />
       <CSSScrollSnapButton carouselID="Loop test" overflowViewport action="Prev" /></div>

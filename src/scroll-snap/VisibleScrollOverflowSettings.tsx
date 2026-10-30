@@ -32,7 +32,7 @@ function slideBoxes(parent: Element): HTMLElement[] {
  * @framerSupportedLayoutWidth fixed
  * @framerSupportedLayoutHeight fixed
  */
-export function VisibleScrollOverflowSettings({containerID="Percentage Sized Carousel",boundaryID="CSS Full Width Overflow Experiment",align="center",stopEach=false,edgeSpace=true,loop=true,autoMove="off",autoMoveInterval=3,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
+export function VisibleScrollOverflowSettings({containerID="Overflow Viewport",boundaryID="CSS Full Width Overflow Experiment",align="center",stopEach=false,edgeSpace=true,loop=true,autoMove="off",autoMoveInterval=3,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
   const styleRef = useRef<HTMLStyleElement>(null)
   // Preserve saved values from the former boolean control.
   const autoMoveMode = typeof autoMove === "boolean" ? (autoMove ? "scroll" : "off") : autoMove
@@ -52,10 +52,10 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
         let retry = 0
         let cancelled = false
         const install = () => {
-            const sizing = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(
+            const scope = styleRef.current?.closest(target(boundaryID)) ?? (styleRef.current?.ownerDocument ?? document)
+            const scroller = Array.from(scope.querySelectorAll<HTMLElement>(
                 target(containerID)
-            )
-            const scroller = sizing?.firstElementChild as HTMLElement | null
+            )).find(node => node.getClientRects().length && node.clientWidth)
             if (!scroller) {
 
                 return false
@@ -235,7 +235,7 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
             cancelAnimationFrame(frame)
             dispose?.()
         }
-    }, [containerID, align, loop])
+    }, [containerID, boundaryID, align, loop])
   useEffect(() => {
     if (canvas || autoMoveMode === "off" || !containerID.trim()) return
     let frame = 0, attempts = 0
@@ -244,8 +244,8 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
     const install = (installAutoMove: AutoMoveInstaller) => {
       if (cancelled) return
       const doc = styleRef.current?.ownerDocument ?? document
-      const sizing = Array.from(doc.querySelectorAll<HTMLElement>(target(containerID))).find(el => el.getClientRects().length && el.clientWidth)
-      const viewport = sizing?.firstElementChild as HTMLElement | null
+      const scope = styleRef.current?.closest(target(boundaryID)) ?? doc
+      const viewport = Array.from(scope.querySelectorAll<HTMLElement>(target(containerID))).find(el => el.getClientRects().length && el.clientWidth)
       if (!viewport || (loop && !viewport.hasAttribute("data-kniff-loop-ready"))) {
         if (++attempts < 120) frame = requestAnimationFrame(() => install(installAutoMove))
         return
@@ -258,7 +258,7 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
       if (!cancelled) frame = requestAnimationFrame(() => install(installAutoMove))
     }).catch(() => {})
     return () => { cancelled = true; cancelAnimationFrame(frame); dispose?.() }
-  }, [canvas, autoMoveMode, autoMoveInterval, autoMoveSpeed, autoMoveDirection, containerID, loop, align])
+  }, [canvas, autoMoveMode, autoMoveInterval, autoMoveSpeed, autoMoveDirection, containerID, boundaryID, loop, align])
   // Each canvas breakpoint is a separate rendered frame, even when layer names
   // are identical. Keep measurements on each viewport rather than the first match.
   useEffect(() => {
@@ -270,9 +270,7 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
     const entries = new Map<HTMLElement, { first: HTMLElement; dispose(): void; update(): void }>()
     const refresh = () => {
       const active = new Set<HTMLElement>()
-      for (const sizing of scope.querySelectorAll<HTMLElement>(selector)) {
-        const viewport = sizing.firstElementChild
-        if (!(viewport instanceof HTMLElement)) continue
+      for (const viewport of scope.querySelectorAll<HTMLElement>(selector)) {
         const first = slideBoxes(viewport)[0]
         if (!first) continue
         active.add(viewport)
@@ -294,7 +292,6 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
         const resize = new ResizeObserver(update)
         resize.observe(first)
         resize.observe(viewport)
-        resize.observe(sizing)
         entries.set(viewport, { first, update, dispose() {
           resize.disconnect()
           for (const [name, value] of [["--kniff-canvas-first-width", savedWidth], ["--kniff-canvas-gap", savedGap]]) {
@@ -317,8 +314,7 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
     }
   }, [canvas, containerID, boundaryID])
   if(!containerID.trim() || !boundaryID.trim()) return null
-  const reference=target(containerID), boundary=target(boundaryID)
-  const viewport=`${reference} > :first-child`
+  const viewport=target(containerID), boundary=target(boundaryID)
   // Relative selectors stay inside the viewport's native CSS nesting block.
   const cycle = ':where([data-kniff-loop-original], [data-kniff-loop-copy])'
   const slides = `
@@ -392,15 +388,15 @@ ${viewport} {
   const css=`
 @property --kniff-bleed-page-span { syntax:"<length>"; inherits:true; initial-value:0px; }
 ${boundary} { container-type:inline-size; }
-${reference} { --kniff-bleed-page-span:100cqw; container-type:inline-size; overflow:visible !important; }
 ${viewport} {
   --kniff-initial-align:${align};
   --kniff-initial-position:${align === "start" ? "0%" : align === "end" ? "100%" : "50%"};
   display:flex !important; flex-wrap:nowrap !important; box-sizing:border-box;
   flex:none !important; width:var(--kniff-bleed-page-span) !important; max-width:none !important;
   min-width:0;
-  margin-inline:calc((100cqw - var(--kniff-bleed-page-span)) / 2) !important;
-  --kniff-content-width:min(100cqw, var(--kniff-authored-max-width, 100cqw));
+  --kniff-bleed-page-span:100cqw;
+  margin-inline:calc((100% - var(--kniff-bleed-page-span)) / 2) !important;
+  --kniff-content-width:min(100cqw, var(--kniff-authored-width, 100cqw), var(--kniff-authored-max-width, 100cqw));
   --kniff-gutter:calc((var(--kniff-bleed-page-span) - var(--kniff-content-width)) / 2);
   padding-left:calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter)) !important;
   padding-right:calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter)) !important;
@@ -440,8 +436,8 @@ export const visibleScrollOverflowSettingsPropertyControls = {
   autoMoveSpeed:{title:"Speed",type:ControlType.Number,defaultValue:30,min:1,max:500,unit:"px/s",hidden:props=>props.autoMove!=="scroll"},
   autoMoveDirection:{title:"Direction",type:ControlType.Enum,options:["left","right"],optionTitles:["Left","Right"],defaultValue:"left",displaySegmentedControl:true,hidden:props=>!props.autoMove || props.autoMove==="off"},
   loop:{title:"Loop",type:ControlType.Boolean,defaultValue:true,description:"Continuously loop through slides. Requires the Kniff Carousel override on the viewport."},
-  containerID:{title:"Container",type:ControlType.String,defaultValue:"Percentage Sized Carousel",description:"Match aria-label or the custom layer name. This sizing container holds one viewport frame containing the slides. Apply withKniffCarousel to that viewport, including when Loop is off."},
-  boundaryID:{title:"Boundary",type:ControlType.String,defaultValue:"CSS Full Width Overflow Experiment",description:"Name of the full-width ancestor. Keep the sizing container centered inside it."},
+  containerID:{title:"Viewport",type:ControlType.String,defaultValue:"Overflow Viewport",description:"Match the viewport frame’s aria-label or custom layer name. Apply withKniffCarousel to that frame, including when Loop is off."},
+  boundaryID:{title:"Boundary",type:ControlType.String,defaultValue:"CSS Full Width Overflow Experiment",description:"Name of the full-width ancestor. Keep the viewport centered inside it."},
   align:{title:"Snap Align",type:ControlType.Enum,options:["start","center","end"],optionIcons:["align-left","align-center","align-right"],displaySegmentedControl:true,defaultValue:"center"} as PropertyControls<VisibleScrollOverflowSettingsProps>["align"] & { optionIcons: string[] },
   stopEach:{title:"Stop Each Slide",type:ControlType.Boolean,defaultValue:false},
   edgeSpace:{title:"Edge Space",type:ControlType.Boolean,defaultValue:true,hidden:props=>props.loop !== false,description:"This allows us to align first and last slide as well"},

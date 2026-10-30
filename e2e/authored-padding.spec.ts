@@ -28,4 +28,10 @@ test('SSR padding variables survive an empty client collector, hydration and bre
   await expect.poll(values).toEqual({left:194,right:200,snapLeft:194,snapRight:200,gap:'16px',inline:''})
   await page.setViewportSize({width:1000,height:600})
   await expect.poll(values).toEqual({left:244,right:296,snapLeft:244,snapRight:296,gap:'24px',inline:''})
+  await page.locator('.authored-page').evaluate(el=>el.classList.add('narrow'))
+  await expect.poll(values).toEqual({left:294,right:346,snapLeft:294,snapRight:346,gap:'24px',inline:''})
+  await expect(viewport.locator('[data-kniff-loop-original] > div').first()).toHaveCSS('width','180px')
+  await page.locator('.authored-page').evaluate(el=>{el.classList.remove('narrow');el.classList.add('uncapped')})
+  await expect.poll(values).toEqual({left:44,right:96,snapLeft:44,snapRight:96,gap:'24px',inline:''})
+
 })

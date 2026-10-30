@@ -180,8 +180,8 @@ function useOverflowAvailability(carouselID: string, enabled: boolean, buttonRef
       frame = 0
       const doc = buttonRef.current?.ownerDocument ?? document
       const value = JSON.stringify(carouselID.trim())
-      const sizing = doc.querySelector<HTMLElement>(`:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`)
-      const viewport = sizing?.firstElementChild as HTMLElement | null
+      const viewport = Array.from(doc.querySelectorAll<HTMLElement>(`:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`))
+        .find(node => node.getClientRects().length && node.clientWidth)
       if (!viewport) {
         if (++attempts < 120) frame = requestAnimationFrame(install)
         return
@@ -213,11 +213,12 @@ function useOverflowAvailability(carouselID: string, enabled: boolean, buttonRef
         if (!frame) frame = requestAnimationFrame(() => { frame = 0; update() })
       }
       const invalidate = () => { geometryDirty = true; schedule() }
+      const layoutParent = viewport.parentElement
       const resize = new ResizeObserver(invalidate)
       const watchSlides = () => {
         resize.disconnect()
         resize.observe(viewport)
-        if (sizing) resize.observe(sizing)
+        if (layoutParent) resize.observe(layoutParent)
         for (const slide of slideBoxes(viewport)) resize.observe(slide)
       }
       watchSlides()
@@ -226,7 +227,7 @@ function useOverflowAvailability(carouselID: string, enabled: boolean, buttonRef
         invalidate()
       })
       mutation.observe(viewport, {childList:true, subtree:true, attributes:true, attributeFilter:["style","class","data-kniff-loop"]})
-      if (sizing) mutation.observe(sizing, {attributes:true, attributeFilter:["style","class"]})
+      if (layoutParent) mutation.observe(layoutParent, {attributes:true, attributeFilter:["style","class"]})
       const win = doc.defaultView ?? window
       win.addEventListener("resize", invalidate)
       for (const event of ["scroll","scrollend","kniff-scroll-navigation"]) viewport.addEventListener(event, schedule, {passive:true})
@@ -268,8 +269,9 @@ export default function CSSScrollSnapButton({carouselID="CSS Scroll Snap Gallery
       const direction = action === "Next" ? 1 : -1
       if (!overflowViewport) { api?.move(direction); return }
       const value = JSON.stringify(carouselID.trim())
-      const sizing = document.querySelector<HTMLElement>(`:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`)
-      const viewport = sizing?.firstElementChild as HTMLElement | null
+      const doc = buttonRef.current?.ownerDocument ?? document
+      const viewport = Array.from(doc.querySelectorAll<HTMLElement>(`:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`))
+        .find(node => node.getClientRects().length && node.clientWidth)
       if (!viewport) return
       moveOverflowViewport(viewport, direction)
     }}
@@ -278,7 +280,7 @@ export default function CSSScrollSnapButton({carouselID="CSS Scroll Snap Gallery
   </button>
 }
 export const cssScrollSnapButtonPropertyControls = {
-  overflowViewport:{title:"Overflow Viewport",type:ControlType.Boolean,defaultValue:false,description:"Navigate the first child viewport of the named overflow container."},
+  overflowViewport:{title:"Overflow Viewport",type:ControlType.Boolean,defaultValue:false,description:"Navigate the viewport frame named by ID."},
   carouselID:{title:"ID",type:ControlType.String,defaultValue:"CSS Scroll Snap Gallery",description:"Match the carousel stack’s layer name."},
   action:{type:ControlType.Enum,options:["Prev","Next"],defaultValue:"Next"},
   componentSlot:{title:"Connect",type:ControlType.Slot,maxCount:1},
