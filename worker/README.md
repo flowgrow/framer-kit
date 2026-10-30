@@ -1,12 +1,12 @@
 # Production module CDN
 
-Cloudflare Worker: `framer-kit-prod` on `framer-kit-prod.kniff.at`.
+Cloudflare Worker: `framer-kit-prod` on `framer-kit.kniff.at`.
 The Worker serves prebuilt ESM; it never installs packages or bundles React on a request.
 
 Published npm versions are immutable:
 
 ```tsx
-import { VisibleScrollOverflowSettings } from "https://framer-kit-prod.kniff.at/@kniff/framer-kit@0.5.1/scroll-snap?external=react,react-dom,framer&target=es2022"
+import { VisibleScrollOverflowSettings } from "https://framer-kit.kniff.at/@kniff/framer-kit@0.5.1/scroll-snap?external=react,react-dom,framer&target=es2022"
 ```
 
 `/0.5.1/index.js`, `/0.5.1/ramka.js`, and `/0.5.1/scroll-snap.js` are canonical

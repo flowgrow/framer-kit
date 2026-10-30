@@ -1,6 +1,6 @@
 import ts from "typescript"
 
-const origin = "https://framer-kit-prod.kniff.at"
+const origin = "https://framer-kit.kniff.at"
 const health = await fetch(`${origin}/health`)
 if (!health.ok) throw new Error(`CDN health: ${health.status}`)
 const manifest = await health.json()

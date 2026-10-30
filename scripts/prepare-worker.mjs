@@ -8,7 +8,7 @@ const root = resolve(import.meta.dirname, "..")
 const generated = join(root, "worker/.generated")
 const assets = join(generated, "assets")
 const releases = JSON.parse(await readFile(join(root, "worker/releases.json"), "utf8"))
-const origin = "https://framer-kit-prod.kniff.at"
+const origin = "https://framer-kit.kniff.at"
 let previous = { versions: [], builds: {} }
 // Only the first deployment may skip history. Later deployments retain all
 // content-addressed URLs that existing Framer pages may still import.

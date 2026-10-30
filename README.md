@@ -38,7 +38,7 @@ import {
   VisibleScrollOverflowSettings as KitComponent,
   visibleScrollOverflowSettingsPropertyControls,
 // @ts-ignore Framer resolves remote HTTPS modules.
-} from "https://framer-kit-prod.kniff.at/builds/3c1b881ec7a2c897d33b20e0/scroll-snap.js?external=react,react-dom,framer&target=es2022"
+} from "https://framer-kit.kniff.at/builds/3c1b881ec7a2c897d33b20e0/scroll-snap.js?external=react,react-dom,framer&target=es2022"
 
 export default function ScrollSettings(props: Record<string, unknown>) {
   return <KitComponent {...props} />
@@ -89,7 +89,7 @@ candidate blank frames plus gesture results under `/tmp` for visual inspection.
 
 ## Production module hosting
 
-The production CDN runs on a Cloudflare Worker at `https://framer-kit-prod.kniff.at`.
+The production CDN runs on a Cloudflare Worker at `https://framer-kit.kniff.at`.
 See [worker/README.md](worker/README.md) for versioned imports, external dependency
 handling, verification, and deployment. Copy-ready production adapters live in
 `examples/framer/prod`.

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import worker from "../worker/index"
 
-const request = (path: string, method = "GET") => new Request(`https://framer-kit-prod.kniff.at${path}`, { method })
+const request = (path: string, method = "GET") => new Request(`https://framer-kit.kniff.at${path}`, { method })
 const env = { ASSETS: { fetch: vi.fn(async (_request: Request) => new Response('import React from "react";', { headers: { ETag: '"asset"' } })) } }
 
 describe("production module Worker", () => {
