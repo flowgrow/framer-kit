@@ -285,3 +285,7 @@ export const cssScrollSnapButtonPropertyControls = {
   inactiveOpacity:{type:ControlType.Number,defaultValue:0.35,min:0,max:1,step:0.01},
 } satisfies PropertyControls<CSSScrollSnapButtonProps>
 addPropertyControls(CSSScrollSnapButton, cssScrollSnapButtonPropertyControls)
+
+CSSScrollSnapGallery.displayName = "Kniff Carousel Gallery"
+
+CSSScrollSnapButton.displayName = "Kniff Carousel Button"

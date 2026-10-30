@@ -100,8 +100,7 @@ export function RamkaSettings(props: RamkaSettingsProps) {
   )
 }
 
-RamkaSettings.displayName = "Ramka Settings"
-
+RamkaSettings.displayName = "Kniff Lightbox Settings"
 export const ramkaSettingsPropertyControls = {
   showInstructions: {
     type: ControlType.Boolean,

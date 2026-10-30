@@ -32,3 +32,7 @@ addPropertyControls(CSSScrollSnapGallery, {
   contentMaxWidth:{title:"Content Max",type:ControlType.Number,defaultValue:1040,min:200,max:2400,step:10,unit:"px"},
   carouselID:{title:"ID",type:ControlType.String,defaultValue:"CSS Scroll Snap Gallery",description:"Match the canvas stack’s aria-label, or its custom layer name (data-framer-name) when no aria-label is set."},
 })
+
+CSSScrollSnapGallery.displayName = "Kniff Carousel Gallery"
+
+CSSScrollSnapButton.displayName = "Kniff Carousel Button"

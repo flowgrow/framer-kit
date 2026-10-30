@@ -22,3 +22,5 @@ export default function RamkaSettings(props: Props) {
 }
 
 addPropertyControls(RamkaSettings, ramkaSettingsPropertyControls)
+
+RamkaSettings.displayName = "Kniff Lightbox Settings"

@@ -457,3 +457,5 @@ export function registerVisibleScrollOverflowSettingsPropertyControls(): void {
 
 registerVisibleScrollOverflowSettingsPropertyControls()
 export default VisibleScrollOverflowSettings
+
+VisibleScrollOverflowSettings.displayName = "Kniff Carousel Settings"
