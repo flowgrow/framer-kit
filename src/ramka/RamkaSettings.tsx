@@ -65,7 +65,7 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     RenderTarget.current() !== RenderTarget.canvas ||
     !settings.showInstructions
   ) {
-    return null
+    return <span hidden data-kniff-ramka-settings="" />
   }
 
   return (

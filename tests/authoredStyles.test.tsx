@@ -12,6 +12,7 @@ describe("authored carousel styles", () => {
       @supports (display:grid) { .page.variant .viewport { padding-left:calc(2px + 3vw) !important } }
     `, "viewport")
     expect(css).toContain("--kniff-authored-padding-right:96px")
+    expect(authoredVariableCSS(".viewport{padding:0}", "viewport")).toContain("--kniff-authored-padding-left:0px")
     expect(css).toContain("--kniff-authored-padding-left:32px")
     expect(css).toContain("--kniff-authored-row-gap:12px;--kniff-authored-column-gap:24px")
     expect(css).toContain("@media (max-width:809.98px){.page .viewport{--kniff-authored-padding-right:50px;")

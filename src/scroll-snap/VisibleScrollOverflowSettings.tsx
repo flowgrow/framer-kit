@@ -23,6 +23,7 @@ function slideBoxes(parent: Element): HTMLElement[] {
   return Array.from(parent.children).flatMap(child => {
     if (!(child instanceof HTMLElement) || ["STYLE", "SCRIPT"].includes(child.tagName)) return []
     if (getComputedStyle(child).display === "contents") return slideBoxes(child)
+    if (child.matches("[data-kniff-ramka-settings]") || child.querySelector("[data-kniff-ramka-settings]")) return []
     return child.getClientRects().length ? [child] : []
   })
 }
@@ -322,14 +323,17 @@ export function VisibleScrollOverflowSettings({containerID="Overflow Viewport",b
   > :where(.ssr-variant) > *,
   > ${cycle} > :where(:not(.ssr-variant)),
   > ${cycle} > :where(.ssr-variant) > *`
-  const firstSlide = `
-  > :where(:first-child:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy])),
-  > :where(.ssr-variant:first-child) > *,
-  > ${cycle}:first-child > :first-child`
-  const lastSlide = `
-  > :where(:last-child:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy])),
-  > :where(.ssr-variant:last-child) > *,
-  > ${cycle}:last-child > :last-child`
+  const content = ':not(style, script, [data-kniff-ramka-settings], :has([data-kniff-ramka-settings]))'
+  const edgeSlide = (which: "first" | "last") => {
+    const item = `:nth-${which === "first" ? "" : "last-"}child(1 of ${content}:not([data-kniff-loop-original], [data-kniff-loop-copy]))`
+    return `
+  > ${item}:not(.ssr-variant),
+  > .ssr-variant${item} > ${content},
+  > ${cycle} > ${item}:not(.ssr-variant),
+  > ${cycle} > .ssr-variant${item} > ${content}`
+  }
+  const firstSlide = edgeSlide("first")
+  const lastSlide = edgeSlide("last")
   if (RenderTarget.current() === RenderTarget.canvas) {
     const canvasFirstSlide = `> :where([data-framer-name]):nth-child(1 of [data-framer-name])`
     const canvasLastSlide = `> :where([data-framer-name]):nth-last-child(1 of [data-framer-name])`
@@ -413,8 +417,8 @@ ${viewport} {
     scroll-snap-align:${align};
     scroll-snap-stop:${stopEach ? "always" : "normal"};
   }
-  ${firstSlide} { margin-inline-start:${useEdgeSpace ? (align === "end" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
-  ${lastSlide} { margin-inline-end:${useEdgeSpace ? (align === "start" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
+  ${firstSlide} { margin-inline-start:${useEdgeSpace && !loop ? (align === "end" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
+  ${lastSlide} { margin-inline-end:${useEdgeSpace && !loop ? (align === "start" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
   /* Retain the accepted Safari compositor workaround. */
   &[data-kniff-loop] {
     transform:translateZ(0);

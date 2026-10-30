@@ -37,7 +37,7 @@ function variables(property: string, raw: string): string {
   const important = /\s*!important\s*$/i.test(raw) ? " !important" : ""
   const value = raw.replace(/\s*!important\s*$/i, "").trim()
   const values = split(value, character => /\s/.test(character))
-  const emit = (name: string, token: string) => `${variable(name)}:${token}${important};`
+  const emit = (name: string, token: string) => `${variable(name)}:${token === "0" ? "0px" : token}${important};`
   if (property === "padding" && values.length <= 4) {
     const [top = "0px", right = top, bottom = top, left = right] = values
     return emit("padding-top", top) + emit("padding-right", right) + emit("padding-bottom", bottom) + emit("padding-left", left)
