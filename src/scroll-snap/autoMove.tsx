@@ -1,7 +1,7 @@
 // @ts-ignore Framer resolves sibling code files at runtime; the repo build checks this path.
 import { installTouchIntent } from "./touchIntent.tsx"
 
-export interface AutoMoveOptions { speed: number; direction: "left" | "right"; resumeDelay?: number }
+export interface AutoMoveOptions { speed: number; direction: "left" | "right"; resumeDelay?: number; mode?: "per-slide" | "scroll"; interval?: number }
 
 // Resolve boxless Framer responsive wrappers without measuring unrelated descendants.
 function boxes(parent: Element): HTMLElement[] {
@@ -12,7 +12,7 @@ function boxes(parent: Element): HTMLElement[] {
   })
 }
 
-export function installAutoMove(viewport: HTMLElement, { speed, direction, resumeDelay = 300 }: AutoMoveOptions) {
+export function installAutoMove(viewport: HTMLElement, { speed, direction, resumeDelay = 300, mode = "scroll", interval = 3000 }: AutoMoveOptions) {
   const doc = viewport.ownerDocument, win = doc.defaultView!
   const reduced = win.matchMedia("(prefers-reduced-motion: reduce)")
   const snap = viewport.style.scrollSnapType, behavior = viewport.style.scrollBehavior
@@ -24,6 +24,7 @@ export function installAutoMove(viewport: HTMLElement, { speed, direction, resum
   let awaitingScroll = false
   let nativeHandoff = false
   let inView = false, suspended = true, resumeMoving = true
+  let nextSlideAt = 0
   let cycle = 0, origin = 0, max = 0, points: number[] = []
   const externallyPaused = () => viewport.hasAttribute("data-kniff-auto-move-paused")
   const state = (next: typeof phase) => { phase = next; viewport.dataset.kniffAutoMove = next }
@@ -47,6 +48,25 @@ export function installAutoMove(viewport: HTMLElement, { speed, direction, resum
   const restore = () => { viewport.style.scrollSnapType=snap; viewport.style.scrollBehavior=behavior }
   const tick = (now: number) => {
     if (disposed || externallyPaused() || !inView || phase !== 'running') return
+    if (mode === 'per-slide') {
+      if (now >= nextSlideAt) {
+        measure()
+        // Keep interval navigation inside the reusable loop cycles.
+        if (cycle > 0) {
+          const canonical = wrap(viewport.scrollLeft)
+          if (Math.abs(canonical-viewport.scrollLeft) > 1) viewport.scrollTo({left:canonical,behavior:'instant'})
+        }
+        const ordered = [...new Set(points)].sort((a,b)=>a-b)
+        const destination = direction === 'left'
+          ? ordered.find(point=>point>viewport.scrollLeft+2)
+          : ordered.reverse().find(point=>point<viewport.scrollLeft-2)
+        if (destination === undefined) { restore(); state('waiting'); frame=0; return }
+        viewport.scrollTo({left:destination,behavior:'smooth'})
+        nextSlideAt=now+interval
+      }
+      frame=win.requestAnimationFrame(tick)
+      return
+    }
     if (last) position = wrap(position + (direction === 'left' ? 1 : -1)*speed*Math.min(now-last,50)/1000)
     last=now
     // Keep fractional accumulation independent of browsers that round scrollLeft.
@@ -60,7 +80,8 @@ export function installAutoMove(viewport: HTMLElement, { speed, direction, resum
   const start = () => {
     if (disposed || externallyPaused() || !inView || gesture.holding || doc.hidden || reduced.matches || speed<=0) return
     stop(); measure(); position=viewport.scrollLeft; writtenPosition=position; awaitingScroll=false; nativeHandoff=false
-    viewport.style.scrollSnapType='none'; viewport.style.scrollBehavior='auto'
+    viewport.style.scrollSnapType=mode==='scroll'?'none':snap; viewport.style.scrollBehavior=mode==='scroll'?'auto':'smooth'
+    nextSlideAt=performance.now()+interval
     state('running'); frame=win.requestAnimationFrame(tick)
   }
   const wait = () => {
@@ -113,6 +134,7 @@ export function installAutoMove(viewport: HTMLElement, { speed, direction, resum
       nativeHandoff=true;awaitingScroll=false
       viewport.style.scrollSnapType=snap;viewport.style.scrollBehavior=behavior
     }
+    if (mode==='per-slide' && phase==='running' && !gesture.holding) return
     if ((awaitingScroll || (!hasTouch && phase==='running')) && userScrolled) {
       awaitingScroll=false; interrupt(true)
     }

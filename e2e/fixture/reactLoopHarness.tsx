@@ -1,15 +1,15 @@
 import React, { forwardRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { withKniffCarousel } from '../../src/scroll-snap/withKniffCarousel'
+import { withKniffCarouselLoop } from '../../src/scroll-snap/withKniffCarouselLoop'
 import { VisibleScrollOverflowSettings } from '../../src/scroll-snap/VisibleScrollOverflowSettings'
 import { withRamkaGallery, withRamkaTrigger } from '../../src/ramka/overrides'
 import CSSScrollSnapButton from '../../src/scroll-snap/CSSScrollSnap'
 import { RamkaSettings } from '../../src/ramka/RamkaSettings'
 import { ramkaSettingsDefaults } from '../../src/ramka/defaults'
 const Frame = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => <div {...props} ref={ref} />)
-const GalleryCarousel = withRamkaGallery(withKniffCarousel(Frame))
+const GalleryCarousel = withRamkaGallery(withKniffCarouselLoop(Frame))
 const Trigger = withRamkaTrigger(Frame)
-interface Options { align?: "start" | "center" | "end"; sync?: boolean; autoMove?: boolean }
+interface Options { align?: "start" | "center" | "end"; sync?: boolean; autoMove?: boolean | "off" | "per-slide" | "scroll" }
 function App({align="start",sync=true,autoMove=false}: Options) {
   const [clicks, setClicks] = useState(0)
   const [count, setCount] = useState(4)
@@ -27,7 +27,7 @@ function App({align="start",sync=true,autoMove=false}: Options) {
           <RamkaSettings {...ramkaSettingsDefaults} syncKniffCarousel={sync} />
         </GalleryCarousel>
       </div>
-      <VisibleScrollOverflowSettings containerID="Loop test" boundaryID="Loop boundary" align={align} edgeSpace={false} loop={loop} autoMove={autoMove} />
+      <VisibleScrollOverflowSettings containerID="Loop test" boundaryID="Loop boundary" align={align} edgeSpace={false} loop={loop} autoMove={autoMove === true ? "scroll" : autoMove === false ? "off" : autoMove} />
       <div style={{display:"flex",width:100,height:44}}><CSSScrollSnapButton carouselID="Loop test" overflowViewport action="Next" />
       <CSSScrollSnapButton carouselID="Loop test" overflowViewport action="Prev" /></div>
     </Frame>
