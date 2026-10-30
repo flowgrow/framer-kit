@@ -6,7 +6,7 @@ and Framer are supplied by the host; implementations are safe to import during S
 ## Scroll-snap carousel
 
 Use a full-width boundary containing a centered sizing frame with your usual
-Framer max width. Place one viewport frame inside the sizing frame, and put the
+Framer width. Place one viewport frame inside the sizing frame, set its max width, and put the
 slides inside that viewport. Percentage slide widths stay based on the sizing
 frame. The component adds full-width bleed gutters to your authored padding.
 
@@ -19,11 +19,11 @@ or `scroll` (continuous motion at `autoMoveSpeed`, in px/s). Direction applies t
 both motion modes.
 
 Apply the `withKniffCarousel` override to the viewport frame, including when Loop
-is off. It mirrors the viewport's authored padding and gap into CSS variables,
+is off. It mirrors the viewport's authored padding, gap and max-width into CSS variables,
 preserving breakpoint and variant rules. The server-emitted variables survive
 hydration; padding and scroll padding use CSS calculations without padding
 observers or additive animations. Set the slide gap on the viewport frame itself;
-the sizing container only controls its width and alignment.
+the sizing container controls available width and alignment, while the viewport owns the max-width cap.
 
 Loop is enabled by
 default in preview and published pages. React clones the slides and the carousel

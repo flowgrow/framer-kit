@@ -45,3 +45,13 @@ test('identically named canvas breakpoint frames keep independent gap and width 
   await page.evaluate(html=>document.querySelector('#settings')!.insertAdjacentHTML('beforebegin',html),markup({name:'new-phone',width:220,gap:7}))
   await expect.poll(async()=>{const v=await read('new-phone');return Math.max(Math.abs(v.gap-7),Math.abs(v.variableGap-7),Math.abs(v.width-v.actualWidth))}).toBeLessThan(0.5)
 })
+
+test('canvas viewport owns and reacts to its max-width cap',async({page})=>{
+  await page.goto('/')
+  await page.setContent(`<div aria-label="Canvas boundary"><div id="sizing" aria-label="Canvas slides" style="width:600px"><div id="viewport" style="position:relative;box-sizing:border-box;width:100%;max-width:400px;height:200px;padding:20px 32px;gap:24px"><div data-framer-name="Photo 1" style="width:50%;height:100px">One</div><div data-framer-name="Photo 2" style="width:100px;height:100px">Two</div><div data-framer-name="Photo 3" style="width:25%;height:100px">Three</div></div></div></div><div id="settings"></div>`)
+  await page.evaluate(async()=>{const {mountCanvasSettings}=await import(String('/e2e/fixture/reactLoopHarness.tsx'));await mountCanvasSettings(document.querySelector('#settings'))})
+  const read=()=>page.locator('#viewport').evaluate(el=>{const r=el.getBoundingClientRect(),p=el.parentElement!.getBoundingClientRect(),slides=el.querySelectorAll<HTMLElement>('[data-framer-name]'),first=slides[0]!.getBoundingClientRect(),last=slides[2]!.getBoundingClientRect();return {width:r.width,offset:r.left-p.left,firstWidth:first.width,lastWidth:last.width,gap:first.left-last.right}})
+  await expect.poll(read).toEqual({width:400,offset:100,firstWidth:168,lastWidth:84,gap:24})
+  await page.locator('#viewport').evaluate(el=>{(el as HTMLElement).style.maxWidth='300px'})
+  await expect.poll(read).toEqual({width:300,offset:150,firstWidth:118,lastWidth:59,gap:24})
+})

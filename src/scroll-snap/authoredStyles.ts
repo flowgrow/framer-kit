@@ -45,6 +45,8 @@ function variables(property: string, raw: string): string {
   if (/^padding-(top|right|bottom|left)$/.test(property)) return emit(property, value)
   if (property === "gap" && values.length <= 2) return emit("row-gap", values[0] ?? "0px") + emit("column-gap", values[1] ?? values[0] ?? "0px")
   if (property === "row-gap" || property === "column-gap") return emit(property, value)
+  // max-width percentages refer to the sizing frame, not the expanded scrollport.
+  if (property === "max-width") return emit(property, value === "none" ? "100cqw" : value.replace(/(-?[\d.]+)%/g, "$1cqw"))
   return ""
 }
 

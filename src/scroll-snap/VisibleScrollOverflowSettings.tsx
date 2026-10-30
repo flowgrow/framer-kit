@@ -345,6 +345,7 @@ ${viewport} {
   display:flex !important; flex-wrap:nowrap !important;
   align-items:inherit !important; justify-content:flex-start !important;
   overflow:visible !important;
+  margin-inline:auto !important;
   scroll-snap-type:x mandatory;
   scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
 
@@ -400,7 +401,8 @@ ${viewport} {
   flex:none !important; width:var(--kniff-bleed-page-span) !important; max-width:none !important;
   min-width:0;
   margin-inline:calc((100cqw - var(--kniff-bleed-page-span)) / 2) !important;
-  --kniff-gutter:calc((var(--kniff-bleed-page-span) - 100cqw) / 2);
+  --kniff-content-width:min(100cqw, var(--kniff-authored-max-width, 100cqw));
+  --kniff-gutter:calc((var(--kniff-bleed-page-span) - var(--kniff-content-width)) / 2);
   padding-left:calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter)) !important;
   padding-right:calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter)) !important;
   overflow-x:auto !important; overflow-y:hidden !important;
