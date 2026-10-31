@@ -15,3 +15,5 @@ export default function CSSScrollSnapButton(props: Record<string, unknown>) {
   return <KitComponent {...props} />
 }
 addPropertyControls(CSSScrollSnapButton, cssScrollSnapButtonPropertyControls)
+
+CSSScrollSnapButton.displayName = "Kniff Carousel Button"

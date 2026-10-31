@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react"
+import { snapPosition } from "./snapGeometry.js"
+
+const initializedViewports = new WeakSet<HTMLElement>()
 import { addPropertyControls, ControlType, RenderTarget, type PropertyControls } from "framer"
 export interface VisibleScrollOverflowSettingsProps {
   containerID?: string
   boundaryID?: string
   align?: "start" | "center" | "end"
-  showScrollbar?: boolean
   stopEach?: boolean
   loop?: boolean
   autoMove?: "off" | "per-slide" | "scroll"
@@ -24,6 +26,7 @@ function slideBoxes(parent: Element): HTMLElement[] {
   return Array.from(parent.children).flatMap(child => {
     if (!(child instanceof HTMLElement) || ["STYLE", "SCRIPT"].includes(child.tagName)) return []
     if (getComputedStyle(child).display === "contents") return slideBoxes(child)
+    if (child.matches("[data-kniff-ramka-settings]") || child.querySelector("[data-kniff-ramka-settings]")) return []
     return child.getClientRects().length ? [child] : []
   })
 }
@@ -33,52 +36,12 @@ function slideBoxes(parent: Element): HTMLElement[] {
  * @framerSupportedLayoutWidth fixed
  * @framerSupportedLayoutHeight fixed
  */
-export function VisibleScrollOverflowSettings({containerID="Percentage Sized Carousel",boundaryID="CSS Full Width Overflow Experiment",align="center",showScrollbar=false,stopEach=false,edgeSpace=true,loop=true,autoMove="off",autoMoveInterval=3,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
+export function VisibleScrollOverflowSettings({containerID="Overflow Viewport",boundaryID="CSS Full Width Overflow Experiment",align="center",stopEach=false,edgeSpace=true,loop=true,autoMove="off",autoMoveInterval=3,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
   const styleRef = useRef<HTMLStyleElement>(null)
   // Preserve saved values from the former boolean control.
   const autoMoveMode = typeof autoMove === "boolean" ? (autoMove ? "scroll" : "off") : autoMove
   const canvas = RenderTarget.current() === RenderTarget.canvas
   const useEdgeSpace = loop || edgeSpace
-  // Keep native snapping aligned with authored padding plus the additive CSS animation gutters.
-  useEffect(() => {
-    if (canvas || !containerID.trim()) return
-    let frame = 0
-    let attempts = 0
-    let dispose: (() => void) | undefined
-    const install = () => {
-      const sizing = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(target(containerID))
-      const viewport = sizing?.firstElementChild as HTMLElement | null
-      if (!viewport || !sizing) {
-        if (++attempts < 120) frame = requestAnimationFrame(install)
-        return
-      }
-      const previousLeft = viewport.style.scrollPaddingLeft
-      const previousRight = viewport.style.scrollPaddingRight
-      const sync = () => {
-        const css = getComputedStyle(viewport)
-        if (viewport.style.scrollPaddingLeft !== css.paddingLeft) viewport.style.scrollPaddingLeft = css.paddingLeft
-        if (viewport.style.scrollPaddingRight !== css.paddingRight) viewport.style.scrollPaddingRight = css.paddingRight
-      }
-      const resize = new ResizeObserver(sync)
-      resize.observe(viewport)
-      resize.observe(sizing)
-      const boundary = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(target(boundaryID))
-      if (boundary) resize.observe(boundary)
-      const attributes = new MutationObserver(sync)
-      attributes.observe(viewport, {attributes:true, attributeFilter:["style","class"]})
-      attributes.observe(sizing, {attributes:true, attributeFilter:["style","class"]})
-      sync()
-      dispose = () => {
-        resize.disconnect()
-        attributes.disconnect()
-        viewport.style.scrollPaddingLeft = previousLeft
-        viewport.style.scrollPaddingRight = previousRight
-      }
-    }
-    // Register before the loop effect so its initial geometry sees the full insets.
-    frame = requestAnimationFrame(install)
-    return () => { cancelAnimationFrame(frame); dispose?.() }
-  }, [containerID, boundaryID])
 
     useEffect(() => {
         if (
@@ -93,10 +56,10 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
         let retry = 0
         let cancelled = false
         const install = () => {
-            const sizing = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(
+            const scope = styleRef.current?.closest(target(boundaryID)) ?? (styleRef.current?.ownerDocument ?? document)
+            const scroller = Array.from(scope.querySelectorAll<HTMLElement>(
                 target(containerID)
-            )
-            const scroller = sizing?.firstElementChild as HTMLElement | null
+            )).find(node => node.getClientRects().length && node.clientWidth)
             if (!scroller) {
 
                 return false
@@ -276,7 +239,7 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
             cancelAnimationFrame(frame)
             dispose?.()
         }
-    }, [containerID, align, loop])
+    }, [containerID, boundaryID, align, loop])
   useEffect(() => {
     if (canvas || autoMoveMode === "off" || !containerID.trim()) return
     let frame = 0, attempts = 0
@@ -285,8 +248,8 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
     const install = (installAutoMove: AutoMoveInstaller) => {
       if (cancelled) return
       const doc = styleRef.current?.ownerDocument ?? document
-      const sizing = Array.from(doc.querySelectorAll<HTMLElement>(target(containerID))).find(el => el.getClientRects().length && el.clientWidth)
-      const viewport = sizing?.firstElementChild as HTMLElement | null
+      const scope = styleRef.current?.closest(target(boundaryID)) ?? doc
+      const viewport = Array.from(scope.querySelectorAll<HTMLElement>(target(containerID))).find(el => el.getClientRects().length && el.clientWidth)
       if (!viewport || (loop && !viewport.hasAttribute("data-kniff-loop-ready"))) {
         if (++attempts < 120) frame = requestAnimationFrame(() => install(installAutoMove))
         return
@@ -299,40 +262,93 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
       if (!cancelled) frame = requestAnimationFrame(() => install(installAutoMove))
     }).catch(() => {})
     return () => { cancelled = true; cancelAnimationFrame(frame); dispose?.() }
-  }, [canvas, autoMoveMode, autoMoveInterval, autoMoveSpeed, autoMoveDirection, containerID, loop, align])
-  // Canvas has no scroll position: place the first slide at its snap alignment.
+  }, [canvas, autoMoveMode, autoMoveInterval, autoMoveSpeed, autoMoveDirection, containerID, boundaryID, loop, align])
+  // CSS initial targeting is not implemented by Safari/Firefox yet. Initialize
+  // once per viewport after hydration styles exist, then leave native snapping
+  // alone. Never steal the position after the visitor starts interacting.
   useEffect(() => {
-    if (!canvas || !containerID.trim()) return
-    let frame = 0
-    let observer: ResizeObserver | undefined
-    let viewport: HTMLElement | undefined
-    let attempts = 0
+    if (canvas || loop || !containerID.trim() || CSS.supports("scroll-initial-target", "nearest")) return
+    const scope = styleRef.current?.closest(target(boundaryID)) ?? (styleRef.current?.ownerDocument ?? document)
+    let frame = 0, attempts = 0, cancelled = false
+    const events = ["pointerdown", "touchstart", "wheel", "keydown"]
+    const unlisten = () => { for (const event of events) scope.removeEventListener(event, cancel) }
+    const cancel = () => { cancelled = true; cancelAnimationFrame(frame); unlisten() }
+    for (const event of events) scope.addEventListener(event, cancel, {passive:true})
     const install = () => {
-      const sizing = (styleRef.current?.ownerDocument ?? document).querySelector<HTMLElement>(target(containerID))
-      viewport = sizing?.firstElementChild as HTMLElement | undefined
+      if (cancelled) return
+      const viewport = Array.from(scope.querySelectorAll<HTMLElement>(target(containerID))).find(node => node.getClientRects().length && node.clientWidth)
       const first = viewport ? slideBoxes(viewport)[0] : undefined
-      if (!viewport || !first) {
+      if (!viewport || !first || !getComputedStyle(viewport).getPropertyValue("--kniff-authored-width").trim()) {
         if (++attempts < 120) frame = requestAnimationFrame(install)
+        else unlisten()
         return
       }
-      const update = () => {
-        viewport?.style.setProperty("--kniff-canvas-first-width", first.offsetWidth + "px")
-
-      }
-      update()
-      observer = new ResizeObserver(update)
-      observer.observe(first)
+      unlisten()
+      if (initializedViewports.has(viewport)) return
+      initializedViewports.add(viewport)
+      viewport.scrollTo({left:snapPosition(viewport, first),behavior:"instant" as ScrollBehavior})
     }
     frame = requestAnimationFrame(install)
     return () => {
-      cancelAnimationFrame(frame)
-      observer?.disconnect()
-      viewport?.style.removeProperty("--kniff-canvas-first-width")
+      cancel()
     }
-  }, [containerID])
+  }, [canvas, containerID, boundaryID, loop])
+  // Each canvas breakpoint is a separate rendered frame, even when layer names
+  // are identical. Keep measurements on each viewport rather than the first match.
+  useEffect(() => {
+    if (!canvas || !containerID.trim()) return
+    const style = styleRef.current
+    const doc = style?.ownerDocument ?? document
+    const scope = style?.closest(target(boundaryID)) ?? doc.body
+    const selector = target(containerID)
+    const entries = new Map<HTMLElement, { first: HTMLElement; dispose(): void; update(): void }>()
+    const refresh = () => {
+      const active = new Set<HTMLElement>()
+      for (const viewport of scope.querySelectorAll<HTMLElement>(selector)) {
+        const first = slideBoxes(viewport)[0]
+        if (!first) continue
+        active.add(viewport)
+        const previous = entries.get(viewport)
+        if (previous?.first === first) { previous.update(); continue }
+        previous?.dispose()
+        const savedWidth = viewport.style.getPropertyValue("--kniff-canvas-first-width")
+        const savedGap = viewport.style.getPropertyValue("--kniff-canvas-gap")
+        const update = () => {
+          const css = getComputedStyle(viewport)
+          const values = {
+            "--kniff-canvas-first-width": first.offsetWidth + "px",
+            "--kniff-canvas-gap": css.columnGap === "normal" ? "0px" : css.columnGap,
+          }
+          for (const [name, value] of Object.entries(values)) {
+            if (viewport.style.getPropertyValue(name) !== value) viewport.style.setProperty(name, value)
+          }
+        }
+        const resize = new ResizeObserver(update)
+        resize.observe(first)
+        resize.observe(viewport)
+        entries.set(viewport, { first, update, dispose() {
+          resize.disconnect()
+          for (const [name, value] of [["--kniff-canvas-first-width", savedWidth], ["--kniff-canvas-gap", savedGap]]) {
+            if (value) viewport.style.setProperty(name!, value)
+            else viewport.style.removeProperty(name!)
+          }
+        } })
+        update()
+      }
+      for (const [viewport, entry] of entries) {
+        if (!active.has(viewport)) { entry.dispose(); entries.delete(viewport) }
+      }
+    }
+    refresh()
+    const mutations = new MutationObserver(refresh)
+    mutations.observe(scope, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] })
+    return () => {
+      mutations.disconnect()
+      for (const entry of entries.values()) entry.dispose()
+    }
+  }, [canvas, containerID, boundaryID])
   if(!containerID.trim() || !boundaryID.trim()) return null
-  const reference=target(containerID), boundary=target(boundaryID)
-  const viewport=`${reference} > :first-child`
+  const viewport=target(containerID), boundary=target(boundaryID)
   // Relative selectors stay inside the viewport's native CSS nesting block.
   const cycle = ':where([data-kniff-loop-original], [data-kniff-loop-copy])'
   const slides = `
@@ -340,14 +356,17 @@ export function VisibleScrollOverflowSettings({containerID="Percentage Sized Car
   > :where(.ssr-variant) > *,
   > ${cycle} > :where(:not(.ssr-variant)),
   > ${cycle} > :where(.ssr-variant) > *`
-  const firstSlide = `
-  > :where(:first-child:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy])),
-  > :where(.ssr-variant:first-child) > *,
-  > ${cycle}:first-child > :first-child`
-  const lastSlide = `
-  > :where(:last-child:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy])),
-  > :where(.ssr-variant:last-child) > *,
-  > ${cycle}:last-child > :last-child`
+  const content = ':not(style, script, [data-kniff-ramka-settings], :has([data-kniff-ramka-settings]))'
+  const edgeSlide = (which: "first" | "last") => {
+    const item = `:nth-${which === "first" ? "" : "last-"}child(1 of ${content}:not([data-kniff-loop-original], [data-kniff-loop-copy]))`
+    return `
+  > ${item}:not(.ssr-variant),
+  > .ssr-variant${item} > ${content},
+  > ${cycle} > ${item}:not(.ssr-variant),
+  > ${cycle} > .ssr-variant${item} > ${content}`
+  }
+  const firstSlide = edgeSlide("first")
+  const lastSlide = edgeSlide("last")
   if (RenderTarget.current() === RenderTarget.canvas) {
     const canvasFirstSlide = `> :where([data-framer-name]):nth-child(1 of [data-framer-name])`
     const canvasLastSlide = `> :where([data-framer-name]):nth-last-child(1 of [data-framer-name])`
@@ -356,10 +375,11 @@ ${viewport} {
   --kniff-initial-align:${align};
   --kniff-initial-position:${align === "start" ? "0%" : align === "end" ? "100%" : "50%"};
   display:flex !important; flex-wrap:nowrap !important;
-  gap:inherit !important; align-items:inherit !important; justify-content:flex-start !important;
+  align-items:inherit !important; justify-content:flex-start !important;
   overflow:visible !important;
+  margin-inline:auto !important;
   scroll-snap-type:x mandatory;
-  scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
+  scrollbar-width:none !important;
 
   ${slides} {
     flex-shrink:0 !important;
@@ -397,46 +417,41 @@ ${viewport} {
     margin:0 !important;
     opacity:0.5 !important;
   }` : ""}
-  &::-webkit-scrollbar { display:${showScrollbar ? "block" : "none"} !important; }
+  &::-webkit-scrollbar { display:none !important; }
 }
 `
     return <style ref={styleRef} dangerouslySetInnerHTML={{ __html: canvasCSS }} />
   }
   const css=`
 @property --kniff-bleed-page-span { syntax:"<length>"; inherits:true; initial-value:0px; }
-@keyframes kniff-bleed-gutters {
-  from, to {
-    padding-left:calc((var(--kniff-bleed-page-span) - 100cqw) / 2);
-    padding-right:calc((var(--kniff-bleed-page-span) - 100cqw) / 2);
-  }
-}
 ${boundary} { container-type:inline-size; }
-${reference} { --kniff-bleed-page-span:100cqw; container-type:inline-size; overflow:visible !important; }
 ${viewport} {
   --kniff-initial-align:${align};
   --kniff-initial-position:${align === "start" ? "0%" : align === "end" ? "100%" : "50%"};
   display:flex !important; flex-wrap:nowrap !important; box-sizing:border-box;
   flex:none !important; width:var(--kniff-bleed-page-span) !important; max-width:none !important;
   min-width:0;
-  margin-inline:calc((100cqw - var(--kniff-bleed-page-span)) / 2) !important;
-  /* Add bleed gutters to Framer's authored padding instead of replacing it.
-     Both keyframes are identical and paused: there is no moving animation. */
-  animation:kniff-bleed-gutters 1s linear both paused;
-  animation-composition:add;
+  --kniff-bleed-page-span:100cqw;
+  margin-inline:calc((100% - var(--kniff-bleed-page-span)) / 2) !important;
+  --kniff-content-width:min(100cqw, var(--kniff-authored-width, 100cqw), var(--kniff-authored-max-width, 100cqw));
+  --kniff-gutter:calc((var(--kniff-bleed-page-span) - var(--kniff-content-width)) / 2);
+  padding-left:calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter)) !important;
+  padding-right:calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter)) !important;
   overflow-x:auto !important; overflow-y:hidden !important;
   overscroll-behavior-x:none; overflow-anchor:none;
-  gap:inherit !important; align-items:inherit !important; justify-content:flex-start !important;
+  align-items:inherit !important; justify-content:flex-start !important;
   scroll-snap-type:x mandatory;
-  scroll-padding-inline:calc((var(--kniff-bleed-page-span) - 100cqw) / 2);
-  scrollbar-width:${showScrollbar ? "auto" : "none"} !important;
+  scroll-padding-left:calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter));
+  scroll-padding-right:calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter));
+  scrollbar-width:none !important;
 
   ${slides} {
     flex-shrink:0 !important;
     scroll-snap-align:${align};
     scroll-snap-stop:${stopEach ? "always" : "normal"};
   }
-  ${firstSlide} { margin-inline-start:${useEdgeSpace ? (align === "end" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
-  ${lastSlide} { margin-inline-end:${useEdgeSpace ? (align === "start" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
+  ${firstSlide} { scroll-initial-target:${loop ? "none" : "nearest"}; margin-inline-start:${useEdgeSpace && !loop ? (align === "end" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
+  ${lastSlide} { margin-inline-end:${useEdgeSpace && !loop ? (align === "start" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
   /* Retain the accepted Safari compositor workaround. */
   &[data-kniff-loop] {
     transform:translateZ(0);
@@ -446,21 +461,20 @@ ${viewport} {
       margin-inline:0 !important;
     }
   }
-  &::-webkit-scrollbar { display:${showScrollbar ? "block" : "none"} !important; }
+  &::-webkit-scrollbar { display:none !important; }
   &:focus-visible { outline:2px solid #456849; outline-offset:-2px; }
 }
 `
   return <style ref={styleRef} dangerouslySetInnerHTML={{__html:css}} />
 }
 export const visibleScrollOverflowSettingsPropertyControls = {
-  showScrollbar:{title:"Scrollbar",type:ControlType.Boolean,defaultValue:false},
   autoMove:{title:"Auto Move",type:ControlType.Enum,options:["off","per-slide","scroll"],optionTitles:["Off","Per Slide","Scroll"],defaultValue:"off"},
   autoMoveInterval:{title:"Time per slide",type:ControlType.Number,defaultValue:3,min:0.5,max:60,unit:"s",hidden:props=>props.autoMove!=="per-slide"},
   autoMoveSpeed:{title:"Speed",type:ControlType.Number,defaultValue:30,min:1,max:500,unit:"px/s",hidden:props=>props.autoMove!=="scroll"},
   autoMoveDirection:{title:"Direction",type:ControlType.Enum,options:["left","right"],optionTitles:["Left","Right"],defaultValue:"left",displaySegmentedControl:true,hidden:props=>!props.autoMove || props.autoMove==="off"},
-  loop:{title:"Loop",type:ControlType.Boolean,defaultValue:true,description:"Continuously loop through slides. Requires the Kniff Carousel Loop override on the viewport."},
-  containerID:{title:"Container",type:ControlType.String,defaultValue:"Percentage Sized Carousel",description:"Match aria-label or the custom layer name. This sizing container holds one viewport frame containing the slides."},
-  boundaryID:{title:"Boundary",type:ControlType.String,defaultValue:"CSS Full Width Overflow Experiment",description:"Name of the full-width ancestor. Keep the sizing container centered inside it."},
+  loop:{title:"Loop",type:ControlType.Boolean,defaultValue:true,description:"Continuously loop through slides. Requires the Kniff Carousel override on the viewport."},
+  containerID:{title:"Viewport",type:ControlType.String,defaultValue:"Overflow Viewport",description:"Match the viewport frame’s aria-label or custom layer name. Apply withKniffCarousel to that frame, including when Loop is off."},
+  boundaryID:{title:"Boundary",type:ControlType.String,defaultValue:"CSS Full Width Overflow Experiment",description:"Name of the full-width ancestor. Keep the viewport centered inside it."},
   align:{title:"Snap Align",type:ControlType.Enum,options:["start","center","end"],optionIcons:["align-left","align-center","align-right"],displaySegmentedControl:true,defaultValue:"center"} as PropertyControls<VisibleScrollOverflowSettingsProps>["align"] & { optionIcons: string[] },
   stopEach:{title:"Stop Each Slide",type:ControlType.Boolean,defaultValue:false},
   edgeSpace:{title:"Edge Space",type:ControlType.Boolean,defaultValue:true,hidden:props=>props.loop !== false,description:"This allows us to align first and last slide as well"},
@@ -476,3 +490,5 @@ export function registerVisibleScrollOverflowSettingsPropertyControls(): void {
 
 registerVisibleScrollOverflowSettingsPropertyControls()
 export default VisibleScrollOverflowSettings
+
+VisibleScrollOverflowSettings.displayName = "Kniff Carousel Settings"

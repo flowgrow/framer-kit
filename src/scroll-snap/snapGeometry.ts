@@ -3,6 +3,7 @@ export function slideBoxes(parent: Element): HTMLElement[] {
   return Array.from(parent.children).flatMap(child => {
     if (!(child instanceof HTMLElement) || ["STYLE", "SCRIPT"].includes(child.tagName)) return []
     if (getComputedStyle(child).display === "contents") return slideBoxes(child)
+    if (child.matches("[data-kniff-ramka-settings]") || child.querySelector("[data-kniff-ramka-settings]")) return []
     return child.getClientRects().length ? [child] : []
   })
 }

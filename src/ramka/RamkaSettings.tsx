@@ -16,9 +16,9 @@ import type {
   RamkaSettingsProps,
 } from "./types.js"
 
-/** Configures the nearest parent carrying the withRamkaGallery override. */
+/** Configures the nearest parent carrying the withKniffLightboxGallery override. */
 export function RamkaSettings(props: RamkaSettingsProps) {
-  const settings = { ...ramkaSettingsDefaults, ...props }
+  const settings = { ...ramkaSettingsDefaults, ...props, loop: false, viewTransition: true, morphTo: "active" as const, pullToClose: true }
   const gallery = useContext(RamkaGalleryContext)
   const setGalleryConfig = gallery?.setConfig
   const {
@@ -65,7 +65,7 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     RenderTarget.current() !== RenderTarget.canvas ||
     !settings.showInstructions
   ) {
-    return null
+    return <span hidden data-kniff-ramka-settings="" />
   }
 
   return (
@@ -92,43 +92,20 @@ export function RamkaSettings(props: RamkaSettingsProps) {
         lineHeight: 1.4,
       }}
     >
-      <strong>Ramka Settings</strong>
+      <strong>Kniff Lightbox Settings</strong>
       <span>
-        Place this inside the parent using the Ramka Gallery override.
+        Place this inside the parent using the Kniff Lightbox Gallery override.
       </span>
     </div>
   )
 }
 
-RamkaSettings.displayName = "Ramka Settings"
-
+RamkaSettings.displayName = "Kniff Lightbox Settings"
 export const ramkaSettingsPropertyControls = {
   showInstructions: {
     type: ControlType.Boolean,
     title: "Instructions",
     defaultValue: ramkaSettingsDefaults.showInstructions,
-  },
-  loop: {
-    type: ControlType.Boolean,
-    title: "Loop",
-    defaultValue: ramkaSettingsDefaults.loop,
-  },
-  viewTransition: {
-    type: ControlType.Boolean,
-    title: "Morph Transition",
-    defaultValue: ramkaSettingsDefaults.viewTransition,
-  },
-  morphTo: {
-    type: ControlType.Enum,
-    title: "Close Morph",
-    options: ["active", "origin", "closest"],
-    optionTitles: ["Active", "Opening", "Closest"],
-    defaultValue: ramkaSettingsDefaults.morphTo,
-  },
-  pullToClose: {
-    type: ControlType.Boolean,
-    title: "Pull to Close",
-    defaultValue: ramkaSettingsDefaults.pullToClose,
   },
   preload: {
     type: ControlType.Number,

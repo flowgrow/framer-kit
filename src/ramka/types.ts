@@ -14,7 +14,7 @@ export interface RamkaGalleryConfig {
   backdropColor: string
 }
 
-export interface RamkaSettingsProps extends RamkaGalleryConfig {
+export interface RamkaSettingsProps extends Omit<RamkaGalleryConfig, "loop" | "viewTransition" | "morphTo" | "pullToClose"> {
   showInstructions: boolean
   style?: CSSProperties
   id?: string

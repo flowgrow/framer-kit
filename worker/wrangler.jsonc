@@ -1,0 +1,14 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "framer-kit-prod",
+  "main": "index.ts",
+  "compatibility_date": "2026-05-29",
+  "account_id": "962099b0e2964ebd15911d716e272775",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "framer-kit.kniff.at", "custom_domain": true },
+    { "pattern": "framer-kit-prod.kniff.at", "custom_domain": true }
+  ],
+  "assets": { "directory": "./.generated/assets", "binding": "ASSETS", "run_worker_first": true },
+  "observability": { "enabled": true }
+}

@@ -16,8 +16,10 @@ interface Props {
  * @framerSupportedLayoutWidth any-prefer-fixed
  * @framerSupportedLayoutHeight any-prefer-fixed
  */
-export default function RamkaSettings(props: Props) {
+export default function KniffLightboxSettings(props: Props) {
   return <KitComponent {...props} />
 }
 
-addPropertyControls(RamkaSettings, ramkaSettingsPropertyControls)
+addPropertyControls(KniffLightboxSettings, ramkaSettingsPropertyControls)
+
+KniffLightboxSettings.displayName = "Kniff Lightbox Settings"
