@@ -28,7 +28,9 @@ navigation buttons target the viewport itself by its aria-label or layer name.
 Loop is enabled by
 default in preview and published pages. React clones the slides and the carousel
 normalizes the position after `scrollend`. Safari resets its scrolling layer at
-loop jumps to avoid missing slide paint. Disabling Loop keeps the layout CSS-only.
+loop jumps to avoid missing slide paint. With Loop off, scrolling and snapping remain native CSS. Chromium uses CSS initial
+targeting; Safari and Firefox receive a one-time initial-position correction after
+hydration. Initialization cancels if the visitor interacts first.
 Canvas preserves visible overflow so every original slide remains editable. A
 CSS-only preview places the last slide before the first, preserving its own size
 and accounting for viewport padding. Edge Space is always enabled with Loop.

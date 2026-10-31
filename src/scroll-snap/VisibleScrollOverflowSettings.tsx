@@ -1,4 +1,7 @@
 import { useEffect, useRef } from "react"
+import { snapPosition } from "./snapGeometry.js"
+
+const initializedViewports = new WeakSet<HTMLElement>()
 import { addPropertyControls, ControlType, RenderTarget, type PropertyControls } from "framer"
 export interface VisibleScrollOverflowSettingsProps {
   containerID?: string
@@ -260,6 +263,36 @@ export function VisibleScrollOverflowSettings({containerID="Overflow Viewport",b
     }).catch(() => {})
     return () => { cancelled = true; cancelAnimationFrame(frame); dispose?.() }
   }, [canvas, autoMoveMode, autoMoveInterval, autoMoveSpeed, autoMoveDirection, containerID, boundaryID, loop, align])
+  // CSS initial targeting is not implemented by Safari/Firefox yet. Initialize
+  // once per viewport after hydration styles exist, then leave native snapping
+  // alone. Never steal the position after the visitor starts interacting.
+  useEffect(() => {
+    if (canvas || loop || !containerID.trim() || CSS.supports("scroll-initial-target", "nearest")) return
+    const scope = styleRef.current?.closest(target(boundaryID)) ?? (styleRef.current?.ownerDocument ?? document)
+    let frame = 0, attempts = 0, cancelled = false
+    const events = ["pointerdown", "touchstart", "wheel", "keydown"]
+    const unlisten = () => { for (const event of events) scope.removeEventListener(event, cancel) }
+    const cancel = () => { cancelled = true; cancelAnimationFrame(frame); unlisten() }
+    for (const event of events) scope.addEventListener(event, cancel, {passive:true})
+    const install = () => {
+      if (cancelled) return
+      const viewport = Array.from(scope.querySelectorAll<HTMLElement>(target(containerID))).find(node => node.getClientRects().length && node.clientWidth)
+      const first = viewport ? slideBoxes(viewport)[0] : undefined
+      if (!viewport || !first || !getComputedStyle(viewport).getPropertyValue("--kniff-authored-width").trim()) {
+        if (++attempts < 120) frame = requestAnimationFrame(install)
+        else unlisten()
+        return
+      }
+      unlisten()
+      if (initializedViewports.has(viewport)) return
+      initializedViewports.add(viewport)
+      viewport.scrollTo({left:snapPosition(viewport, first),behavior:"instant" as ScrollBehavior})
+    }
+    frame = requestAnimationFrame(install)
+    return () => {
+      cancel()
+    }
+  }, [canvas, containerID, boundaryID, loop])
   // Each canvas breakpoint is a separate rendered frame, even when layer names
   // are identical. Keep measurements on each viewport rather than the first match.
   useEffect(() => {
@@ -417,7 +450,7 @@ ${viewport} {
     scroll-snap-align:${align};
     scroll-snap-stop:${stopEach ? "always" : "normal"};
   }
-  ${firstSlide} { margin-inline-start:${useEdgeSpace && !loop ? (align === "end" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
+  ${firstSlide} { scroll-initial-target:${loop ? "none" : "nearest"}; margin-inline-start:${useEdgeSpace && !loop ? (align === "end" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
   ${lastSlide} { margin-inline-end:${useEdgeSpace && !loop ? (align === "start" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
   /* Retain the accepted Safari compositor workaround. */
   &[data-kniff-loop] {
