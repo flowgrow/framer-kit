@@ -32,3 +32,14 @@ export function mountCanvasBreakpoints(mount:HTMLElement){
  root.render(<>{(['start','center','end'] as const).map((align,index)=><Breakpoint key={index} index={index} initialAlign={align}/>)}</>)
  return root
 }
+
+export function mountIntrinsicFill(mount:HTMLElement){
+ RenderTarget.current=()=> 'preview'
+ const style=document.createElement('style')
+ style.setAttribute('data-framer-css-ssr','')
+ style.textContent='.intrinsic-track{position:relative;display:flex;flex:1 0 0;width:1px;height:400px;gap:24px;padding:0;box-sizing:border-box}.intrinsic-slide{display:flex;flex-direction:column;flex:none;width:min-content;height:100%;padding-bottom:30px;box-sizing:border-box}.intrinsic-image{flex:none;width:auto;height:100%;aspect-ratio:1.5;background:steelblue}'
+ document.head.append(style)
+ const root=createRoot(mount)
+ root.render(<div aria-label="Intrinsic boundary" style={{width:'100%',display:'flex'}}><Viewport aria-label="Intrinsic viewport" id="intrinsic-viewport" className="intrinsic-track">{[0,1,2].map(i=><div key={i} className="intrinsic-slide" data-slide={i}><div className="intrinsic-image"/><span>Caption</span></div>)}</Viewport><VisibleScrollOverflowSettings containerID="Intrinsic viewport" boundaryID="Intrinsic boundary" align="start" loop/></div>)
+ return root
+}

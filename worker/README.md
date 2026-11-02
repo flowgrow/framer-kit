@@ -6,18 +6,14 @@ The Worker serves prebuilt ESM; it never installs packages or bundles React on a
 Published npm versions are immutable:
 
 ```tsx
-import { VisibleScrollOverflowSettings } from "https://framer-kit.kniff.at/@kniff/framer-kit@0.5.1/scroll-snap?external=react,react-dom,framer&target=es2022"
+import { VisibleScrollOverflowSettings } from "https://framer-kit.kniff.at/@kniff/framer-kit@0.5.2/scroll-snap?external=react,react-dom,framer&target=es2022"
 ```
 
-`/0.5.1/index.js`, `/0.5.1/ramka.js`, and `/0.5.1/scroll-snap.js` are canonical
+`/0.5.2/index.js`, `/0.5.2/ramka.js`, and `/0.5.2/scroll-snap.js` are canonical
 entry URLs. Versioned files exactly match the npm tarball, verified using its
 SHA-512 integrity value before deployment.
 
-`/index.js`, `/ramka.js`, and `/scroll-snap.js` point to the current working build.
-For reproducible Framer imports, use the content-addressed `/builds/<hash>/...`
-URLs reported by `/health` and recorded in `manifest.json`. These builds can
-contain changes that have not been published to npm. Production adapters under
-`examples/framer/prod` use those pinned build URLs.
+`/index.js`, `/ramka.js`, and `/scroll-snap.js` point to the latest published npm release. Production adapters pin the semantic version, never a `/builds/<hash>/` URL. Historical build URLs remain available for existing consumers.
 
 React, React DOM (including their subpaths), and Framer always remain bare host
 imports. `external=react,react-dom,framer` and `external=*` are accepted; requesting
@@ -28,22 +24,14 @@ immutable; the unversioned aliases revalidate.
 
 ## Update and deploy
 
-```sh
-pnpm exec wrangler login
-pnpm run worker:prepare
-pnpm run typecheck
-pnpm run test
-pnpm exec wrangler deploy --config worker/wrangler.jsonc
-pnpm run worker:verify
-```
+Every production push must increment the release version:
 
-For a targeted stable rebuild, run `node scripts/prepare-worker.mjs --dist-dir /path/to/stable/dist` instead of `worker:prepare`, then deploy normally. This keeps experimental Dev changes out of Prod. The current stable build uses source commit `07213e4` with the “Kniff Lightbox Settings” canvas label and a pointer cursor on lightbox triggers.
+1. Add a changeset and run `pnpm run version-packages` to increment the package version and changelog.
+2. Merge the release to `main`; wait for GitHub Actions to publish npm and create the Git release tag.
+3. Add the new version to `worker/releases.json`, then run `pnpm run worker:deploy`.
+4. Update production imports in both the Framer Kit and Jubilant Listening projects to the new semantic release URL. Publish and verify both sites.
 
-To host a new npm release, add its exact version to `releases.json` before
-preparing. Preparation retains previously deployed builds and versions from
-the live CDN, so existing pinned URLs continue working. Do not delete history.
-The very first deployment used `node scripts/prepare-worker.mjs --initial`;
-that flag must not be used for normal updates.
+The deployment guard rejects unchanged or older versions and unpublished packages. Preparation downloads exact npm tarballs, verifies integrity, and retains all historical assets. Never redeploy changed source under an existing release version. Use the development tunnel for unreleased code.
 
 The live verification script traverses the actual ESM import graph, checks CORS
 and MIME types, verifies that host dependencies stay external, and checks

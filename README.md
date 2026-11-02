@@ -52,7 +52,7 @@ import {
   VisibleScrollOverflowSettings as KitComponent,
   visibleScrollOverflowSettingsPropertyControls,
 // @ts-ignore Framer resolves remote HTTPS modules.
-} from "https://framer-kit.kniff.at/builds/3c1b881ec7a2c897d33b20e0/scroll-snap.js?external=react,react-dom,framer&target=es2022"
+} from "https://framer-kit.kniff.at/0.5.2/scroll-snap.js?external=react,react-dom,framer&target=es2022"
 
 export default function ScrollSettings(props: Record<string, unknown>) {
   return <KitComponent {...props} />

@@ -1,3 +1,4 @@
+import { useEdgeSlideWidths } from "./useEdgeSlideWidths.js"
 import { useEffect, useId, useRef } from "react"
 import { snapPosition } from "./snapGeometry.js"
 
@@ -43,6 +44,7 @@ export function VisibleScrollOverflowSettings({containerID="Overflow Viewport",b
   const autoMoveMode = typeof autoMove === "boolean" ? (autoMove ? "scroll" : "off") : autoMove
   const canvas = RenderTarget.current() === RenderTarget.canvas
   const useEdgeSpace = loop || edgeSpace
+  useEdgeSlideWidths(styleRef, target(containerID), target(boundaryID), !canvas && !loop && Boolean(containerID.trim() && boundaryID.trim()))
 
     useEffect(() => {
         if (
@@ -463,8 +465,8 @@ ${viewport} {
     scroll-snap-align:${align};
     scroll-snap-stop:${stopEach ? "always" : "normal"};
   }
-  ${firstSlide} { scroll-initial-target:${loop ? "none" : "nearest"}; margin-inline-start:${useEdgeSpace && !loop ? (align === "end" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
-  ${lastSlide} { margin-inline-end:${useEdgeSpace && !loop ? (align === "start" ? "100%" : align === "center" ? "50%" : "0px") : "0px"}; }
+  ${firstSlide} { scroll-initial-target:${loop ? "none" : "nearest"}; margin-inline-start:${useEdgeSpace && !loop && align !== "start" ? `calc((100% - var(--kniff-first-slide-width, 0px)) * ${align === "end" ? 1 : 0.5})` : "0px"}; }
+  ${lastSlide} { margin-inline-end:${useEdgeSpace && !loop && align !== "end" ? `calc((100% - var(--kniff-last-slide-width, 0px)) * ${align === "start" ? 1 : 0.5})` : "0px"}; }
   /* Retain the accepted Safari compositor workaround. */
   &[data-kniff-loop] {
     transform:translateZ(0);

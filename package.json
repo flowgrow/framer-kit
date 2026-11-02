@@ -1,6 +1,6 @@
 {
   "name": "@kniff/framer-kit",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Native scroll-snap carousels and Kniff lightboxes for Framer.",
   "repository": {
     "type": "git",
@@ -45,9 +45,9 @@
     "release": "pnpm run check && changeset publish",
     "prepublishOnly": "pnpm run check",
     "test:e2e": "playwright test",
-    "worker:prepare": "pnpm run build && node scripts/prepare-worker.mjs",
+    "worker:prepare": "node scripts/prepare-worker.mjs",
     "worker:dev": "pnpm exec wrangler dev --config worker/wrangler.jsonc",
-    "worker:deploy": "pnpm run worker:prepare && pnpm exec wrangler deploy --config worker/wrangler.jsonc",
+    "worker:deploy": "node scripts/check-prod-release.mjs && pnpm run worker:prepare && pnpm exec wrangler deploy --config worker/wrangler.jsonc && pnpm run worker:verify",
     "worker:verify": "node scripts/verify-worker.mjs"
   },
   "publishConfig": {

@@ -3,6 +3,13 @@ vi.mock("framer", () => ({}))
 import { authoredVariableCSS, inlineAuthoredVariables } from "../src/scroll-snap/authoredStyles.js"
 
 describe("authored carousel styles", () => {
+  it("reads Framer Fill width as the parent width rather than its 1px flex placeholder", () => {
+    for (const source of ["flex:1 0 0;width:1px", "width:1px;flex:1 0 0", "flex-grow:1;width:1px"]) {
+      expect(authoredVariableCSS(`.viewport{${source}}`, "viewport")).toContain("--kniff-authored-width:100cqw")
+    }
+    expect(authoredVariableCSS(".viewport{flex:none;width:1px}", "viewport")).toContain("--kniff-authored-width:1px")
+    expect(inlineAuthoredVariables({ flex: "1 0 0", width: 1 })).toEqual({ "--kniff-authored-width": "100cqw" })
+  })
   it("preserves breakpoints, variants, selector order and shorthand/longhand precedence", () => {
     const css = authoredVariableCSS(`
       .page .viewport { padding:40px 96px 40px 32px; gap:12px 24px; max-width:1000px }
@@ -19,6 +26,12 @@ describe("authored carousel styles", () => {
     expect(css).toContain("--kniff-authored-padding-left:calc(2px + 3vw) !important")
     expect(css).not.toContain("999")
     expect(css).toContain("--kniff-authored-max-width:1000px")
+  })
+  it("keeps intrinsic slide widths stable in WebKit without replacing fixed breakpoint widths", () => {
+    const css = authoredVariableCSS(".page .slide{width:min-content}@media(max-width:600px){.page .slide{width:240px}}", "viewport")
+    expect(css).toContain("{width:auto;}")
+    expect(css).toContain("{width:240px;}")
+    expect(css).toContain(".page .slide:where(:is(.viewport) > *")
   })
   it("mirrors inline padding and gap with React's unit conversion", () => {
     expect(inlineAuthoredVariables({ padding: "20px 30px", paddingLeft: 12, gap: 16 })).toEqual({

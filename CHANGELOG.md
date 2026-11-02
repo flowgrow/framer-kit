@@ -1,5 +1,19 @@
 # @kniff/framer-kit
 
+## 0.5.2
+
+### Patch Changes
+
+- Match preview and published carousel edge spacing to Canvas by subtracting the first and last slide widths before applying center or end alignment.
+
+- Recognize Framer Fill widths without using the 1px flex placeholder as a content constraint. Stabilize intrinsic image-slide widths in WebKit while preserving authored fixed widths and breakpoint overrides.
+
+- [#7](https://github.com/flowgrow/framer-kit/pull/7) [`82c124e`](https://github.com/flowgrow/framer-kit/commit/82c124e3996aedcd879064d1c14380d0762f17ca) Thanks [@flowgrow](https://github.com/flowgrow)! - Remove Ramka Loop, Morph Transition, Close Morph, and Pull to Close controls. Always disable lightbox looping, enable morph transitions and pull to close, and morph back to the active image. Ignore old saved values for these options. Respect the configured preload value instead of forcing at least two neighboring slides.
+
+  Rename lightbox overrides to `withKniffLightboxGallery` and `withKniffLightboxTrigger`, and the combined viewport override to `withKniffLightboxCarouselLoop`.
+
+- Use the connected navigation slot as the keyboard control with a non-focusable wrapper. Serve production only from published semantic releases and require a new release version for each production deployment.
+
 ## 0.5.1
 
 ### Patch Changes

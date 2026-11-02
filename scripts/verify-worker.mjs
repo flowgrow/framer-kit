@@ -4,6 +4,7 @@ const origin = "https://framer-kit.kniff.at"
 const health = await fetch(`${origin}/health`)
 if (!health.ok) throw new Error(`CDN health: ${health.status}`)
 const manifest = await health.json()
+if (manifest.current !== manifest.latest || !/^\d+\.\d+\.\d+$/.test(manifest.current)) throw new Error("Production aliases must resolve to the latest semantic release")
 const visited = new Set()
 const external = new Set()
 async function check(url) {

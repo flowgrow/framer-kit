@@ -54,12 +54,22 @@ function variables(property: string, raw: string): string {
   return ""
 }
 
+// Framer's Fill sizing emits flex:1 0 0 and width:1px. The pixel is a
+// flex-basis placeholder, not the authored content width.
+function isFillWidth(width: unknown, flex: unknown, grow?: unknown): boolean {
+  const token = String(width).replace(/\s*!important\s*$/i, "").trim()
+  const flexToken = String(flex ?? "").trim()
+  const growth = grow ?? (flexToken === "auto" ? 1 : parseFloat(flexToken))
+  return (token === "1" || token === "1px") && Number(growth) > 0
+}
+
 export function inlineAuthoredVariables(style?: CSSProperties): CSSProperties {
   const result: Record<string, string> = {}
   for (const [key, value] of Object.entries(style ?? {})) {
     if (value == null) continue
     const property = key.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`)
-    for (const declaration of variables(property, typeof value === "number" ? `${value}px` : String(value)).split(";")) {
+    const raw = property === "width" && isFillWidth(value, style?.flex, style?.flexGrow) ? "100cqw" : typeof value === "number" ? `${value}px` : String(value)
+    for (const declaration of variables(property, raw).split(";")) {
       const colon = declaration.indexOf(":")
       if (colon > 0) result[declaration.slice(0, colon)] = declaration.slice(colon + 1)
     }
@@ -72,6 +82,9 @@ export function authoredVariableCSS(source: string, className: string): string {
   const classes = new Set(className.split(/\s+/).filter(Boolean))
   if (!classes.size) return ""
   const text = source.replace(/\/\*[\s\S]*?\*\//g, "")
+  const root = `:is(${[...classes].map(name => `.${name}`).join(",")})`
+  const cycles = ':is([data-kniff-loop-original],[data-kniff-loop-copy])'
+  const slideSubjects = `${root} > *,${root} > .ssr-variant > *,${root} > ${cycles} > *,${root} > ${cycles} > .ssr-variant > *`
   function visit(input: string): string {
     let output = "", cursor = 0
     while (cursor < input.length) {
@@ -96,18 +109,33 @@ export function authoredVariableCSS(source: string, className: string): string {
         continue
       }
       if (header.startsWith("@") || body.includes("{")) continue
-      const selectors = split(header, character => character === ",").filter(selector => {
+      const allSelectors = split(header, character => character === ",")
+      const selectors = allSelectors.filter(selector => {
         const compound = split(selector, character => /\s|[>+~]/.test(character)).at(-1) ?? ""
         if (compound.includes("::")) return false
         // Match the styled element, not a class on one of its ancestors.
         const subject = compound.split(":")[0] ?? ""
         return [...subject.matchAll(/\.([\w-]+)/g)].some(match => classes.has(match[1]!))
       })
-      if (!selectors.length) continue
       let declarations = ""
-      for (const declaration of split(body, character => character === ";")) {
+      const properties = split(body, character => character === ";").flatMap(declaration => {
         const colon = declaration.indexOf(":")
-        if (colon > 0) declarations += variables(declaration.slice(0, colon).trim().toLowerCase(), declaration.slice(colon + 1))
+        return colon > 0 ? [[declaration.slice(0, colon).trim().toLowerCase(), declaration.slice(colon + 1).trim()]] : []
+      })
+      const values = Object.fromEntries(properties)
+      // WebKit can size a min-content flex slide to its caption instead of its
+      // percentage-height image. Auto width retains the intrinsic image width.
+      // Mirror other width declarations too, so breakpoint overrides keep their
+      // original order and specificity. Only direct carousel slides can match.
+      if (values.width) {
+        const width = values.width.replace(/^min-content(?=\s*!important|$)/, "auto")
+        const scoped = allSelectors.filter(selector => !selector.includes("::")).map(selector => `${selector}:where(${slideSubjects})`)
+        if (scoped.length) output += `${scoped.join(",")}{width:${width};}`
+      }
+      if (!selectors.length) continue
+      for (const [property, value] of properties) {
+        declarations += variables(property!, property === "width" && isFillWidth(value, values.flex, values["flex-grow"])
+          ? "100cqw" + (/!important/i.test(value!) ? " !important" : "") : value!)
       }
       if (declarations) output += `${selectors.join(",")}{${declarations}}`
     }
