@@ -7,7 +7,9 @@ and Framer are supplied by the host; implementations are safe to import during S
 
 Use a full-width boundary containing the viewport frame and its slides. Set the
 viewport’s width, max-width, padding and gap in Framer. Percentage slide widths
-use that authored content area; no separate sizing frame is required. The component adds full-width bleed gutters to your authored padding.
+use that authored content area; no separate sizing frame is required. An optional
+padding wrapper is respected at each breakpoint. The component adds full-width
+bleed gutters to your authored padding without layout measurements.
 
 `VisibleScrollOverflowSettings` accepts `containerID`, `boundaryID`, `align`
 (`start`, `center`, `end`), `stopEach`, `edgeSpace`,

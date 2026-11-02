@@ -45,7 +45,8 @@ function variables(property: string, raw: string): string {
   if (/^padding-(top|right|bottom|left)$/.test(property)) return emit(property, value)
   if (property === "gap" && values.length <= 2) return emit("row-gap", values[0] ?? "0px") + emit("column-gap", values[1] ?? values[0] ?? "0px")
   if (property === "row-gap" || property === "column-gap") return emit(property, value)
-  // Authored sizing is relative to the boundary, not the expanded scrollport.
+  // Authored sizing is relative to the viewport's parent content box, not the
+  // expanded scrollport. Settings establishes that parent's sizing container.
   if (property === "width" || property === "max-width") {
     const intrinsic = /^(none|auto|min-content|max-content|fit-content|stretch|inherit|initial|unset)$/.test(value)
     return emit(property, intrinsic ? "100cqw" : value.replace(/(-?[\d.]+)%/g, "$1cqw"))

@@ -431,13 +431,20 @@ ${canvasViewport} {
   const css=`
 @property --kniff-bleed-page-span { syntax:"<length>"; inherits:true; initial-value:0px; }
 ${boundary} { container-type:inline-size; }
+/* Capture the outer span before making the viewport's parent a sizing container.
+   Registered lengths resolve here and inherit as pixels, while 100cqw inside
+   the viewport now follows the parent's padded content box at every breakpoint. */
+${boundary} :where(:has(> ${viewport})) {
+  --kniff-bleed-page-span:100cqw;
+  container-type:inline-size;
+}
+${boundary} > ${viewport} { --kniff-bleed-page-span:100cqw; }
 ${viewport} {
   --kniff-initial-align:${align};
   --kniff-initial-position:${align === "start" ? "0%" : align === "end" ? "100%" : "50%"};
   display:flex !important; flex-wrap:nowrap !important; box-sizing:border-box;
   flex:none !important; width:var(--kniff-bleed-page-span) !important; max-width:none !important;
   min-width:0;
-  --kniff-bleed-page-span:100cqw;
   margin-inline:calc((100% - var(--kniff-bleed-page-span)) / 2) !important;
   --kniff-content-width:min(100cqw, var(--kniff-authored-width, 100cqw), var(--kniff-authored-max-width, 100cqw));
   --kniff-gutter:calc((var(--kniff-bleed-page-span) - var(--kniff-content-width)) / 2);

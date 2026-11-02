@@ -4,10 +4,11 @@ import {RenderTarget} from './framer'
 import {withKniffCarousel} from '../../src/scroll-snap/withKniffCarousel'
 import {VisibleScrollOverflowSettings} from '../../src/scroll-snap/VisibleScrollOverflowSettings'
 const Frame=forwardRef<HTMLDivElement,React.HTMLAttributes<HTMLDivElement>>((props,ref)=><div {...props} ref={ref}/>),Viewport=withKniffCarousel(Frame)
-export function mountAlignment(mount:HTMLElement,{align,edgeSpace,canvas}:{align:'start'|'center'|'end';edgeSpace:boolean;canvas:boolean}){
+export function mountAlignment(mount:HTMLElement,{align,edgeSpace,canvas,paddingWrapper=false}:{align:'start'|'center'|'end';edgeSpace:boolean;canvas:boolean;paddingWrapper?:boolean}){
  RenderTarget.current=()=>canvas?RenderTarget.canvas:'preview'
  const root=createRoot(mount)
- root.render(<div aria-label="Alignment boundary" style={{width:'100%'}}><Viewport aria-label="Alignment viewport" id="alignment-viewport" style={{position:'relative',boxSizing:'border-box',width:'100%',maxWidth:600,height:180,padding:'20px 64px 20px 0px',gap:24}}>{[180,260,120,340,210].map((width,i)=><div key={i} className="ssr-variant" style={{display:"contents"}}><div data-slide={i} data-framer-name={'Slide '+i} style={{flex:'none',width,height:100,background:'steelblue'}}>Slide {i+1}</div></div>)}<div style={{position:"absolute"}}><span hidden data-kniff-ramka-settings=""/></div></Viewport><VisibleScrollOverflowSettings containerID="Alignment viewport" boundaryID="Alignment boundary" align={align} edgeSpace={edgeSpace} loop={false}/></div>)
+ const viewport=<Viewport aria-label="Alignment viewport" id="alignment-viewport" style={{position:'relative',boxSizing:'border-box',width:'100%',maxWidth:600,height:180,padding:'20px 64px 20px 0px',gap:24}}>{(paddingWrapper?['50%',160,120,180,90]:[180,260,120,340,210]).map((width,i)=><div key={i} className="ssr-variant" style={{display:"contents"}}><div data-slide={i} data-framer-name={'Slide '+i} style={{flex:'none',width,height:100,background:'steelblue'}}>Slide {i+1}</div></div>)}<div style={{position:"absolute"}}><span hidden data-kniff-ramka-settings=""/></div></Viewport>
+ root.render(<div aria-label="Alignment boundary" style={{width:'100%'}}>{paddingWrapper?<><style>{`.padding-wrapper{box-sizing:border-box;width:100%;padding-inline:0}@media(max-width:1199px){.padding-wrapper{padding-inline:48px}}@media(max-width:809px){.padding-wrapper{padding-inline:24px}}`}</style><div className="padding-wrapper">{viewport}</div></>:viewport}<VisibleScrollOverflowSettings containerID="Alignment viewport" boundaryID="Alignment boundary" align={align} edgeSpace={edgeSpace} loop={false}/></div>)
  return root
 }
 
