@@ -12,7 +12,7 @@ export {
   isSameRamkaMedia,
   sortRamkaMedia,
 } from "./media.js"
-export { withRamkaGallery, withRamkaTrigger } from "./overrides.js"
+export { withKniffLightboxGallery, withKniffLightboxTrigger } from "./overrides.js"
 export type {
   RamkaGalleryConfig,
   RamkaMediaItem,

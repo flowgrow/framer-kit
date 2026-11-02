@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 async function setup(page: import('@playwright/test').Page, loop: boolean) {
   await page.goto('/')
-  await page.setContent(`<style>#s{width:360px}#v{display:flex;gap:var(--gap,24px);overflow-x:auto;scroll-snap-type:x mandatory}.slide{flex:none;width:240px;height:100px;scroll-snap-align:start}</style><div id=s data-framer-name="Navigation Test"><div id=v ${loop ? 'data-kniff-loop' : ''}><div class=slide>A</div><div class=slide>B</div><div class=slide>C</div></div></div><div id=buttons></div>`)
+  await page.setContent(`<style>#s{width:360px}#v{display:flex;gap:var(--gap,24px);overflow-x:auto;scroll-snap-type:x mandatory}.slide{flex:none;width:240px;height:100px;scroll-snap-align:start}</style><div id=s><div data-framer-name="Navigation Test" id=v ${loop ? 'data-kniff-loop' : ''}><div class=slide>A</div><div class=slide>B</div><div class=slide>C</div></div></div><div id=buttons></div>`)
   await page.evaluate(async () => {
     const { mountNavigation } = await import(String('/e2e/fixture/navigationHarness.ts'))
     ;(window as any).navigationRoot = mountNavigation(document.querySelector('#buttons')!)

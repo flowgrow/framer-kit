@@ -1,12 +1,12 @@
 import React, { forwardRef } from 'react'
 import { createRoot } from 'react-dom/client'
-import { withRamkaGallery, withRamkaTrigger } from '../../src/ramka/overrides'
+import { withKniffLightboxGallery, withKniffLightboxTrigger } from '../../src/ramka/overrides'
 import { RamkaSettings } from '../../src/ramka/RamkaSettings'
 import { ramkaSettingsDefaults } from '../../src/ramka/defaults'
 import { installAutoMove } from '../../src/scroll-snap/autoMove'
 const Frame = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => <div {...props} ref={ref} />)
-const Gallery = withRamkaGallery(Frame)
-const Trigger = withRamkaTrigger(Frame)
+const Gallery = withKniffLightboxGallery(Frame)
+const Trigger = withKniffLightboxTrigger(Frame)
 export function mountRamka(mount: HTMLElement) {
   const root = createRoot(mount)
   root.render(<Gallery><RamkaSettings {...ramkaSettingsDefaults} /><div id="ramka-viewport" style={{display:'flex',width:360,overflowX:'auto'}}>

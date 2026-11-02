@@ -18,3 +18,5 @@ export default function VisibleScrollOverflowSettings(props: Props) {
 }
 
 addPropertyControls(VisibleScrollOverflowSettings, visibleScrollOverflowSettingsPropertyControls)
+
+VisibleScrollOverflowSettings.displayName = "Kniff Carousel Settings"

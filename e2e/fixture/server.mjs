@@ -9,6 +9,12 @@ createHttpServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost')
   if (url.pathname === '/cms') { res.setHeader('Content-Type','application/json'); setTimeout(() => res.end('[]'), 500); return }
   if (url.pathname === '/image.svg') { res.setHeader('Content-Type','image/svg+xml');res.end('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="320" height="240" fill="steelblue"/></svg>');return }
+  if (url.pathname === '/authored-padding') {
+    const { AuthoredPadding, authoredCSS } = await vite.ssrLoadModule('/e2e/fixture/authoredPadding.tsx')
+    res.setHeader('Content-Type','text/html')
+    res.end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}</style><style data-framer-css-ssr>${authoredCSS}</style><div id="authored-root">${renderToString(React.createElement(AuthoredPadding))}</div>`)
+    return
+  }
   if (url.pathname !== '/') { vite.middlewares(req,res,()=>{res.statusCode=404;res.end()});return }
   try {
     const { App } = await vite.ssrLoadModule('/e2e/fixture/App.tsx')

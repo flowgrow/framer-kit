@@ -1,3 +1,4 @@
+import { NavigationControl } from "../shared/NavigationControl.js"
 import { getPendingOverflowDestination, moveOverflowViewport } from "./snapNavigation.js"
 import { overflowSnapPoints, slideBoxes } from "./snapGeometry.js"
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
@@ -168,7 +169,7 @@ addPropertyControls(CSSScrollSnapGallery, {
 import { Children, cloneElement, isValidElement, type CSSProperties, type ReactNode, type ReactElement } from "react"
 
 
-function useOverflowAvailability(carouselID: string, enabled: boolean, buttonRef: { current: HTMLButtonElement | null }) {
+function useOverflowAvailability(carouselID: string, enabled: boolean, buttonRef: { current: HTMLElement | null }) {
   const [available, setAvailable] = useState(0)
   useEffect(() => {
     if (!enabled || !carouselID.trim()) return
@@ -180,8 +181,8 @@ function useOverflowAvailability(carouselID: string, enabled: boolean, buttonRef
       frame = 0
       const doc = buttonRef.current?.ownerDocument ?? document
       const value = JSON.stringify(carouselID.trim())
-      const sizing = doc.querySelector<HTMLElement>(`:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`)
-      const viewport = sizing?.firstElementChild as HTMLElement | null
+      const viewport = Array.from(doc.querySelectorAll<HTMLElement>(`:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`))
+        .find(node => node.getClientRects().length && node.clientWidth)
       if (!viewport) {
         if (++attempts < 120) frame = requestAnimationFrame(install)
         return
@@ -213,11 +214,12 @@ function useOverflowAvailability(carouselID: string, enabled: boolean, buttonRef
         if (!frame) frame = requestAnimationFrame(() => { frame = 0; update() })
       }
       const invalidate = () => { geometryDirty = true; schedule() }
+      const layoutParent = viewport.parentElement
       const resize = new ResizeObserver(invalidate)
       const watchSlides = () => {
         resize.disconnect()
         resize.observe(viewport)
-        if (sizing) resize.observe(sizing)
+        if (layoutParent) resize.observe(layoutParent)
         for (const slide of slideBoxes(viewport)) resize.observe(slide)
       }
       watchSlides()
@@ -226,7 +228,7 @@ function useOverflowAvailability(carouselID: string, enabled: boolean, buttonRef
         invalidate()
       })
       mutation.observe(viewport, {childList:true, subtree:true, attributes:true, attributeFilter:["style","class","data-kniff-loop"]})
-      if (sizing) mutation.observe(sizing, {attributes:true, attributeFilter:["style","class"]})
+      if (layoutParent) mutation.observe(layoutParent, {attributes:true, attributeFilter:["style","class"]})
       const win = doc.defaultView ?? window
       win.addEventListener("resize", invalidate)
       for (const event of ["scroll","scrollend","kniff-scroll-navigation"]) viewport.addEventListener(event, schedule, {passive:true})
@@ -257,31 +259,36 @@ export default function CSSScrollSnapButton({carouselID="CSS Scroll Snap Gallery
   const api = useCSSScrollSnap(carouselID)
   const state = useSyncExternalStore(api?.subscribe ?? emptySubscribe, api?.snapshot ?? emptySnapshot, emptySnapshot)
   const canvas = RenderTarget.current() === RenderTarget.canvas
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const buttonRef = useRef<HTMLElement>(null)
   const overflowAvailable = useOverflowAvailability(carouselID, overflowViewport && !canvas, buttonRef)
   const available = overflowViewport ? overflowAvailable : state
   const disabled = !canvas && !(available & (action === "Next" ? 2 : 1))
   const component = Children.toArray(componentSlot).find(isValidElement) as ReactElement<any> | undefined
-  return <button ref={buttonRef} type="button" aria-label={action === "Next" ? "Next slide" : "Previous slide"} disabled={disabled}
-    onClick={() => {
+  return <NavigationControl ref={buttonRef} hasSlot={Boolean(component)} label={action === "Next" ? "Next slide" : "Previous slide"} disabled={disabled}
+    onActivate={() => {
       if (disabled) return
       const direction = action === "Next" ? 1 : -1
       if (!overflowViewport) { api?.move(direction); return }
       const value = JSON.stringify(carouselID.trim())
-      const sizing = document.querySelector<HTMLElement>(`:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`)
-      const viewport = sizing?.firstElementChild as HTMLElement | null
+      const doc = buttonRef.current?.ownerDocument ?? document
+      const viewport = Array.from(doc.querySelectorAll<HTMLElement>(`:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`))
+        .find(node => node.getClientRects().length && node.clientWidth)
       if (!viewport) return
       moveOverflowViewport(viewport, direction)
     }}
     style={{...style, userSelect:"none", WebkitUserSelect:"none", position:"relative", width:"100%",height:"100%",appearance:"none",padding:0,border:component?"none":"1px solid #c5cbbf",borderRadius:component?0:999,background:component?"transparent":"white",color:"#203923",fontSize:22,cursor:disabled?"default":"pointer",opacity:disabled?inactiveOpacity:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
-    {component ? cloneElement(component,{tabIndex:-1, "aria-hidden":true,style:{...component.props.style, userSelect:"none",WebkitUserSelect:"none",maxWidth:"100%",maxHeight:"100%",pointerEvents:disabled?"none":"auto"}}) : action === "Next" ? "→" : "←"}
-  </button>
+    {component ? cloneElement(component,{style:{...component.props.style, userSelect:"none",WebkitUserSelect:"none",maxWidth:"100%",maxHeight:"100%",pointerEvents:disabled?"none":"auto"}}) : action === "Next" ? "→" : "←"}
+  </NavigationControl>
 }
 export const cssScrollSnapButtonPropertyControls = {
-  overflowViewport:{title:"Overflow Viewport",type:ControlType.Boolean,defaultValue:false,description:"Navigate the first child viewport of the named overflow container."},
+  overflowViewport:{title:"Overflow Viewport",type:ControlType.Boolean,defaultValue:false,description:"Navigate the viewport frame named by ID."},
   carouselID:{title:"ID",type:ControlType.String,defaultValue:"CSS Scroll Snap Gallery",description:"Match the carousel stack’s layer name."},
   action:{type:ControlType.Enum,options:["Prev","Next"],defaultValue:"Next"},
   componentSlot:{title:"Connect",type:ControlType.Slot,maxCount:1},
   inactiveOpacity:{type:ControlType.Number,defaultValue:0.35,min:0,max:1,step:0.01},
 } satisfies PropertyControls<CSSScrollSnapButtonProps>
 addPropertyControls(CSSScrollSnapButton, cssScrollSnapButtonPropertyControls)
+
+CSSScrollSnapGallery.displayName = "Kniff Carousel Gallery"
+
+CSSScrollSnapButton.displayName = "Kniff Carousel Button"

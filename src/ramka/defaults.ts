@@ -2,7 +2,7 @@ import type { RamkaGalleryConfig } from "./types.js"
 
 export const ramkaSettingsDefaults = {
   showInstructions: true,
-  loop: true,
+  loop: false,
   viewTransition: true,
   morphTo: "active",
   pullToClose: true,

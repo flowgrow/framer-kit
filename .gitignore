@@ -8,3 +8,11 @@ coverage/
 playwright-report/
 test-results/
 screenshots/
+
+worker/.generated/
+.wrangler/
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*

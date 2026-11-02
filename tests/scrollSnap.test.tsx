@@ -14,7 +14,8 @@ describe("scroll snap rendering", () => {
   it("renders loop-enabled CSS on the server without accessing the DOM", () => {
     environment.target = "preview"
     const html = renderToStaticMarkup(createElement(VisibleScrollOverflowSettings, { loop: true }))
-    expect(html).toContain("animation-composition:add")
+    expect(html).toContain("var(--kniff-authored-padding-left, 0px)")
+    expect(html).not.toContain("animation-composition:add")
     expect(html).toContain("overflow-x:auto")
   })
 
