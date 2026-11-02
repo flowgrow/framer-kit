@@ -1,4 +1,17 @@
 import {test,expect} from '@playwright/test'
+test('canvas breakpoint settings do not override other same-name frames',async({page})=>{
+ await page.goto('/');await page.setContent('<div id="mount"></div>')
+ await page.evaluate(async()=>{const {mountCanvasBreakpoints}=await import(String('/e2e/fixture/alignmentHarness.tsx'));mountCanvasBreakpoints(document.querySelector('#mount'))})
+ const positions=()=>page.locator('[data-viewport]').evaluateAll(viewports=>viewports.map(el=>el.querySelector('[data-slide]')!.getBoundingClientRect().left-el.getBoundingClientRect().left))
+ // Content widths exclude each breakpoint's authored padding.
+ await expect.poll(positions).toEqual([20,140,160])
+ await page.locator('[data-breakpoint="0"]').getByRole('button',{name:'Change alignment'}).click()
+ await expect.poll(positions).toEqual([190,140,160])
+ await page.locator('[data-breakpoint="1"]').getByRole('button',{name:'Change alignment'}).click()
+ await expect.poll(positions).toEqual([190,260,160])
+ await page.locator('[data-breakpoint="0"]').getByRole('button',{name:'Toggle edge space'}).click()
+ await expect.poll(positions).toEqual([20,260,160])
+})
 for(const canvas of [false,true])for(const align of ['start','center','end'] as const)for(const edgeSpace of [false,true])test(`${canvas?'canvas':'preview'} ${align} edgeSpace=${edgeSpace} every slide`,async({page})=>{
  await page.setViewportSize({width:1000,height:700});await page.goto('/');await page.setContent('<style>body{margin:0}</style><div id="mount"></div>')
  await page.evaluate(async options=>{const {mountAlignment}=await import(String('/e2e/fixture/alignmentHarness.tsx'));mountAlignment(document.querySelector('#mount'),options)},{align,edgeSpace,canvas})

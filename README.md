@@ -31,7 +31,10 @@ normalizes the position after `scrollend`. Safari resets its scrolling layer at
 loop jumps to avoid missing slide paint. With Loop off, scrolling and snapping remain native CSS. Chromium uses CSS initial
 targeting; Safari and Firefox receive a one-time initial-position correction after
 hydration. Initialization cancels if the visitor interacts first.
-Canvas preserves visible overflow so every original slide remains editable. A
+Canvas scopes each settings instance to its own boundary so breakpoint-specific
+alignment and Edge Space controls do not override neighbouring breakpoint frames.
+Keep the settings component inside its boundary. Canvas preserves visible overflow
+so every original slide remains editable. A
 CSS-only preview places the last slide before the first, preserving its own size
 and accounting for viewport padding. Edge Space is always enabled with Loop.
 

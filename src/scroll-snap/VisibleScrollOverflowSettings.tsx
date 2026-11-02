@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useId, useRef } from "react"
 import { snapPosition } from "./snapGeometry.js"
 
 const initializedViewports = new WeakSet<HTMLElement>()
@@ -38,6 +38,7 @@ function slideBoxes(parent: Element): HTMLElement[] {
  */
 export function VisibleScrollOverflowSettings({containerID="Overflow Viewport",boundaryID="CSS Full Width Overflow Experiment",align="center",stopEach=false,edgeSpace=true,loop=true,autoMove="off",autoMoveInterval=3,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
   const styleRef = useRef<HTMLStyleElement>(null)
+  const canvasSettingsId = useId()
   // Preserve saved values from the former boolean control.
   const autoMoveMode = typeof autoMove === "boolean" ? (autoMove ? "scroll" : "off") : autoMove
   const canvas = RenderTarget.current() === RenderTarget.canvas
@@ -370,8 +371,13 @@ export function VisibleScrollOverflowSettings({containerID="Overflow Viewport",b
   if (RenderTarget.current() === RenderTarget.canvas) {
     const canvasFirstSlide = `> :where([data-framer-name]):nth-child(1 of [data-framer-name])`
     const canvasLastSlide = `> :where([data-framer-name]):nth-last-child(1 of [data-framer-name])`
+    // Canvas breakpoints coexist in one document and can have different props.
+    // Bind each stylesheet to the boundary containing this settings instance.
+    const marker = `style[data-kniff-canvas-settings=${JSON.stringify(canvasSettingsId)}]`
+    const canvasViewport = `:where(${boundary}:has(${marker})) ${viewport},
+:where(:root:not(:has(${boundary} ${marker}))) ${viewport}`
     const canvasCSS = `
-${viewport} {
+${canvasViewport} {
   --kniff-initial-align:${align};
   --kniff-initial-position:${align === "start" ? "0%" : align === "end" ? "100%" : "50%"};
   display:flex !important; flex-wrap:nowrap !important;
@@ -420,7 +426,7 @@ ${viewport} {
   &::-webkit-scrollbar { display:none !important; }
 }
 `
-    return <style ref={styleRef} dangerouslySetInnerHTML={{ __html: canvasCSS }} />
+    return <style ref={styleRef} data-kniff-canvas-settings={canvasSettingsId} dangerouslySetInnerHTML={{ __html: canvasCSS }} />
   }
   const css=`
 @property --kniff-bleed-page-span { syntax:"<length>"; inherits:true; initial-value:0px; }
