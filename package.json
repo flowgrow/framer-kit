@@ -42,16 +42,12 @@
     "check": "pnpm run typecheck && pnpm run test && pnpm run build",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm run check && changeset publish",
-    "prepublishOnly": "pnpm run check",
+    "release": "pnpm run worker:deploy",
     "test:e2e": "playwright test",
     "worker:prepare": "node scripts/prepare-worker.mjs",
     "worker:dev": "pnpm exec wrangler dev --config worker/wrangler.jsonc",
-    "worker:deploy": "node scripts/check-prod-release.mjs && pnpm run worker:prepare && pnpm exec wrangler deploy --config worker/wrangler.jsonc && pnpm run worker:verify",
+    "worker:deploy": "node scripts/check-prod-release.mjs && pnpm run check && pnpm run worker:prepare && pnpm exec wrangler deploy --config worker/wrangler.jsonc && pnpm run worker:verify",
     "worker:verify": "node scripts/verify-worker.mjs"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "engines": {
     "node": ">=20"
@@ -79,5 +75,6 @@
   },
   "dependencies": {
     "ramka": "https://pkg.pr.new/arturbien/ramka@1d97a5a"
-  }
+  },
+  "private": true
 }

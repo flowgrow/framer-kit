@@ -110,29 +110,19 @@ handling, verification, and deployment. Copy-ready production adapters live in
 
 ## Release workflow
 
-
-Releases use npm trusted publishing (OIDC), without an `NPM_TOKEN` secret.
-In the [npm package settings](https://www.npmjs.com/package/@kniff/framer-kit/access),
-add a GitHub Actions trusted publisher with these values:
-
-- Organization or user: `flowgrow`
-- Repository: `framer-kit`
-- Workflow filename: `release.yml`
-- Environment name: leave blank (the workflow does not use an environment).
-- Allowed actions: enable direct publishing (`npm publish`).
-
-The release job grants `id-token: write` and uses Node 24, whose bundled npm
-supports OIDC. pnpm and Changesets remain the commands used by the workflow;
-pnpm delegates registry publishing to that npm CLI. No static registry token is
-configured. See [npm's trusted publishing documentation](https://docs.npmjs.com/trusted-publishers/).
+Releases deploy directly to the Cloudflare Worker/CDN. This package is private
+and is not published to npm. GitHub Actions runs CI only.
 
 1. Implement and test a change.
-2. Run `pnpm run changeset` and choose patch, minor, or major.
-3. Push to `main`.
-4. The Changesets action opens or updates a release pull request.
-5. Merging that pull request publishes to npm using OIDC and creates
-   a matching GitHub Release with a version tag and notes from the generated
-   changelog, using `GITHUB_TOKEN`.
+2. Add a changeset and run `pnpm run version-packages` to increment the version and changelog.
+3. Add the version to `worker/releases.json`, commit and merge the release to `main`.
+4. Create and push the matching Git tag, such as `v0.5.4`.
+5. Run `pnpm run worker:deploy` (or `pnpm run release`) from the tagged source.
+6. Update the pinned imports in both Framer projects, publish, and verify their pages.
+
+Deployment validates the new version, runs all checks and builds, preserves
+historical assets from the live CDN, and uploads the local `dist` output.
+No npm publishing credentials or registry release are required.
 
 ## License
 
