@@ -1,5 +1,11 @@
 # @kniff/framer-kit
 
+## 0.5.3
+
+### Patch Changes
+
+- Add a Canvas instruction preview to Kniff Carousel Settings with an Instructions visibility toggle, matching the lightbox settings card.
+
 ## 0.5.2
 
 ### Patch Changes

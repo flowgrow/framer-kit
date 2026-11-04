@@ -1,10 +1,12 @@
 import { useEdgeSlideWidths } from "./useEdgeSlideWidths.js"
-import { useEffect, useId, useRef } from "react"
+import { useEffect, useId, useRef, type CSSProperties } from "react"
 import { snapPosition } from "./snapGeometry.js"
 
 const initializedViewports = new WeakSet<HTMLElement>()
 import { addPropertyControls, ControlType, RenderTarget, type PropertyControls } from "framer"
 export interface VisibleScrollOverflowSettingsProps {
+  showInstructions?: boolean
+  style?: CSSProperties
   containerID?: string
   boundaryID?: string
   align?: "start" | "center" | "end"
@@ -32,12 +34,12 @@ function slideBoxes(parent: Element): HTMLElement[] {
   })
 }
 /**
- * @framerIntrinsicWidth 1
- * @framerIntrinsicHeight 1
- * @framerSupportedLayoutWidth fixed
- * @framerSupportedLayoutHeight fixed
+ * @framerIntrinsicWidth 200
+ * @framerIntrinsicHeight 80
+ * @framerSupportedLayoutWidth any-prefer-fixed
+ * @framerSupportedLayoutHeight any-prefer-fixed
  */
-export function VisibleScrollOverflowSettings({containerID="Overflow Viewport",boundaryID="CSS Full Width Overflow Experiment",align="center",stopEach=false,edgeSpace=true,loop=true,autoMove="off",autoMoveInterval=3,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
+export function VisibleScrollOverflowSettings({showInstructions=true,style,containerID="Overflow Viewport",boundaryID="CSS Full Width Overflow Experiment",align="center",stopEach=false,edgeSpace=true,loop=true,autoMove="off",autoMoveInterval=3,autoMoveSpeed=30,autoMoveDirection="left"}:VisibleScrollOverflowSettingsProps) {
   const styleRef = useRef<HTMLStyleElement>(null)
   const canvasSettingsId = useId()
   // Preserve saved values from the former boolean control.
@@ -428,7 +430,41 @@ ${canvasViewport} {
   &::-webkit-scrollbar { display:none !important; }
 }
 `
-    return <style ref={styleRef} data-kniff-canvas-settings={canvasSettingsId} dangerouslySetInnerHTML={{ __html: canvasCSS }} />
+    return <>
+      <style ref={styleRef} data-kniff-canvas-settings={canvasSettingsId} dangerouslySetInnerHTML={{ __html: canvasCSS }} />
+      {showInstructions && (
+        <div
+          data-kniff-carousel-settings=""
+          style={{
+            ...style,
+            boxSizing: "border-box",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            gap: 6,
+            width: "100%",
+            height: "100%",
+            minWidth: 180,
+            minHeight: 80,
+            padding: 14,
+            border: "1px solid rgba(0, 0, 0, 0.12)",
+            borderRadius: 10,
+            background: "rgba(245, 245, 245, 0.96)",
+            color: "#111",
+            fontFamily: "Inter, sans-serif",
+            fontSize: 12,
+            lineHeight: 1.4,
+          }}
+        >
+          <strong>Kniff Carousel Settings</strong>
+          <span>
+            Match “{containerID || "Overflow Viewport"}” to the
+            viewport layer name or accessibility label. Apply withKniffCarouselLoop
+            to that viewport for looping.
+          </span>
+        </div>
+      )}
+    </>
   }
   const css=`
 @property --kniff-bleed-page-span { syntax:"<length>"; inherits:true; initial-value:0px; }
@@ -483,6 +519,7 @@ ${viewport} {
   return <style ref={styleRef} dangerouslySetInnerHTML={{__html:css}} />
 }
 export const visibleScrollOverflowSettingsPropertyControls = {
+  showInstructions:{title:"Instructions",type:ControlType.Boolean,defaultValue:true},
   autoMove:{title:"Auto Move",type:ControlType.Enum,options:["off","per-slide","scroll"],optionTitles:["Off","Per Slide","Scroll"],defaultValue:"off"},
   autoMoveInterval:{title:"Time per slide",type:ControlType.Number,defaultValue:3,min:0.5,max:60,unit:"s",hidden:props=>props.autoMove!=="per-slide"},
   autoMoveSpeed:{title:"Speed",type:ControlType.Number,defaultValue:30,min:1,max:500,unit:"px/s",hidden:props=>props.autoMove!=="scroll"},
