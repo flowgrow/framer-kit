@@ -16,3 +16,5 @@ worker/.generated/
 !.env.example
 .dev.vars
 .dev.vars.*
+
+worker/.prepare-*/

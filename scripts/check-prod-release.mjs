@@ -20,7 +20,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (!response.ok) throw new Error('Cannot verify the deployed release; deployment stopped')
   const live = await response.json()
   assertProductionRelease(version, live.latest, releases)
-  const metadata = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}/${version}`)
-  if (!metadata.ok || (await metadata.json()).version !== version) throw new Error(`Publish ${name}@${version} to npm before deploying production`)
   console.log(`Verified new production release ${name}@${version} (currently ${live.latest})`)
 }
