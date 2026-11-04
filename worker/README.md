@@ -37,3 +37,28 @@ The live verification script traverses the actual ESM import graph, checks CORS
 and MIME types, verifies that host dependencies stay external, and checks
 preflight, HEAD, and unsupported-option responses. Wrangler credentials stay in
 its local credential store; none are needed in the Worker runtime or repository.
+
+## Optional development tunnel
+
+Append `&dev` to a release URL (or `?dev` if it has no query):
+
+```text
+https://framer-kit.kniff.at/0.5.4/index.js?external=react,react-dom,framer&target=es2022&dev
+```
+
+The Worker probes the corresponding JavaScript entry on
+`https://framer-kit-dev.kniff.at` with a 1.5-second deadline. A successful
+JavaScript response selects that tunnel entry. Network errors, timeouts,
+redirects, missing files, and non-JavaScript responses select the requested
+production release instead. Without `dev`, existing production routing applies.
+
+The response is a non-cacheable module re-export, with `X-Kniff-Source` set to
+`development` or `production`. Dependencies resolve from the selected source,
+so local chunks cannot silently become production chunks. The optional `v`
+parameter is forwarded to the tunnel entry. Use identical import URLs across
+Framer wrappers that share state. This is selection at module load time:
+Framer may retain an already compiled module, and a tunnel disappearing after
+selection can still fail that load. Reload/recompile to select again.
+
+`dev` is supported on package entry points, not arbitrary chunks. Keep published
+production wrappers on semantic release URLs without `dev`.

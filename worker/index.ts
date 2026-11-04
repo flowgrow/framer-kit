@@ -6,7 +6,7 @@ const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
   "Access-Control-Allow-Headers": "*",
-  "Access-Control-Expose-Headers": "X-TypeScript-Types, X-Kniff-Build, ETag",
+  "Access-Control-Expose-Headers": "X-TypeScript-Types, X-Kniff-Build, X-Kniff-Source, ETag",
   "Cross-Origin-Resource-Policy": "cross-origin",
   "X-Content-Type-Options": "nosniff",
 }
@@ -18,7 +18,7 @@ export default {
     const reply = (body: string, status = 200, extra: Record<string, string> = {}) => new Response(request.method === "HEAD" ? null : body, { status, headers: { ...headers, "Cache-Control": "no-store", ...extra } })
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...headers, "Access-Control-Max-Age": "86400" } })
     if (!["GET", "HEAD"].includes(request.method)) return reply("Method not allowed", 405, { Allow: "GET, HEAD, OPTIONS" })
-    for (const key of url.searchParams.keys()) if (!["external", "target", "v"].includes(key)) return reply(`Unsupported query parameter: ${key}`, 400)
+    for (const key of url.searchParams.keys()) if (!["external", "target", "v", "dev"].includes(key)) return reply(`Unsupported query parameter: ${key}`, 400)
     const external = url.searchParams.get("external")
     if (external && external !== "*" && external.split(",").some(name => !externals.some(base => name === base || name.startsWith(base + "/")))) return reply("Only React, React DOM, and Framer externals are supported", 400)
     if (url.searchParams.has("target") && url.searchParams.get("target") !== "es2022") return reply("This prebuilt package targets es2022", 400)
@@ -37,6 +37,39 @@ export default {
       prefix = match[1]!
       entry = entries[match[2] || ""]
     } else if (pathname.split("/").length === 2) entry = entries[pathname.slice(1)]
+
+    // Resolve dev only at an entry point. The selected module owns its whole
+    // dependency graph; never substitute production chunks for tunnel chunks.
+    if (url.searchParams.has("dev")) {
+      if (entry) {
+        const tunnelURL = new URL(entry, "https://framer-kit-dev.kniff.at/")
+        if (url.searchParams.has("v")) tunnelURL.searchParams.set("v", url.searchParams.get("v")!)
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 1500)
+        try {
+          const probe = await fetch(tunnelURL, {
+            method: "HEAD", redirect: "manual", signal: controller.signal,
+            headers: { "Cache-Control": "no-cache" },
+          })
+          if (probe.ok && /(?:javascript|ecmascript)/i.test(probe.headers.get("Content-Type") || "")) {
+            return reply(`export * from ${JSON.stringify(tunnelURL.href)};\n`, 200, {
+              "Content-Type": "application/javascript; charset=utf-8",
+              "X-Kniff-Source": "development",
+            })
+          }
+        } catch {
+          // Tunnel offline, local server unavailable, or probe timed out.
+        } finally {
+          clearTimeout(timeout)
+        }
+        return reply(`export * from ${JSON.stringify(`/${prefix}/${entry}`)};\n`, 200, {
+          "Content-Type": "application/javascript; charset=utf-8",
+          "X-Kniff-Source": "production",
+          "X-Kniff-Build": prefix,
+        })
+      }
+      return reply("The dev parameter is supported on package entry points only", 400)
+    }
 
     // Aliases export canonical asset URLs so relative chunks always resolve in
     // the right version, even for esm.sh-compatible extensionless entry URLs.
