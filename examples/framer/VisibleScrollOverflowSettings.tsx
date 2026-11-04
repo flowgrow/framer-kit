@@ -8,10 +8,10 @@ import {
 interface Props { [key: string]: unknown }
 
 /**
- * @framerIntrinsicWidth 1
- * @framerIntrinsicHeight 1
- * @framerSupportedLayoutWidth fixed
- * @framerSupportedLayoutHeight fixed
+ * @framerIntrinsicWidth 200
+ * @framerIntrinsicHeight 80
+ * @framerSupportedLayoutWidth any-prefer-fixed
+ * @framerSupportedLayoutHeight any-prefer-fixed
  */
 export default function VisibleScrollOverflowSettings(props: Props) {
   return <KitComponent {...props} />
