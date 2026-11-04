@@ -19,3 +19,5 @@ export type {
   RamkaMorphTarget,
   RamkaSettingsProps,
 } from "./types.js"
+
+console.log("[Framer Kit local source] src/ramka/index.ts")

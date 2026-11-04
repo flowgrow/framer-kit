@@ -3,8 +3,8 @@
   "ignore": {
     "files": [
       "examples/framer/**",
-      "tests/emblaOverrides.typecheck.tsx",
-      "src/embla/EmblaEventLog.tsx"
+      "playwright-report/**",
+      "test-results/**"
     ]
   }
 }

@@ -28,10 +28,8 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     pullToClose,
     preload,
     zoom,
-    showNavigation,
     showCounter,
-    syncEmbla,
-    stopEmblaAutoplay,
+    syncKniffCarousel,
     backdropColor,
   } = settings
 
@@ -44,10 +42,8 @@ export function RamkaSettings(props: RamkaSettingsProps) {
       pullToClose,
       preload,
       zoom,
-      showNavigation,
       showCounter,
-      syncEmbla,
-      stopEmblaAutoplay,
+      syncKniffCarousel,
       backdropColor,
     }
     setGalleryConfig(config)
@@ -60,10 +56,8 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     pullToClose,
     preload,
     zoom,
-    showNavigation,
     showCounter,
-    syncEmbla,
-    stopEmblaAutoplay,
+    syncKniffCarousel,
     backdropColor,
   ])
 
@@ -76,6 +70,7 @@ export function RamkaSettings(props: RamkaSettingsProps) {
 
   return (
     <div
+      data-kniff-ramka-settings=""
       style={{
         ...settings.style,
         boxSizing: "border-box",
@@ -149,26 +144,15 @@ export const ramkaSettingsPropertyControls = {
     title: "Zoom",
     defaultValue: ramkaSettingsDefaults.zoom,
   },
-  showNavigation: {
-    type: ControlType.Boolean,
-    title: "Navigation",
-    defaultValue: ramkaSettingsDefaults.showNavigation,
-  },
   showCounter: {
     type: ControlType.Boolean,
     title: "Counter",
     defaultValue: ramkaSettingsDefaults.showCounter,
   },
-  syncEmbla: {
+  syncKniffCarousel: {
     type: ControlType.Boolean,
-    title: "Sync Embla",
-    defaultValue: ramkaSettingsDefaults.syncEmbla,
-  },
-  stopEmblaAutoplay: {
-    type: ControlType.Boolean,
-    title: "Stop Auto Move",
-    defaultValue: ramkaSettingsDefaults.stopEmblaAutoplay,
-    hidden: (props) => props.syncEmbla === false,
+    title: "Sync Kniff Carousel",
+    defaultValue: ramkaSettingsDefaults.syncKniffCarousel,
   },
   backdropColor: {
     type: ControlType.Color,

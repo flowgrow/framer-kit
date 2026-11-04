@@ -3,7 +3,7 @@ import type { CSSProperties } from "react"
 import {
   RamkaSettings as KitComponent,
   ramkaSettingsPropertyControls,
-} from "https://framer-kit-dev.kniff.at/ramka.js"
+} from "https://framer-kit-dev.kniff.at/ramka.js?dev"
 
 interface Props {
   style?: CSSProperties

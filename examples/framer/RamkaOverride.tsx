@@ -2,7 +2,7 @@ import type { ComponentType } from "react"
 import {
   withRamkaGallery as kitWithRamkaGallery,
   withRamkaTrigger as kitWithRamkaTrigger,
-} from "https://framer-kit-dev.kniff.at/ramka.js"
+} from "https://framer-kit-dev.kniff.at/ramka.js?dev"
 
 export function withRamkaGallery(
   Component: ComponentType<any>,

@@ -1,7 +1,7 @@
 {
   "name": "@kniff/framer-kit",
   "version": "0.3.1",
-  "description": "Bundled, SSR-safe Embla carousel and Ramka lightbox integrations for Framer.",
+  "description": "CSS scroll-snap carousel and Ramka lightbox integrations for Framer.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/flowgrow/framer-kit.git"
@@ -23,19 +23,21 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./embla": {
-      "types": "./dist/embla.d.ts",
-      "import": "./dist/embla.js"
-    },
     "./ramka": {
       "types": "./dist/ramka.d.ts",
       "import": "./dist/ramka.js"
+    },
+    "./scroll-snap": {
+      "types": "./dist/scroll-snap.d.ts",
+      "import": "./dist/scroll-snap.js"
     }
   },
   "scripts": {
-    "build": "tsup",
+    "build": "FRAMER_KIT_DEV=0 tsup",
+    "build:dev": "FRAMER_KIT_DEV=1 tsup",
+    "dev:bundle": "FRAMER_KIT_DEV=1 tsup --watch",
     "dev": "tsup --watch",
-    "dev:framer": "pnpm run build && node scripts/dev-framer.mjs",
+    "dev:framer": "pnpm run build:dev && node scripts/dev-framer.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -43,7 +45,8 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm run check && changeset publish",
-    "prepublishOnly": "pnpm run check"
+    "prepublishOnly": "pnpm run check",
+    "test:e2e": "playwright test"
   },
   "publishConfig": {
     "access": "public"
@@ -59,6 +62,8 @@
   "devDependencies": {
     "@changesets/changelog-github": "1.0.0",
     "@changesets/cli": "3.0.0",
+    "@playwright/test": "1.64.0",
+    "@types/node": "^24.19.2",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
     "react": "18.3.1",
@@ -66,17 +71,10 @@
     "react-dom": "18.3.1",
     "tsup": "8.5.1",
     "typescript": "5.9.3",
+    "vite": "8.3.4",
     "vitest": "4.1.10"
   },
   "dependencies": {
-    "embla-carousel": "8.6.0",
-    "embla-carousel-auto-height": "8.6.0",
-    "embla-carousel-auto-scroll": "8.6.0",
-    "embla-carousel-autoplay": "8.6.0",
-    "embla-carousel-fade": "8.6.0",
-    "embla-carousel-react": "8.6.0",
-    "embla-carousel-wheel-gestures": "8.1.0",
-    "ramka": "https://pkg.pr.new/arturbien/ramka@1d97a5a",
-    "zustand": "5.0.14"
+    "ramka": "https://pkg.pr.new/arturbien/ramka@1d97a5a"
   }
 }

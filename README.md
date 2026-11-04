@@ -1,73 +1,109 @@
 # @kniff/framer-kit
 
-Bundled, SSR-safe Embla carousel and Ramka lightbox integrations for Framer.
-The package keeps canvas files deliberately small while centralizing tested,
-versioned implementation code.
+CSS scroll-snap carousel and Ramka lightbox integrations for Framer. The package
+keeps Framer code files small while centralizing the browser implementation.
 
 ## Principles
 
-- Exact package versions in every Framer import.
 - No browser or DOM access during module evaluation or initial SSR rendering.
-- React, React DOM, and Framer remain peer dependencies supplied by the host.
-- Property-control registration is explicit rather than hidden in import side
-  effects.
+- React, React DOM, and Framer are supplied by the host.
 - Public browser code contains no credentials or server-side secrets.
 - User-visible changes ship with a Changeset.
 
-## Install for local development
+## Local development
 
 ```bash
 pnpm install
 pnpm run check
-```
-
-## Local Framer development
-
-The stable hostname for this repository is already provisioned. These are the
-one-time commands used to create it; they do not need to run again on this Mac:
-
-```bash
-cloudflared tunnel login
-cloudflared tunnel create framer-kit-dev
-cloudflared tunnel route dns framer-kit-dev framer-kit-dev.kniff.at
-```
-
-Run the build watcher, CORS-enabled local server, and named Cloudflare Tunnel
-together:
-
-```bash
 pnpm run dev:framer
 ```
 
-Then use the stable development URL in the copy-ready files under
-[`examples/framer`](./examples/framer). For example:
+The last command runs the build watcher, local server, and named Cloudflare
+Tunnel at `https://framer-kit-dev.kniff.at`. Copy-ready Framer files are in
+[`examples/framer`](./examples/framer). Use the same cache-busting query on
+all imports when testing a local change, so the files load one module instance.
+The development bundle prints `[Framer Kit local source]` in the browser console
+when Framer loads an import with `?dev`. The production build removes these logs.
 
-```tsx
-import { addPropertyControls } from "framer"
-// @ts-expect-error Local HTTPS modules do not expose types to Framer.
-import { EmblaDots as KitComponent, emblaDotsPropertyControls } from "https://framer-kit-dev.kniff.at/embla.js"
+## CSS scroll-snap overflow
 
-interface Props {
-  [key: string]: unknown
-}
+The `@kniff/framer-kit/scroll-snap` entry exports
+`VisibleScrollOverflowSettings`, `CSSScrollSnapButton`, and the experimental
+`InitialTarget` helper.
+Native CSS handles scrolling and snapping while preserving Framer’s authored
+padding, scroll padding, and gap. JavaScript calculates arrow destinations and optionally
+repositions cloned slides for looping.
 
-export default function EmblaDots(props: Props) {
-  return <KitComponent {...props} />
-}
+Use this native layer structure (the wrapper is optional):
 
-addPropertyControls(EmblaDots, emblaDotsPropertyControls)
+```text
+Full-width boundary Frame
+  Optional padding or layout Frame
+    Scroll viewport Frame
+      Slide Frames
+  VisibleScrollOverflowSettings
 ```
 
-Use the same URL for the settings component and overrides so they share one
-store instance. The development server disables caching and serves all emitted
-chunks from `dist`; keep `pnpm run dev:framer` running while Framer loads them.
-If Framer keeps an already-compiled remote module after a source change, append
-the same cache-busting query to every wrapper import (for example,
-`/embla.js?v=2`). Never bump only one wrapper because distinct URLs create
-distinct store instances.
-The local function is required because Framer only discovers code components
-and overrides declared in the current code file; a direct re-export of a remote
-component does not appear in the Insert or Overrides menus.
+Set **Boundary** and **Viewport** on the settings component to the matching
+layer names (or aria-labels). **Viewport** names the scrollable Frame itself;
+its parent needs no special name or structure. Use distinct viewport names for
+separate carousels. Slides keep
+their percentage and pixel widths. Framer controls the viewport height:
+Auto follows its content; a fixed viewport height supports Fill-height slides.
+
+Settings include Loop (on by default), start/center/end snap alignment, mandatory/proximity snapping,
+Stop Each Slide (off by default),
+and Edge Space (on by default). Edge Space adds 50% at both ends for center,
+100% at the end for start, and 100% at the start for end alignment.
+
+**Auto Move** is a Select with **Off**, **Per Slide**, and **Scroll**. Per Slide
+advances one native snap point after the configured pause (8 seconds by default).
+Scroll moves continuously. The selected runtime loads only outside the canvas.
+
+For Scroll, **Speed** is in pixels per second
+(default 30); **Direction** chooses left or right. It pauses for horizontal touch gestures,
+horizontal wheel input, keyboard and arrow navigation, settles to the nearest configured snap point,
+and resumes after a 300ms hold. Loop wraps during movement; without Loop, movement
+stops at the edge. Auto Move is off by default, disabled on canvas, and respects
+reduced-motion preferences, background-tab visibility, and viewport visibility.
+It stays paused offscreen (including clipping by scrollable ancestors) and resumes
+from its paused position when visible, without accumulating missed movement.
+
+Touch input waits for horizontal intent before interrupting Auto Move. Pending and
+vertical gestures leave automatic motion running, so page scrolling never triggers
+a carousel snap. Horizontal touch scrolling keeps
+native snapping and momentum; the first actual horizontal scroll restores snapping.
+Vertical wheel input also leaves automatic motion running. Auto Move’s own scroll
+events are ignored. Mouse dragging
+is not implemented. Once scrolling settles at a snap point, Auto Move waits 300ms
+before restarting.
+
+Looping is enabled by default in preview and published pages. On Safari versions
+without `scrollend`, a 180ms scroll idle fallback repositions after momentum and
+snapping settle, once the finger is lifted. Responsive `.ssr-variant` wrappers are
+handled by applying snap styles and measuring the visible slide boxes.
+Canvas alignment respects Edge Space and the selected alignment.
+
+For arrows, add `CSSScrollSnapButton` and set **ID**
+to the viewport Frame’s name. Choose Prev or Next and connect a button slot if desired.
+Repeated clicks during animation advance the pending destination for every click.
+Slotted buttons retain hover/pressed states, text selection is disabled, and the
+existing inactive-opacity control applies when no further snap point is reachable
+with Loop off.
+
+Copy-ready development wrappers:
+[`VisibleScrollOverflowSettings.tsx`](./examples/framer/VisibleScrollOverflowSettings.tsx),
+[`CSSScrollSnapButton.tsx`](./examples/framer/CSSScrollSnapButton.tsx),
+and [`initialTarget.tsx`](./examples/framer/initialTarget.tsx).
+They load `https://framer-kit-dev.kniff.at/scroll-snap.js?dev`; keep the development
+tunnel running. The package entry is available from source and the local build.
+
+To try an initial target, place one `InitialTarget` inside the desired slide,
+set Position to Absolute, and pin all four edges. It inherits the configured
+snap alignment and uses [Roma Komarov's temporary container-query snap
+technique](https://blog.kizu.dev/snappy-scroll-start/). This helper is
+experimental: the current Framer Preview test did not reliably start on the
+chosen slide. Packaging it does not change or resolve that behavior.
 
 ## Ramka lightboxes
 
@@ -83,11 +119,16 @@ the published site, the parent discovers their rendered image sources and
 builds the fullscreen Ramka viewer. The canvas renders the original layers
 unchanged. Multiple parent galleries remain independent without matching IDs.
 
-When the triggers are Embla slides, Ramka navigation selects the matching
-Embla snap behind the overlay and opening the lightbox forwards the interaction
-to Embla's autoplay/auto-scroll plugin. The bridge is attached to the Embla DOM
-viewport, so it keeps working when `/embla.js` and `/ramka.js` are loaded as
-separate remote modules.
+The carousel always freezes at its current position before Ramka opens and stays
+paused until the closing morph finishes. Opening a clicked image never snaps it.
+Enable **Sync Kniff Carousel** to align the corresponding physical slide only
+when navigating to a different image in the lightbox. It uses the same start,
+center, or end snap coordinates as the carousel arrows.
+
+The viewer uses Ramka’s default preset: aspect-sized Peek slides with neighboring
+images, a Theater toggle, glass zoom controls, captions, and a desktop thumbnail
+strip. Mobile uses full-width slides and a counter. The default backdrop is
+white; custom backdrop colors remain configurable.
 
 Copy-ready thin files live at
 [`examples/framer/RamkaOverride.tsx`](./examples/framer/RamkaOverride.tsx) and
@@ -96,145 +137,42 @@ Use the same cache-busting query on both remote imports during local testing.
 Production-ready copies using the published package live in
 [`examples/framer/production`](./examples/framer/production).
 
-## Import from Framer
-
-Embla Carousel, its plugins, and Zustand are bundled into the `embla` entry.
-The Framer override file declares tiny local proxies so Framer can discover
-them:
-
-```tsx
-import type { ComponentType } from "react"
-import { withEmbla as kitWithEmbla } from "https://esm.sh/@kniff/framer-kit@0.3.0/embla?external=react,react-dom,framer&target=es2022"
-
-export function withEmbla(
-  Component: ComponentType<any>,
-): ComponentType<any> {
-  return kitWithEmbla(Component)
-}
-```
-
-The bundle keeps `react`, `react-dom`, and `framer` as host-provided imports.
-With esm.sh, keep the `external` query so it preserves those bare specifiers
-instead of rewriting them to CDN copies (which can create duplicate React
-runtimes in Framer).
-
-Use `withEmbla` for regular stacks and CMS collection lists. Dynamic CMS
-items are incorporated on the first sub-pixel `scroll` event after active
-motion, so infinite loading does not interrupt the current animation. Empty
-CMS wrapper nodes (for example, a spinner container after the final page)
-are excluded from Embla's slide list and trigger a refresh when their contents
-disappear.
-Apply `withHideNavigationWhenNoScrollableSlides` to navigation that should
-disappear when the connected carousel cannot scroll.
-
-Carousel Settings follows the same thin-proxy pattern. Its behavior, property
-controls, plugin setup, store registration, and canvas UI live in this package;
-the local file only declares the component and attaches the imported controls.
-The carousel layer must have a custom Layers-panel name or an `aria-label`.
-That value is the ID selected in Carousel Settings. The settings component and
-all overrides must import the same exact package version so they share one
-store instance.
-
-## Embla accessory components
-
-The package also contains the separate code components needed to work around
-Framer's override and property-control boundaries:
-
-| Component | Purpose |
-| --- | --- |
-| `EmblaNavigationButton` | Previous/next control with a connected Framer Slot |
-| `EmblaDots` | Styled, clickable snap navigation |
-| `EmblaCurrentIndex` | Writes the selected one-based index into a connected Slot |
-| `EmblaTotalSlides` | Writes the page count into a connected Slot |
-| `EmblaProgressBar` | Native progress or connected Track and Fill Slots |
-| `ThumbnailConnection` | Synchronizes IDs and routes thumbnail clicks to the main carousel |
-
-Each one remains a separate Framer code file, but that file is only a thin
-proxy. Copy-ready wrappers for all six components, Carousel Settings, and the
-overrides live in [`examples/framer`](./examples/framer).
-For npm usage, replace the development URL with the same exact versioned
-`esm.sh` URL used by Carousel Settings and the overrides. Keeping that URL
-identical is essential: separate module URLs can create separate Zustand stores
-that cannot see one another's carousel registrations.
-
-The overrides own Embla's structural CSS. No separate stylesheet is required:
-the added Embla viewport leaves overflow visible, the container uses
-horizontal-carousel touch behavior, and its direct DOM children become slides.
-Use the Framer stack's own Overflow setting when the carousel should clip.
-Existing Framer slide widths are preserved by default with
-`slideSize: "auto"`. In loop mode the override also reads the Framer stack's
-computed responsive gap, mirrors it as a final-slide margin at the loop seam,
-and re-initializes Embla when that measured gap changes. Advanced store usage
-can still override structural values alongside regular Embla options:
-
-```tsx
-useEmblaStore.getState().addConfig("Featured", {
-  options: { align: "start", loop: true },
-  selectOnSlideClick: true,
-  styles: {
-    slideSize: "80%",
-    touchAction: "pan-y",
-  },
-})
-```
-
-When cleaning up a settings registration, pass the same config object to
-`removeConfig(id, config)`. This prevents an older component instance from
-removing a newer registration that happens to use the same layer name. Calling
-`removeConfig(id)` remains supported for compatibility.
-
-Named carousels render their viewport, container, and structural slide CSS on
-the server and on the first client render. Registering settings activates Embla
-after hydration without remounting the Framer/CMS subtree. The inline stylesheet
-uses raw HTML so Framer's CSS minification does not cause a React hydration text
-mismatch. Missing settings keep the styled carousel content visible; missing
-IDs render the original component and emit a console warning.
-
-Carousel Settings also emit a scoped SSR visibility rule. The carousel keeps
-its layout space but becomes visible only once Embla has applied its initial
-snap and loop positioning. This prevents the first slide flashing at the left
-before moving to its configured alignment, without requiring explicit SSR sizes.
-Carousels without settings retain their visible fallback. Custom styles registered
-only on the client and CMS items loaded after first paint can still move content.
-Embla v9's SSR positioning requires explicit percentage slide sizes; Framer's
-intrinsic and responsive slide dimensions are not available to this v8 override
-on the server.
-
-`embla-carousel-react` and `zustand` are intentionally regular dependencies.
-The build bundles and tree-shakes all installed runtime packages by default;
-React, React DOM, and Framer remain host-provided externals.
-
 ## Package areas
 
-- `@kniff/framer-kit/embla` — bundled Embla overrides and shared state.
-- `@kniff/framer-kit/ramka` — bundled Ramka gallery and trigger overrides.
-- `@kniff/framer-kit` — convenience root export of the same Embla API.
+- `@kniff/framer-kit/scroll-snap` — native carousel settings, controls, and loop override.
+- `@kniff/framer-kit/ramka` — lightbox gallery and trigger overrides.
+- `@kniff/framer-kit` — root export of both areas.
 
-## Release workflow
+## Verification
 
-Releases use npm trusted publishing (OIDC), without an `NPM_TOKEN` secret.
-In the [npm package settings](https://www.npmjs.com/package/@kniff/framer-kit/access),
-add a GitHub Actions trusted publisher with these values:
+Run `pnpm run check` for types, unit tests, and the build. Run
+`pnpm exec playwright install chromium firefox webkit` once, then
+`pnpm run test:e2e` for browser coverage. The browser suite exercises native
+navigation, looping, automatic movement, and Ramka integration. Failed runs
+retain screenshots and traces in `test-results/`.
 
-- Organization or user: `flowgrow`
-- Repository: `framer-kit`
-- Workflow filename: `release.yml`
-- Environment name: leave blank (the workflow does not use an environment).
-- Allowed actions: enable direct publishing (`npm publish`).
+## Production releases
 
-The release job grants `id-token: write` and uses Node 24, whose bundled npm
-supports OIDC. pnpm and Changesets remain the commands used by the workflow;
-pnpm delegates registry publishing to that npm CLI. No static registry token is
-configured. See [npm's trusted publishing documentation](https://docs.npmjs.com/trusted-publishers/).
-
-1. Implement and test a change.
-2. Run `pnpm run changeset` and choose patch, minor, or major.
-3. Push to `main`.
-4. The Changesets action opens or updates a release pull request.
-5. Merging that pull request publishes to npm using OIDC and creates
-   a matching GitHub Release with a version tag and notes from the generated
-   changelog, using `GITHUB_TOKEN`.
+Every production push increments the package release version. Tag the release,
+record it in `worker/releases.json`, and deploy the local build with
+`pnpm run worker:deploy`. Production Framer imports pin a semantic release URL.
+Preserve historical release and build URLs for existing consumers.
 
 ## License
 
 Released under the [MIT License](./LICENSE).
+
+### React-rendered loop copies
+
+Looping requires `withKniffCarousel` on the actual overflow viewport, alongside
+`VisibleScrollOverflowSettings` on the page. Settings control Loop and Auto Move.
+The override renders copies with `React.cloneElement`; it does not copy DOM nodes
+or forward clicks to the original slide.
+
+For a looping Ramka gallery, apply `withKniffCarouselRamka` from
+[`examples/framer/KniffCarouselOverride.tsx`](./examples/framer/KniffCarouselOverride.tsx)
+to the viewport in place of `withRamkaGallery`. Keep `withRamkaTrigger` on the
+photo layers and Ramka Settings inside the viewport. Each repeated set has its
+own Ramka scope, so open and close morphs use the selected physical copy and the
+viewer still contains one logical set of images. Copies stay mounted while the
+lightbox is open and until the closing morph finishes.

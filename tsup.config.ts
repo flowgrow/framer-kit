@@ -3,8 +3,8 @@ import { defineConfig } from "tsup"
 export default defineConfig({
   entry: {
     index: "src/index.ts",
-    embla: "src/embla/index.ts",
     ramka: "src/ramka/index.ts",
+    "scroll-snap": "src/scroll-snap/index.ts",
   },
   format: ["esm"],
   target: "es2022",
@@ -14,6 +14,9 @@ export default defineConfig({
   treeshake: true,
   sourcemap: true,
   clean: true,
+  esbuildOptions(options) {
+    options.drop = process.env.FRAMER_KIT_DEV === "1" ? [] : ["console"]
+  },
   external: ["framer", "react", "react-dom", "react/jsx-runtime"],
   // Bundle every installed runtime package for Framer. Only the host-provided
   // packages listed above remain external.
