@@ -1,7 +1,7 @@
 {
   "name": "@kniff/framer-kit",
-  "version": "0.3.1",
-  "description": "CSS scroll-snap carousel and Ramka lightbox integrations for Framer.",
+  "version": "0.5.5",
+  "description": "Native scroll-snap carousels and Kniff lightboxes for Framer.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/flowgrow/framer-kit.git"
@@ -34,8 +34,6 @@
   },
   "scripts": {
     "build": "FRAMER_KIT_DEV=0 tsup",
-    "build:dev": "FRAMER_KIT_DEV=1 tsup",
-    "dev:bundle": "FRAMER_KIT_DEV=1 tsup --watch",
     "dev": "tsup --watch",
     "dev:framer": "pnpm run build:dev && node scripts/dev-framer.mjs",
     "typecheck": "tsc --noEmit",
@@ -44,12 +42,13 @@
     "check": "pnpm run typecheck && pnpm run test && pnpm run build",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm run check && changeset publish",
-    "prepublishOnly": "pnpm run check",
-    "test:e2e": "playwright test"
-  },
-  "publishConfig": {
-    "access": "public"
+    "release": "pnpm run worker:deploy",
+    "test:e2e": "playwright test",
+    "worker:prepare": "node scripts/prepare-worker.mjs",
+    "worker:dev": "pnpm exec wrangler dev --config worker/wrangler.jsonc",
+    "worker:deploy": "node scripts/check-prod-release.mjs && pnpm run check && pnpm run worker:prepare && pnpm exec wrangler deploy --config worker/wrangler.jsonc && pnpm run worker:verify",
+    "worker:verify": "node scripts/verify-worker.mjs",
+    "build:dev": "FRAMER_KIT_DEV=1 tsup"
   },
   "engines": {
     "node": ">=20"
@@ -63,7 +62,7 @@
     "@changesets/changelog-github": "1.0.0",
     "@changesets/cli": "3.0.0",
     "@playwright/test": "1.64.0",
-    "@types/node": "^24.19.2",
+    "@types/node": "24.19.2",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
     "react": "18.3.1",
@@ -72,9 +71,11 @@
     "tsup": "8.5.1",
     "typescript": "5.9.3",
     "vite": "8.3.4",
-    "vitest": "4.1.10"
+    "vitest": "4.1.10",
+    "wrangler": "4.96.0"
   },
   "dependencies": {
     "ramka": "https://pkg.pr.new/arturbien/ramka@1d97a5a"
-  }
+  },
+  "private": true
 }

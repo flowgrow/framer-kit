@@ -1,5 +1,62 @@
 # @kniff/framer-kit
 
+## 0.5.5
+
+### Patch Changes
+
+- Keep the native carousel navigation aligned with the nearest viewport and restore the Off, Per Slide, and Scroll Auto Move selector without Embla.
+- Track first-slide size and replacement on the Framer canvas so alignment updates when a slide changes.
+- Preserve authored padding and edge spacing across breakpoints, and respect the configured lightbox preload value.
+- Retain historical Worker release and build URLs while deploying the local production bundle.
+
+## 0.5.3
+
+### Patch Changes
+
+- Add a Canvas instruction preview to Kniff Carousel Settings with an Instructions visibility toggle, matching the lightbox settings card.
+
+## 0.5.2
+
+### Patch Changes
+
+- Match preview and published carousel edge spacing to Canvas by subtracting the first and last slide widths before applying center or end alignment.
+
+- Recognize Framer Fill widths without using the 1px flex placeholder as a content constraint. Stabilize intrinsic image-slide widths in WebKit while preserving authored fixed widths and breakpoint overrides.
+
+- [#7](https://github.com/flowgrow/framer-kit/pull/7) [`82c124e`](https://github.com/flowgrow/framer-kit/commit/82c124e3996aedcd879064d1c14380d0762f17ca) Thanks [@flowgrow](https://github.com/flowgrow)! - Remove Ramka Loop, Morph Transition, Close Morph, and Pull to Close controls. Always disable lightbox looping, enable morph transitions and pull to close, and morph back to the active image. Ignore old saved values for these options. Respect the configured preload value instead of forcing at least two neighboring slides.
+
+  Rename lightbox overrides to `withKniffLightboxGallery` and `withKniffLightboxTrigger`, and the combined viewport override to `withKniffLightboxCarouselLoop`.
+
+- Use the connected navigation slot as the keyboard control with a non-focusable wrapper. Serve production only from published semantic releases and require a new release version for each production deployment.
+
+## 0.5.1
+
+### Patch Changes
+
+- Replace the Auto Move boolean with Off, Per Slide, and Scroll modes. Per Slide advances between authored snap positions on an adjustable interval; Scroll retains continuous motion. Both modes pause for interaction and lightbox morphs.
+
+  Remove snapping-strength controls and always use mandatory scroll snapping.
+
+  Rename the loop viewport override to `withKniffCarouselLoop`.
+
+## 0.5.0
+
+### Minor Changes
+
+- Add React-owned loop copies, carousel navigation controls, and automatic motion for the native CSS scroll-snap carousel. Apply `withKniffCarousel` to the viewport to enable looping. Preserve canvas slide dimensions and padding with CSS-only positioning, and always enable Edge Space when looping.
+
+  Match the default lightbox presentation with neighboring images, zoom controls, and thumbnails. Always pause carousel motion while opening or closing the lightbox; resume only after the close morph completes. Synchronize subsequent navigation using the carousel's authored snap alignment with `syncKniffCarousel`. Each React copy supplies its own morph source. Remove lightbox previous/next buttons and runtime console output. Embla remains completely removed.
+
+## 0.4.0
+
+### Minor Changes
+
+- Add CSS scroll-snap overflow settings and the experimental InitialTarget helper, with a dedicated scroll-snap entry and Framer wrapper examples.
+
+  Add native looping with a Safari scroll-layer reset after loop jumps, preserve authored padding, and keep slides editable in canvas.
+
+  Remove the Embla entry, runtime dependencies, and lightbox-specific Embla synchronization.
+
 ## 0.3.1
 
 ### Patch Changes
@@ -18,4 +75,4 @@
 
 - [`e1fe99a`](https://github.com/flowgrow/framer-kit/commit/e1fe99adaa3120aaf0037b5606f459143b5b5620) Thanks [@flowgrow](https://github.com/flowgrow)! - Keep carousel navigation buttons disabled until their carousel API is connected.
 
-- [`86e600d`](https://github.com/flowgrow/framer-kit/commit/86e600d4a49865e2b671a0fd1b8cd59360fce462) Thanks [@flowgrow](https://github.com/flowgrow)! - Improve hydration handling using React server and client snapshots, remove separate canvas override branches, and use intrinsic sizing for Ramka trigger images. Split Ramka gallery and trigger implementations and make settings dependencies and event subscription cleanup explicit.
+- [`86e600d`](https://github.com/flowgrow/framer-kit/commit/86e600d4a49865e2b671a0fd1b8cd59360fce462) Thanks [@flowgrow](https://github.com/flowgrow)! - Improve hydration handling using React server and client snapshots, remove separate canvas override branches, and use intrinsic sizing for lightbox trigger images. Split lightbox gallery and trigger implementations and make settings dependencies and event subscription cleanup explicit.

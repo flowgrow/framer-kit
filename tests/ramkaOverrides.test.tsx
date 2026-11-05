@@ -10,8 +10,8 @@ vi.mock("framer", () => ({
 }))
 
 import {
-  withRamkaGallery,
-  withRamkaTrigger,
+  withKniffLightboxGallery,
+  withKniffLightboxTrigger,
 } from "../src/ramka/overrides.js"
 
 describe("Ramka overrides", () => {
@@ -19,7 +19,7 @@ describe("Ramka overrides", () => {
     const Gallery = forwardRef<HTMLDivElement, { title: string }>(
       ({ title }, ref) => createElement("div", { ref }, title),
     )
-    const WrappedGallery = withRamkaGallery(Gallery)
+    const WrappedGallery = withKniffLightboxGallery(Gallery)
 
     expect(
       renderToStaticMarkup(
@@ -31,7 +31,7 @@ describe("Ramka overrides", () => {
   it("leaves a trigger unchanged when it has no gallery parent", () => {
     const Image = ({ src }: { src: string }) =>
       createElement("img", { src, alt: "Portrait" })
-    const WrappedImage = withRamkaTrigger(Image)
+    const WrappedImage = withKniffLightboxTrigger(Image)
 
     expect(
       renderToStaticMarkup(

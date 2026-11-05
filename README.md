@@ -1,178 +1,129 @@
 # @kniff/framer-kit
 
-CSS scroll-snap carousel and Ramka lightbox integrations for Framer. The package
-keeps Framer code files small while centralizing the browser implementation.
+Native scroll-snap carousels and Kniff lightboxes for Framer. React, React DOM,
+and Framer are supplied by the host; implementations are safe to import during SSR.
 
-## Principles
+## Scroll-snap carousel
 
-- No browser or DOM access during module evaluation or initial SSR rendering.
-- React, React DOM, and Framer are supplied by the host.
-- Public browser code contains no credentials or server-side secrets.
-- User-visible changes ship with a Changeset.
+Use a full-width boundary containing the viewport frame and its slides. Set the
+viewport’s width, max-width, padding and gap in Framer. Percentage slide widths
+use that authored content area; no separate sizing frame is required. An optional
+padding wrapper is respected at each breakpoint. The component adds full-width
+bleed gutters to your authored padding without layout measurements.
 
-## Local development
+`VisibleScrollOverflowSettings` accepts `containerID`, `boundaryID`, `align`
+(`start`, `center`, `end`), `stopEach`, `edgeSpace`,
+and `loop`. Snapping is always mandatory and scrollbars are always hidden. Targets match an aria-label or custom Framer layer name.
 
-```bash
-pnpm install
+Auto Move selects `off`, `per-slide` (advances on `autoMoveInterval`, in seconds),
+or `scroll` (continuous motion at `autoMoveSpeed`, in px/s). Direction applies to
+both motion modes.
+
+Apply the `withKniffCarousel` override to the viewport frame, including when Loop
+is off. It mirrors the viewport's authored padding, gap and max-width into CSS variables,
+preserving breakpoint and variant rules. The server-emitted variables survive
+hydration; padding and scroll padding use CSS calculations without padding
+observers or additive animations. Set the slide gap on the viewport frame itself;
+the viewport also owns its authored width and max-width cap. Settings and overflow
+navigation buttons target the viewport itself by its aria-label or layer name.
+
+Loop is enabled by
+default in preview and published pages. React clones the slides and the carousel
+normalizes the position after `scrollend`. Safari resets its scrolling layer at
+loop jumps to avoid missing slide paint. With Loop off, scrolling and snapping remain native CSS. Chromium uses CSS initial
+targeting; Safari and Firefox receive a one-time initial-position correction after
+hydration. Initialization cancels if the visitor interacts first.
+Canvas scopes each settings instance to its own boundary so breakpoint-specific
+alignment and Edge Space controls do not override neighbouring breakpoint frames.
+Keep the settings component inside its boundary. Canvas preserves visible overflow
+so every original slide remains editable. A
+CSS-only preview places the last slide before the first, preserving its own size
+and accounting for viewport padding. Edge Space is always enabled with Loop.
+
+`InitialTarget` is an experimental CSS initial-position helper. Place it inside
+the chosen slide, make it absolute, and pin all four edges. It uses Roma
+Komarov's [scroll-start technique](https://blog.kizu.dev/snappy-scroll-start/).
+
+Copy-ready development wrappers are in `examples/framer`. For production:
+
+```tsx
+import { addPropertyControls } from "framer"
+import {
+  VisibleScrollOverflowSettings as KitComponent,
+  visibleScrollOverflowSettingsPropertyControls,
+// @ts-ignore Framer resolves remote HTTPS modules.
+} from "https://framer-kit.kniff.at/0.5.5/scroll-snap.js?external=react,react-dom,framer&target=es2022"
+
+export default function ScrollSettings(props: Record<string, unknown>) {
+  return <KitComponent {...props} />
+}
+addPropertyControls(ScrollSettings, visibleScrollOverflowSettingsPropertyControls)
+```
+
+Keep exact versions and the `external` query in remote imports. Property control
+registration is explicit; importing the library does not register components.
+
+## Kniff Lightbox
+
+The `@kniff/framer-kit/ramka` entry exports `RamkaSettings`, `withKniffLightboxGallery`,
+and `withKniffLightboxTrigger`. Apply the gallery override to a parent and the trigger
+override to each image. Place Kniff Lightbox Settings inside the gallery parent.
+The lightbox includes neighboring images, zoom controls, and thumbnail previews.
+Lightbox looping is always off. Morph transitions and pull to close are always
+enabled, and closing morphs to the active image. Settings control preload, zoom,
+counter visibility, carousel synchronization, and backdrop color, including on
+React loop copies.
+Opening an image always pauses carousel automove until the close morph finishes.
+`syncKniffCarousel` synchronizes subsequent lightbox navigation using the same
+alignment as carousel buttons; the initially clicked slide stays in place.
+React loop copies each retain their own morph source.
+
+Examples are in `examples/framer`. There is no Embla dependency or entry point.
+The old `syncEmbla`, `stopAutomove`, and lightbox navigation-button props are removed.
+
+## Development
+
+```sh
+pnpm install --frozen-lockfile
 pnpm run check
 pnpm run dev:framer
 ```
 
-The last command runs the build watcher, local server, and named Cloudflare
-Tunnel at `https://framer-kit-dev.kniff.at`. Copy-ready Framer files are in
-[`examples/framer`](./examples/framer). Use the same cache-busting query on
-all imports when testing a local change, so the files load one module instance.
-The development bundle prints `[Framer Kit local source]` in the browser console
-when Framer loads an import with `?dev`. The production build removes these logs.
+The development server is available through the existing Cloudflare tunnel at
+`https://framer-kit-dev.kniff.at`. Native browser stress tests run on macOS with
+Accessibility and screen capture access:
 
-## CSS scroll-snap overflow
-
-The `@kniff/framer-kit/scroll-snap` entry exports
-`VisibleScrollOverflowSettings`, `CSSScrollSnapButton`, and the experimental
-`InitialTarget` helper.
-Native CSS handles scrolling and snapping while preserving Framer’s authored
-padding, scroll padding, and gap. JavaScript calculates arrow destinations and optionally
-repositions cloned slides for looping.
-
-Use this native layer structure (the wrapper is optional):
-
-```text
-Full-width boundary Frame
-  Optional padding or layout Frame
-    Scroll viewport Frame
-      Slide Frames
-  VisibleScrollOverflowSettings
+```sh
+swift scripts/macos-wheel.swift --app safari --test --runs 40
 ```
 
-Set **Boundary** and **Viewport** on the settings component to the matching
-layer names (or aria-labels). **Viewport** names the scrollable Frame itself;
-its parent needs no special name or structure. Use distinct viewport names for
-separate carousels. Slides keep
-their percentage and pixel widths. Framer controls the viewport height:
-Auto follows its content; a fixed viewport height supports Fill-height slides.
+Use `chrome` or `firefox` for the other browsers. The tool captures the browser
+window, watches a 30px strip at the carousel center on the left edge, and saves
+candidate blank frames plus gesture results under `/tmp` for visual inspection.
 
-Settings include Loop (on by default), start/center/end snap alignment, mandatory/proximity snapping,
-Stop Each Slide (off by default),
-and Edge Space (on by default). Edge Space adds 50% at both ends for center,
-100% at the end for start, and 100% at the start for end alignment.
+## Production module hosting
 
-**Auto Move** is a Select with **Off**, **Per Slide**, and **Scroll**. Per Slide
-advances one native snap point after the configured pause (8 seconds by default).
-Scroll moves continuously. The selected runtime loads only outside the canvas.
+The production CDN runs on a Cloudflare Worker at `https://framer-kit.kniff.at`.
+See [worker/README.md](worker/README.md) for versioned imports, external dependency
+handling, verification, and deployment. Copy-ready production adapters live in
+`examples/framer/prod`.
 
-For Scroll, **Speed** is in pixels per second
-(default 30); **Direction** chooses left or right. It pauses for horizontal touch gestures,
-horizontal wheel input, keyboard and arrow navigation, settles to the nearest configured snap point,
-and resumes after a 300ms hold. Loop wraps during movement; without Loop, movement
-stops at the edge. Auto Move is off by default, disabled on canvas, and respects
-reduced-motion preferences, background-tab visibility, and viewport visibility.
-It stays paused offscreen (including clipping by scrollable ancestors) and resumes
-from its paused position when visible, without accumulating missed movement.
+## Release workflow
 
-Touch input waits for horizontal intent before interrupting Auto Move. Pending and
-vertical gestures leave automatic motion running, so page scrolling never triggers
-a carousel snap. Horizontal touch scrolling keeps
-native snapping and momentum; the first actual horizontal scroll restores snapping.
-Vertical wheel input also leaves automatic motion running. Auto Move’s own scroll
-events are ignored. Mouse dragging
-is not implemented. Once scrolling settles at a snap point, Auto Move waits 300ms
-before restarting.
+Releases deploy directly to the Cloudflare Worker/CDN. This package is private
+and is not published to npm. GitHub Actions runs CI only.
 
-Looping is enabled by default in preview and published pages. On Safari versions
-without `scrollend`, a 180ms scroll idle fallback repositions after momentum and
-snapping settle, once the finger is lifted. Responsive `.ssr-variant` wrappers are
-handled by applying snap styles and measuring the visible slide boxes.
-Canvas alignment respects Edge Space and the selected alignment.
+1. Implement and test a change.
+2. Add a changeset and run `pnpm run version-packages` to increment the version and changelog.
+3. Add the version to `worker/releases.json`, commit and merge the release to `main`.
+4. Create and push the matching Git tag, such as `v0.5.4`.
+5. Run `pnpm run worker:deploy` (or `pnpm run release`) from the tagged source.
+6. Update the pinned imports in both Framer projects, publish, and verify their pages.
 
-For arrows, add `CSSScrollSnapButton` and set **ID**
-to the viewport Frame’s name. Choose Prev or Next and connect a button slot if desired.
-Repeated clicks during animation advance the pending destination for every click.
-Slotted buttons retain hover/pressed states, text selection is disabled, and the
-existing inactive-opacity control applies when no further snap point is reachable
-with Loop off.
-
-Copy-ready development wrappers:
-[`VisibleScrollOverflowSettings.tsx`](./examples/framer/VisibleScrollOverflowSettings.tsx),
-[`CSSScrollSnapButton.tsx`](./examples/framer/CSSScrollSnapButton.tsx),
-and [`initialTarget.tsx`](./examples/framer/initialTarget.tsx).
-They load `https://framer-kit-dev.kniff.at/scroll-snap.js?dev`; keep the development
-tunnel running. The package entry is available from source and the local build.
-
-To try an initial target, place one `InitialTarget` inside the desired slide,
-set Position to Absolute, and pin all four edges. It inherits the configured
-snap alignment and uses [Roma Komarov's temporary container-query snap
-technique](https://blog.kizu.dev/snappy-scroll-start/). This helper is
-experimental: the current Framer Preview test did not reliably start on the
-chosen slide. Packaging it does not change or resolve that behavior.
-
-## Ramka lightboxes
-
-Ramka uses parent containment to decide which images belong to one lightbox:
-
-1. Apply `withRamkaGallery` to an outer Framer Frame.
-2. Apply `withRamkaTrigger` to the image/card descendants that should open.
-3. Optionally place `RamkaSettings` inside that outer Frame, as a sibling of
-   the gallery or carousel, to configure the nearest parent gallery.
-
-The trigger layers remain ordinary editable Framer layers. In Preview and on
-the published site, the parent discovers their rendered image sources and
-builds the fullscreen Ramka viewer. The canvas renders the original layers
-unchanged. Multiple parent galleries remain independent without matching IDs.
-
-The carousel always freezes at its current position before Ramka opens and stays
-paused until the closing morph finishes. Opening a clicked image never snaps it.
-Enable **Sync Kniff Carousel** to align the corresponding physical slide only
-when navigating to a different image in the lightbox. It uses the same start,
-center, or end snap coordinates as the carousel arrows.
-
-The viewer uses Ramka’s default preset: aspect-sized Peek slides with neighboring
-images, a Theater toggle, glass zoom controls, captions, and a desktop thumbnail
-strip. Mobile uses full-width slides and a counter. The default backdrop is
-white; custom backdrop colors remain configurable.
-
-Copy-ready thin files live at
-[`examples/framer/RamkaOverride.tsx`](./examples/framer/RamkaOverride.tsx) and
-[`examples/framer/RamkaSettings.tsx`](./examples/framer/RamkaSettings.tsx).
-Use the same cache-busting query on both remote imports during local testing.
-Production-ready copies using the published package live in
-[`examples/framer/production`](./examples/framer/production).
-
-## Package areas
-
-- `@kniff/framer-kit/scroll-snap` — native carousel settings, controls, and loop override.
-- `@kniff/framer-kit/ramka` — lightbox gallery and trigger overrides.
-- `@kniff/framer-kit` — root export of both areas.
-
-## Verification
-
-Run `pnpm run check` for types, unit tests, and the build. Run
-`pnpm exec playwright install chromium firefox webkit` once, then
-`pnpm run test:e2e` for browser coverage. The browser suite exercises native
-navigation, looping, automatic movement, and Ramka integration. Failed runs
-retain screenshots and traces in `test-results/`.
-
-## Production releases
-
-Every production push increments the package release version. Tag the release,
-record it in `worker/releases.json`, and deploy the local build with
-`pnpm run worker:deploy`. Production Framer imports pin a semantic release URL.
-Preserve historical release and build URLs for existing consumers.
+Deployment validates the new version, runs all checks and builds, preserves
+historical assets from the live CDN, and uploads the local `dist` output.
+No npm publishing credentials or registry release are required.
 
 ## License
 
-Released under the [MIT License](./LICENSE).
-
-### React-rendered loop copies
-
-Looping requires `withKniffCarousel` on the actual overflow viewport, alongside
-`VisibleScrollOverflowSettings` on the page. Settings control Loop and Auto Move.
-The override renders copies with `React.cloneElement`; it does not copy DOM nodes
-or forward clicks to the original slide.
-
-For a looping Ramka gallery, apply `withKniffCarouselRamka` from
-[`examples/framer/KniffCarouselOverride.tsx`](./examples/framer/KniffCarouselOverride.tsx)
-to the viewport in place of `withRamkaGallery`. Keep `withRamkaTrigger` on the
-photo layers and Ramka Settings inside the viewport. Each repeated set has its
-own Ramka scope, so open and close morphs use the selected physical copy and the
-viewer still contains one logical set of images. Copies stay mounted while the
-lightbox is open and until the closing morph finishes.
+MIT. See [LICENSE](./LICENSE).

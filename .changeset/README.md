@@ -1,6 +1,3 @@
 # Changesets
 
-Run `npm run changeset` for every user-visible package change. Commit the
-generated Markdown file with the implementation. The release workflow uses
-these files to prepare versions, changelogs, and npm releases.
-
+Use changesets to describe user-visible changes while developing. A production release consumes the pending changesets, records the result in `CHANGELOG.md`, increments `package.json`, and deploys the local build directly to the Worker. Do not publish to npm.

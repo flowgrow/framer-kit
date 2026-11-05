@@ -15,7 +15,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   esbuildOptions(options) {
-    options.drop = process.env.FRAMER_KIT_DEV === "1" ? [] : ["console"]
+    if (process.env.FRAMER_KIT_DEV !== "1") options.drop = ["console"]
   },
   external: ["framer", "react", "react-dom", "react/jsx-runtime"],
   // Bundle every installed runtime package for Framer. Only the host-provided

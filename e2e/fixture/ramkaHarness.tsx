@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react'
 import { createRoot } from 'react-dom/client'
-import { withRamkaGallery, withRamkaTrigger } from '../../src/ramka/overrides'
+import { withKniffLightboxGallery as withRamkaGallery, withKniffLightboxTrigger as withRamkaTrigger } from '../../src/ramka/overrides'
 import { RamkaSettings } from '../../src/ramka/RamkaSettings'
 import { ramkaSettingsDefaults } from '../../src/ramka/defaults'
 import { installAutoMove } from '../../src/scroll-snap/autoMove'

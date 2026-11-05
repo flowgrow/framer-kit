@@ -1,5 +1,5 @@
 import { useEdgeSlideWidths } from "./useEdgeSlideWidths.js"
-import { useEffect, useRef, type CSSProperties, type RefObject } from "react"
+import { useEffect, useId, useRef, type CSSProperties, type RefObject } from "react"
 import { addPropertyControls, ControlType, RenderTarget, type PropertyControls } from "framer"
 export interface VisibleScrollOverflowSettingsProps {
   showInstructions?: boolean
@@ -7,7 +7,6 @@ export interface VisibleScrollOverflowSettingsProps {
   containerID?: string
   boundaryID?: string
   align?: "start" | "center" | "end"
-  strength?: "mandatory" | "proximity"
   stopEach?: boolean
   loop?: boolean
   autoMove?: "none" | "perSlide" | "scroll"
@@ -29,6 +28,7 @@ function slideBoxes(parent: Element): HTMLElement[] {
   return Array.from(parent.children).flatMap(child => {
     if (!(child instanceof HTMLElement) || ["STYLE", "SCRIPT"].includes(child.tagName)) return []
     if (getComputedStyle(child).display === "contents") return slideBoxes(child)
+    if (child.matches("[data-kniff-ramka-settings]") || child.querySelector("[data-kniff-ramka-settings]")) return []
     return child.getClientRects().length ? [child] : []
   })
 }
@@ -237,8 +237,9 @@ function useReactLoop(styleRef: RefObject<HTMLStyleElement>, containerID: string
  * @framerSupportedLayoutWidth any-prefer-fixed
  * @framerSupportedLayoutHeight any-prefer-fixed
  */
-export function VisibleScrollOverflowSettings({showInstructions=true,style,containerID="Percentage Sized Carousel",boundaryID="CSS Full Width Overflow Experiment",align="center",strength="mandatory",stopEach=false,edgeSpace=true,loop=true,autoMove="none",autoMoveDelay=8,autoMoveSpeed=30,autoMoveDirection="left",autoMoveStopOnLastSlide=false}:VisibleScrollOverflowSettingsProps) {
+export function VisibleScrollOverflowSettings({showInstructions=true,style,containerID="Percentage Sized Carousel",boundaryID="CSS Full Width Overflow Experiment",align="center",stopEach=false,edgeSpace=true,loop=true,autoMove="none",autoMoveDelay=8,autoMoveSpeed=30,autoMoveDirection="left",autoMoveStopOnLastSlide=false}:VisibleScrollOverflowSettingsProps) {
   const styleRef = useRef<HTMLStyleElement>(null)
+  const canvasSettingsId = useId()
   const canvas = RenderTarget.current() === RenderTarget.canvas
   const useEdgeSpace = loop || edgeSpace
   useEdgeSlideWidths(styleRef, target(containerID), target(boundaryID), !canvas && !loop && Boolean(containerID.trim() && boundaryID.trim()))
@@ -276,6 +277,7 @@ export function VisibleScrollOverflowSettings({showInstructions=true,style,conta
     let observer: ResizeObserver | undefined
     let mutations: MutationObserver | undefined
     const viewports = new Map<HTMLElement, HTMLElement>()
+    const saved = new Map<HTMLElement, [string, string]>()
     let attempts = 0
     const firstSlide = (viewport: HTMLElement) => viewport.querySelector<HTMLElement>(":scope > [data-framer-name]:nth-child(1 of [data-framer-name])") ?? slideBoxes(viewport)[0]
     const refresh = () => {
@@ -287,7 +289,11 @@ export function VisibleScrollOverflowSettings({showInstructions=true,style,conta
           if (first) observer?.observe(first)
           viewports.set(viewport, first!)
         }
-        if (first) viewport.style.setProperty("--kniff-canvas-first-width", first.getBoundingClientRect().width + "px")
+        if (first) {
+          viewport.style.setProperty("--kniff-canvas-first-width", first.getBoundingClientRect().width + "px")
+          const gap = getComputedStyle(viewport).columnGap
+          viewport.style.setProperty("--kniff-canvas-gap", gap === "normal" ? "0px" : gap)
+        }
       }
     }
     const install = () => {
@@ -302,7 +308,9 @@ export function VisibleScrollOverflowSettings({showInstructions=true,style,conta
       observer = new ResizeObserver(refresh)
       for (const viewport of matches) {
         viewports.set(viewport, firstSlide(viewport)!)
+        saved.set(viewport, [viewport.style.getPropertyValue("--kniff-canvas-first-width"), viewport.style.getPropertyValue("--kniff-canvas-gap")])
         observer.observe(firstSlide(viewport)!)
+        observer.observe(viewport)
       }
       refresh()
       mutations = new MutationObserver(refresh)
@@ -313,7 +321,13 @@ export function VisibleScrollOverflowSettings({showInstructions=true,style,conta
       cancelAnimationFrame(frame)
       observer?.disconnect()
       mutations?.disconnect()
-      for (const viewport of viewports.keys()) viewport.style.removeProperty("--kniff-canvas-first-width")
+      for (const viewport of viewports.keys()) {
+        const [width, gap] = saved.get(viewport) ?? ["", ""]
+        if (width) viewport.style.setProperty("--kniff-canvas-first-width", width)
+        else viewport.style.removeProperty("--kniff-canvas-first-width")
+        if (gap) viewport.style.setProperty("--kniff-canvas-gap", gap)
+        else viewport.style.removeProperty("--kniff-canvas-gap")
+      }
     }
   }, [containerID, canvas])
   if(!containerID.trim() || !boundaryID.trim()) return null
@@ -325,25 +339,32 @@ export function VisibleScrollOverflowSettings({showInstructions=true,style,conta
   > :where(.ssr-variant) > *,
   > ${cycle} > :where(:not(.ssr-variant)),
   > ${cycle} > :where(.ssr-variant) > *`
-  const firstSlide = `
-  > :where(:first-child:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy])),
-  > :where(.ssr-variant:first-child) > *,
-  > ${cycle}:first-child > :first-child`
-  const lastSlide = `
-  > :where(:last-child:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy])),
-  > :where(.ssr-variant:last-child) > *,
-  > ${cycle}:last-child > :last-child`
+  const content = ':not(style, script, [data-kniff-ramka-settings], :has([data-kniff-ramka-settings]))'
+  const edgeSlide = (which: "first" | "last") => {
+    const item = `:nth-${which === "first" ? "" : "last-"}child(1 of ${content}:not([data-kniff-loop-original], [data-kniff-loop-copy]))`
+    return `
+  > ${item}:not(.ssr-variant),
+  > .ssr-variant${item} > ${content},
+  > ${cycle} > ${item}:not(.ssr-variant),
+  > ${cycle} > .ssr-variant${item} > ${content}`
+  }
+  const firstSlide = edgeSlide("first")
+  const lastSlide = edgeSlide("last")
   if (RenderTarget.current() === RenderTarget.canvas) {
     const canvasFirstSlide = `> :where([data-framer-name]):nth-child(1 of [data-framer-name])`
     const canvasLastSlide = `> :where([data-framer-name]):nth-last-child(1 of [data-framer-name])`
+    const marker = `style[data-kniff-canvas-settings=${JSON.stringify(canvasSettingsId)}]`
+    const canvasViewport = `:where(${boundary}:has(${marker})) ${viewport},
+:where(:root:not(:has(${boundary} ${marker}))) ${viewport}`
     const canvasCSS = `
-${viewport} {
+${canvasViewport} {
   --kniff-initial-align:${align};
   --kniff-initial-position:${align === "start" ? "0%" : align === "end" ? "100%" : "50%"};
   display:flex !important; flex-wrap:nowrap !important;
   align-items:inherit !important; justify-content:flex-start !important;
   overflow:visible !important;
-  scroll-snap-type:x ${strength};
+  margin-inline:auto !important;
+  scroll-snap-type:x mandatory;
   scrollbar-width:none !important;
 
   ${slides} {
@@ -386,7 +407,7 @@ ${viewport} {
 }
 `
     return <>
-      <style ref={styleRef} dangerouslySetInnerHTML={{ __html: canvasCSS }} />
+      <style ref={styleRef} data-kniff-canvas-settings={canvasSettingsId} dangerouslySetInnerHTML={{ __html: canvasCSS }} />
       {showInstructions && (
         <div
           data-kniff-carousel-settings=""
@@ -443,7 +464,7 @@ ${viewport} {
   overflow-x:auto !important; overflow-y:hidden !important;
   overscroll-behavior-x:none; overflow-anchor:none;
   align-items:inherit !important; justify-content:flex-start !important;
-  scroll-snap-type:x ${strength};
+  scroll-snap-type:x mandatory;
   scroll-padding-left:calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter));
   scroll-padding-right:calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter));
   scrollbar-width:none !important;
@@ -481,7 +502,6 @@ export const visibleScrollOverflowSettingsPropertyControls = {
   containerID:{title:"Viewport",type:ControlType.String,defaultValue:"Percentage Sized Carousel",description:"Match the overflow viewport’s aria-label or layer name."},
   boundaryID:{title:"Boundary",type:ControlType.String,defaultValue:"CSS Full Width Overflow Experiment",description:"Name of the full-width ancestor containing the viewport."},
   align:{title:"Snap Align",type:ControlType.Enum,options:["start","center","end"],optionIcons:["align-left","align-center","align-right"],displaySegmentedControl:true,defaultValue:"center"} as PropertyControls<VisibleScrollOverflowSettingsProps>["align"] & { optionIcons: string[] },
-  strength:{title:"Snapping",type:ControlType.Enum,options:["mandatory","proximity"],optionTitles:["Mandatory","Proximity"],displaySegmentedControl:true,defaultValue:"mandatory"},
   stopEach:{title:"Stop Each Slide",type:ControlType.Boolean,defaultValue:false},
   edgeSpace:{title:"Edge Space",type:ControlType.Boolean,defaultValue:true,hidden:props=>props.loop !== false,description:"This allows us to align first and last slide as well"},
 } satisfies PropertyControls<VisibleScrollOverflowSettingsProps>

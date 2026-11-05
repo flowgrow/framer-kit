@@ -64,6 +64,7 @@ function renderComponent<P extends object>(
 ) {
   return React.createElement(Component, {
     ...props,
+    style: { ...(props as { style?: React.CSSProperties }).style, cursor: "pointer" },
     ref,
   } as P & RefAttributes<unknown>)
 }
@@ -215,7 +216,7 @@ export function createTriggerOverride<P extends object>(
     )
   })
 
-  Override.displayName = `withRamkaTrigger(${displayName})`
+  Override.displayName = `withKniffLightboxTrigger(${displayName})`
 
   return Override as unknown as ComponentType<P>
 }
