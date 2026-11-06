@@ -1,5 +1,11 @@
 # @kniff/framer-kit
 
+## 0.5.7
+
+### Patch Changes
+
+- Remove the lightbox counter setting and the counter display.
+
 ## 0.5.6
 
 ### Patch Changes

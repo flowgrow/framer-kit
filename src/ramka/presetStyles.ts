@@ -305,36 +305,6 @@ export const ramkaPresetCSS = `
   color: #fafafa;
 }
 
-.kniff-ramka-lb-counter {
-  direction: ltr;
-  unicode-bidi: isolate;
-}
-
-.kniff-ramka-lb-counter {
-  font-size: 0.6875rem;
-  line-height: 1.25;
-  font-variant-numeric: tabular-nums;
-  color: #737373;
-}
-
-:is(.dark, [data-theme='dark']) .kniff-ramka-lb-counter {
-  color: #a3a3a3;
-}
-
-@media (min-width: 768px) {
-  .kniff-ramka-lb-counter {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-}
-
 .kniff-ramka-lb-control {
   display: inline-flex;
   height: 2.25rem;

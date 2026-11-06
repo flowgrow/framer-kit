@@ -63,7 +63,6 @@ export function RamkaPortal({ items, config }: { items: RamkaMediaItem[]; config
         <div className={classes("lb-bottom", "lb-chrome-gesture-hide", solo && "lb-bottom-solo")}>
           <div className={classes("lb-caption-group")}>
             <Lightbox.Caption className={classes("lb-caption")} />
-            {config.showCounter && !solo && <Lightbox.Counter className={classes("lb-counter")}>{({current,total}) => `${current} of ${total}`}</Lightbox.Counter>}
           </div>
           {!solo && config.showThumbnails && <Lightbox.ThumbnailStrip className={classes("lb-thumbnail-strip", "lb-thumbnail-strip-desktop")}>
             <Lightbox.ThumbnailStripTrack aria-label="Photo thumbnails">

@@ -1,6 +1,6 @@
 {
   "name": "@kniff/framer-kit",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "Native scroll-snap carousels and Kniff lightboxes for Framer.",
   "repository": {
     "type": "git",

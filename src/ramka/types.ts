@@ -10,7 +10,6 @@ export interface RamkaGalleryConfig {
   preload: number
   layout: "peek" | "theater"
   zoom: boolean
-  showCounter: boolean
   showThumbnails: boolean
   syncKniffCarousel: boolean
   backdropColor: string

@@ -10,6 +10,7 @@ test('default preset shows peek slides, working zoom controls and thumbnail navi
   await page.locator('[data-ramka-trigger]').nth(1).click()
   const content = page.locator('[data-ramka-content]')
   await expect(content).toBeVisible()
+  await expect(page.locator('[data-ramka-counter]')).toHaveCount(0)
   await expect(page.getByRole('button',{name:'Previous',exact:true})).toHaveCount(0)
   await expect(page.getByRole('button',{name:'Next',exact:true})).toHaveCount(0)
   const desktop = page.viewportSize()!.width >= 768

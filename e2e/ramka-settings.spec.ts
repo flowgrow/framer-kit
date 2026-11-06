@@ -4,11 +4,11 @@ for(const copy of [false,true]) test(`Ramka settings reach ${copy?'copied':'orig
   await page.evaluate(async()=>{
     const mount=document.createElement('div');document.body.append(mount)
     const {mountReactLoop}=await import(String('/e2e/fixture/reactLoopHarness.tsx'))
-    mountReactLoop(mount,{sync:false,ramka:{loop:true,viewTransition:false,morphTo:'origin',pullToClose:false,zoom:false,showCounter:false,preload:0,backdropColor:'#123456'}})
+    mountReactLoop(mount,{sync:false,ramka:{loop:true,viewTransition:false,morphTo:'origin',pullToClose:false,zoom:false,preload:0,backdropColor:'#123456'}})
   })
   const viewport=page.locator('#react-loop')
   await expect(viewport).toHaveAttribute('data-kniff-loop-ready','')
-  await expect.poll(()=>page.locator('[data-gallery-config]').evaluateAll(nodes=>nodes.every(n=>{const c=JSON.parse(n.textContent!);return !c.loop&&c.viewTransition&&c.morphTo==='active'&&c.pullToClose&&!c.zoom&&!c.showCounter&&c.preload===0&&c.backdropColor==='#123456'&&!c.syncKniffCarousel}))).toBe(true)
+  await expect.poll(()=>page.locator('[data-gallery-config]').evaluateAll(nodes=>nodes.every(n=>{const c=JSON.parse(n.textContent!);return !c.loop&&c.viewTransition&&c.morphTo==='active'&&c.pullToClose&&!c.zoom&&c.preload===0&&c.backdropColor==='#123456'&&!c.syncKniffCarousel}))).toBe(true)
   const cycle=viewport.locator(copy?':scope > [data-kniff-loop-copy]':':scope > [data-kniff-loop-original]').nth(copy?3:0)
   const trigger=cycle.locator('[data-slide="3"]')
   await viewport.evaluate((v,copy)=>{v.addEventListener('scrollend',e=>e.stopImmediatePropagation(),true);const cycles=v.querySelectorAll<HTMLElement>(copy?':scope > [data-kniff-loop-copy]':':scope > [data-kniff-loop-original]');const target=cycles[copy?3:0]!.querySelector<HTMLElement>('[data-slide="3"]')!;v.scrollTo({left:target.getBoundingClientRect().left-v.getBoundingClientRect().left+v.scrollLeft,behavior:'instant'})},copy)
