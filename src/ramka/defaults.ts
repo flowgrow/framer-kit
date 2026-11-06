@@ -6,9 +6,11 @@ export const ramkaSettingsDefaults = {
   viewTransition: true,
   morphTo: "active",
   pullToClose: true,
-  preload: 1,
+  preload: 2,
+  layout: "peek",
   zoom: true,
   showCounter: true,
+  showThumbnails: true,
   syncKniffCarousel: true,
   backdropColor: "#ffffff",
 } as const
@@ -19,8 +21,10 @@ export const defaultRamkaGalleryConfig: RamkaGalleryConfig = {
   morphTo: ramkaSettingsDefaults.morphTo,
   pullToClose: ramkaSettingsDefaults.pullToClose,
   preload: ramkaSettingsDefaults.preload,
+  layout: ramkaSettingsDefaults.layout,
   zoom: ramkaSettingsDefaults.zoom,
   showCounter: ramkaSettingsDefaults.showCounter,
+  showThumbnails: ramkaSettingsDefaults.showThumbnails,
   syncKniffCarousel: ramkaSettingsDefaults.syncKniffCarousel,
   backdropColor: ramkaSettingsDefaults.backdropColor,
 }

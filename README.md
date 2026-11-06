@@ -52,7 +52,7 @@ import {
   VisibleScrollOverflowSettings as KitComponent,
   visibleScrollOverflowSettingsPropertyControls,
 // @ts-ignore Framer resolves remote HTTPS modules.
-} from "https://framer-kit.kniff.at/0.5.5/scroll-snap.js?external=react,react-dom,framer&target=es2022"
+} from "https://framer-kit.kniff.at/0.5.6/scroll-snap.js?external=react,react-dom,framer&target=es2022"
 
 export default function ScrollSettings(props: Record<string, unknown>) {
   return <KitComponent {...props} />
@@ -70,8 +70,9 @@ and `withKniffLightboxTrigger`. Apply the gallery override to a parent and the t
 override to each image. Place Kniff Lightbox Settings inside the gallery parent.
 The lightbox includes neighboring images, zoom controls, and thumbnail previews.
 Lightbox looping is always off. Morph transitions and pull to close are always
-enabled, and closing morphs to the active image. Settings control preload, zoom,
-counter visibility, carousel synchronization, and backdrop color, including on
+enabled, and closing morphs to the active image. Settings control Peek or Theater
+layout, preload (two neighbors on each side by default), zoom, counter visibility,
+thumbnail navigation, carousel synchronization, and backdrop color, including on
 React loop copies.
 Opening an image always pauses carousel automove until the close morph finishes.
 `syncKniffCarousel` synchronizes subsequent lightbox navigation using the same

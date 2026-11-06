@@ -443,6 +443,7 @@ ${canvasViewport} {
     </>
   }
   const css=`
+div[data-framer-name]:has(> style[data-kniff-preview-settings]) { display:none !important; }
 @property --kniff-bleed-page-span { syntax:"<length>"; inherits:true; initial-value:0px; }
 ${boundary} { container-type:inline-size; }
 ${boundary} :where(:has(> ${viewport})) {
@@ -489,7 +490,7 @@ ${viewport} {
   &:focus-visible { outline:2px solid #456849; outline-offset:-2px; }
 }
 `
-  return <style ref={styleRef} dangerouslySetInnerHTML={{__html:css}} />
+  return <style ref={styleRef} data-kniff-preview-settings="" dangerouslySetInnerHTML={{__html:css}} />
 }
 export const visibleScrollOverflowSettingsPropertyControls = {
   showInstructions:{title:"Instructions",type:ControlType.Boolean,defaultValue:true},

@@ -27,8 +27,10 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     morphTo,
     pullToClose,
     preload,
+    layout,
     zoom,
     showCounter,
+    showThumbnails,
     syncKniffCarousel,
     backdropColor,
   } = settings
@@ -41,8 +43,10 @@ export function RamkaSettings(props: RamkaSettingsProps) {
       morphTo,
       pullToClose,
       preload,
+      layout,
       zoom,
       showCounter,
+      showThumbnails,
       syncKniffCarousel,
       backdropColor,
     }
@@ -55,8 +59,10 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     morphTo,
     pullToClose,
     preload,
+    layout,
     zoom,
     showCounter,
+    showThumbnails,
     syncKniffCarousel,
     backdropColor,
   ])
@@ -65,7 +71,10 @@ export function RamkaSettings(props: RamkaSettingsProps) {
     RenderTarget.current() !== RenderTarget.canvas ||
     !settings.showInstructions
   ) {
-    return <span hidden data-kniff-ramka-settings="" />
+    return <>
+      <style data-kniff-ramka-wrapper-style="" dangerouslySetInnerHTML={{ __html: "div[data-framer-name]:has(> style[data-kniff-ramka-wrapper-style]) { display:none !important; }" }} />
+      <span hidden data-kniff-ramka-settings="" />
+    </>
   }
 
   return (
@@ -116,6 +125,13 @@ export const ramkaSettingsPropertyControls = {
     step: 1,
     displayStepper: true,
   },
+  layout: {
+    type: ControlType.Enum,
+    title: "Layout",
+    options: ["peek", "theater"],
+    optionTitles: ["Peek", "Theater"],
+    defaultValue: ramkaSettingsDefaults.layout,
+  },
   zoom: {
     type: ControlType.Boolean,
     title: "Zoom",
@@ -125,6 +141,11 @@ export const ramkaSettingsPropertyControls = {
     type: ControlType.Boolean,
     title: "Counter",
     defaultValue: ramkaSettingsDefaults.showCounter,
+  },
+  showThumbnails: {
+    type: ControlType.Boolean,
+    title: "Thumbnail Nav",
+    defaultValue: ramkaSettingsDefaults.showThumbnails,
   },
   syncKniffCarousel: {
     type: ControlType.Boolean,

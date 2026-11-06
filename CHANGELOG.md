@@ -1,5 +1,12 @@
 # @kniff/framer-kit
 
+## 0.5.6
+
+### Patch Changes
+
+- Hide the Framer settings wrappers in preview and published renders so they cannot create carousel snap targets.
+- Match Ramka's two-neighbor preload default, let adjacent images navigate on click, and expose Peek or Theater layout and thumbnail navigation in Lightbox Settings.
+
 ## 0.5.5
 
 ### Patch Changes

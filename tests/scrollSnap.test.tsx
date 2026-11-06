@@ -18,6 +18,8 @@ describe("scroll snap rendering", () => {
     expect(html).toContain("var(--kniff-authored-padding-left, 0px)")
     expect(html).not.toContain("animation-composition:add")
     expect(html).toContain("overflow-x:auto")
+    expect(html).toContain('data-kniff-preview-settings=""')
+    expect(html).toContain('div[data-framer-name]:has(> style[data-kniff-preview-settings]) { display:none !important; }')
     expect(html).not.toContain("data-kniff-carousel-settings")
   })
 

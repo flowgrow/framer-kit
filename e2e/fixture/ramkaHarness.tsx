@@ -7,9 +7,9 @@ import { installAutoMove } from '../../src/scroll-snap/autoMove'
 const Frame = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => <div {...props} ref={ref} />)
 const Gallery = withRamkaGallery(Frame)
 const Trigger = withRamkaTrigger(Frame)
-export function mountRamka(mount: HTMLElement) {
+export function mountRamka(mount: HTMLElement, options: { layout?: "peek" | "theater"; showThumbnails?: boolean } = {}) {
   const root = createRoot(mount)
-  root.render(<Gallery><RamkaSettings {...ramkaSettingsDefaults} /><div id="ramka-viewport" style={{display:'flex',width:360,overflowX:'auto'}}>
+  root.render(<Gallery><RamkaSettings {...ramkaSettingsDefaults} {...options} /><div id="ramka-viewport" style={{display:'flex',width:360,overflowX:'auto'}}>
     {[0,1,2,3].map(i => <Trigger key={i} style={{flex:'0 0 240px',height:180}}><img src={`/image.svg?ramka=${i}`} alt={`Lightbox slide ${i}`} /></Trigger>)}
   </div></Gallery>)
   const install = () => {
