@@ -39,6 +39,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             }))
             viewport.style.setProperty("overflow", "visible", "important")
             const undo: (() => void)[] = []
+            let pendingFrame: number | undefined
             let resize: ResizeObserver | undefined
             if (props.edgeSpace !== false) {
                 const slides: HTMLElement[] = slideBoxes(viewport)
@@ -60,13 +61,20 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
                         undo.push(() => slide.style.setProperty(property, value, priority))
                     }
                     update()
-                    resize = new ResizeObserver(update)
+                    resize = new ResizeObserver(() => {
+                        if (pendingFrame !== undefined) return
+                        pendingFrame = requestAnimationFrame(() => {
+                            pendingFrame = undefined
+                            update()
+                        })
+                    })
                     resize.observe(first)
                     if (last !== first) resize.observe(last)
                 }
             }
             detach = () => {
                 resize?.disconnect()
+                if (pendingFrame !== undefined) cancelAnimationFrame(pendingFrame)
                 undo.forEach(restore => restore())
                 for (const { property, value, priority } of overflow)
                     viewport.style.setProperty(property, value, priority)
