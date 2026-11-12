@@ -72,7 +72,6 @@ export function useReactLoop(
       scroller.style.scrollSnapType = "none"
       scroller.style.scrollBehavior = "auto"
       scroller.setAttribute("data-kniff-loop", "")
-      const nextWrapper = originalCycle.nextElementSibling
       let restoreFrame = 0
       let jumping = false
       let pointerDown = false
@@ -81,6 +80,9 @@ export function useReactLoop(
       const needsScrollEndFallback = !Reflect.has(scroller, "onscrollend")
       const geometry = () => {
         const first = slideBoxes(originalCycle)[0]
+        const nextWrapper = scroller.querySelector<HTMLElement>(
+          ":scope > [data-kniff-loop-original] ~ [data-kniff-loop-copy]",
+        )
         const nextCycle = nextWrapper ? slideBoxes(nextWrapper)[0] : null
         if (!first || !nextCycle) return null
         const box = scroller.getBoundingClientRect()
@@ -95,6 +97,13 @@ export function useReactLoop(
         const start =
           origin - left - (scroller.clientWidth - left - right - firstBox.width) * factor
         return { cycle, start }
+      }
+      const initial = geometry()
+      if (!initial) {
+        scroller.removeAttribute("data-kniff-loop")
+        scroller.style.scrollSnapType = previousSnap
+        scroller.style.scrollBehavior = previousBehavior
+        return false
       }
       const jump = (position: number) => {
         jumping = true
@@ -182,13 +191,7 @@ export function useReactLoop(
       window.addEventListener("pointerup", release)
       window.addEventListener("pointercancel", release)
 
-      const g = geometry()
-
-      if (g) jump(g.start)
-      else {
-        scroller.style.scrollSnapType = previousSnap
-        scroller.style.scrollBehavior = previousBehavior
-      }
+      jump(initial.start)
       dispose = () => {
         scroller.style.transform = previousTransform
         cancelAnimationFrame(restoreFrame)
