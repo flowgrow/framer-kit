@@ -44,9 +44,7 @@ export function useReactLoop(
       const slides = slideBoxes(originalCycle)
       const first = slides[0]
       if (!first || slides.length < 2) return false
-      if (align === "end" && !clearStartup && !scroller.querySelector(":scope > [data-kniff-loop-copy]")) {
-        const previous = first.style.marginInlineStart
-        first.style.marginInlineStart = `calc(100% - ${first.offsetWidth}px)`
+      if (align !== "start" && !clearStartup && !scroller.querySelector(":scope > [data-kniff-loop-copy]")) {
         // Complete the handoff in the DOM commit that inserts the leading copies.
         const observer = new MutationObserver(() => {
           if (scroller.querySelector(":scope > [data-kniff-loop-copy]")) {
@@ -55,10 +53,7 @@ export function useReactLoop(
           }
         })
         observer.observe(scroller, { childList: true })
-        clearStartup = () => {
-          observer.disconnect()
-          first.style.marginInlineStart = previous
-        }
+        clearStartup = () => observer.disconnect()
       }
       scroller.dispatchEvent(new CustomEvent("kniff-loop-render", { detail: true }))
       const copies = scroller.querySelectorAll<HTMLElement>(":scope > [data-kniff-loop-copy]")
@@ -218,7 +213,7 @@ export function useReactLoop(
       if (install()) return
       if (++retry < 120) frame = requestAnimationFrame(attempt)
     }
-    if (align === "end") attempt()
+    if (align !== "start") attempt()
     else frame = requestAnimationFrame(attempt)
     return () => {
       cancelled = true
