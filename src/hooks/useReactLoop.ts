@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react"
+import { useLayoutEffect, type RefObject } from "react"
 
 function slideBoxes(parent: Element): HTMLElement[] {
   return Array.from(parent.children).flatMap((child) => {
@@ -19,13 +19,14 @@ export function useReactLoop(
   loop: boolean,
   registeredViewport: HTMLElement | null,
 ) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!loop || !selector) return
 
     let dispose: (() => void) | undefined
     let frame = 0
     let retry = 0
     let cancelled = false
+    let clearStartup: (() => void) | undefined
     const install = () => {
       const scroller =
         registeredViewport ??
@@ -39,10 +40,31 @@ export function useReactLoop(
       const originalCycle = scroller.querySelector<HTMLElement>(
         ":scope > [data-kniff-loop-original]",
       )
-      if (!originalCycle || slideBoxes(originalCycle).length < 2) return false
+      if (!originalCycle) return false
+      const slides = slideBoxes(originalCycle)
+      const first = slides[0]
+      if (!first || slides.length < 2) return false
+      if (align === "end" && !clearStartup && !scroller.querySelector(":scope > [data-kniff-loop-copy]")) {
+        const previous = first.style.marginInlineStart
+        first.style.marginInlineStart = `calc(100% - ${first.offsetWidth}px)`
+        // Complete the handoff in the DOM commit that inserts the leading copies.
+        const observer = new MutationObserver(() => {
+          if (scroller.querySelector(":scope > [data-kniff-loop-copy]")) {
+            cancelAnimationFrame(frame)
+            attempt()
+          }
+        })
+        observer.observe(scroller, { childList: true })
+        clearStartup = () => {
+          observer.disconnect()
+          first.style.marginInlineStart = previous
+        }
+      }
       scroller.dispatchEvent(new CustomEvent("kniff-loop-render", { detail: true }))
       const copies = scroller.querySelectorAll<HTMLElement>(":scope > [data-kniff-loop-copy]")
       if (!copies.length || scroller.hasAttribute("data-kniff-loop")) return false
+      clearStartup?.()
+      clearStartup = undefined
       const previousSnap = scroller.style.scrollSnapType
       const previousBehavior = scroller.style.scrollBehavior
       const previousTransform = scroller.style.transform
@@ -193,10 +215,12 @@ export function useReactLoop(
       if (install()) return
       if (++retry < 120) frame = requestAnimationFrame(attempt)
     }
-    frame = requestAnimationFrame(attempt)
+    if (align === "end") attempt()
+    else frame = requestAnimationFrame(attempt)
     return () => {
       cancelled = true
       cancelAnimationFrame(frame)
+      clearStartup?.()
       dispose?.()
     }
   }, [selector, align, loop, registeredViewport, styleRef])
