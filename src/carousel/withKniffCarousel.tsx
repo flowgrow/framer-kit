@@ -129,22 +129,16 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
     )
   })
   const CanvasViewport = forwardRef<unknown, P>((props, ref) => {
-    const layer = props as P & LayerProps
-    const authored = useAuthoredStyles(layer.className ?? "")
-    return (
-      <>
-        {React.createElement(Component, {
-          ...props,
-          ref,
-          style: { ...layer.style, ...inlineAuthoredVariables(layer.style) },
-        } as P)}
-        <style
-          id={authored.id}
-          data-kniff-authored-css=""
-          dangerouslySetInnerHTML={{ __html: authored.css }}
-        />
-      </>
-    )
+    const element = React.useRef<HTMLElement | null>(null)
+    const mergedRef = useCallback((node: unknown) => {
+      element.current = node instanceof HTMLElement ? node : null
+      if (typeof ref === "function") ref(node)
+      else if (ref) ref.current = node
+    }, [ref])
+    React.useLayoutEffect(() => {
+      element.current?.dispatchEvent(new Event("kniff-canvas-slides", { bubbles: true }))
+    })
+    return React.createElement(Component, { ...props, ref: mergedRef } as P)
   })
   const Override = forwardRef<unknown, P>((props, ref) =>
     RenderTarget.current() === RenderTarget.canvas

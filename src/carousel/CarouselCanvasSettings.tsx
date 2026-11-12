@@ -1,196 +1,96 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { CanvasInstructions } from "../shared/CanvasInstructions.tsx"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { inlineAuthoredVariables } from "./authoredStyles.ts"
+import { slideBoxes } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import type { KniffCarouselSettingsProps } from "./KniffCarouselSettings.tsx"
-import { useEffect, useId, useRef } from "react"
-import { RenderTarget } from "framer"
+import { useLayoutEffect, useRef } from "react"
 
 function target(id: string) {
     const value = JSON.stringify(id.trim()).replace(/</g, "\\3c ")
     return `:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`
 }
 export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
-    const canvasStyleRef = useRef<HTMLStyleElement>(null)
-    useEffect(() => {
-        if (RenderTarget.current() !== RenderTarget.canvas) return
-        const style = canvasStyleRef.current
-        if (!style) return
-        const ancestors: HTMLElement[] = []
-        for (let node = style.parentElement; node; node = node.parentElement) {
-            ancestors.push(node)
-        }
-        const update = () => {
-            style.disabled = ancestors.some((node) => {
-                const computed = getComputedStyle(node)
-                return (
-                    computed.display === "none" ||
-                    computed.visibility === "hidden"
-                )
-            })
-        }
-        const observer = new MutationObserver(update)
-        ancestors.forEach((node) =>
-            observer.observe(node, {
-                attributes: true,
-                attributeFilter: ["style", "class", "hidden"],
-            })
-        )
-        update()
-        return () => observer.disconnect()
-    }, [])
-    const canvasViewportName = props.containerID ?? "Percentage Sized Carousel"
-    const canvasViewport = canvasViewportName.trim()
-        ? `${props.boundaryID?.trim() ? `${target(props.boundaryID)} ` : ""}${target(canvasViewportName)}`
-        : ""
-    useEffect(() => {
-        if (RenderTarget.current() !== RenderTarget.canvas || !canvasViewport)
-            return
+    const marker = useRef<HTMLStyleElement>(null)
+    const name = (props.containerID ?? "Percentage Sized Carousel").trim()
+    const boundary = props.boundaryID?.trim()
+    const align = props.align ?? "center"
 
-        const attached = new Map<HTMLElement, () => void>()
-        let scanFrame = 0
-        const attach = (element: HTMLElement) => {
-            let known = new Set<string>()
-            const update = () => {
-                const authored = inlineAuthoredVariables({
-                    width: element.style.width,
-                    maxWidth: element.style.maxWidth,
-                    padding: element.style.padding,
-                    paddingLeft: element.style.paddingLeft,
-                    paddingRight: element.style.paddingRight,
-                }) as Record<string, string>
-                for (const name of known) {
-                    if (!(name in authored)) element.style.removeProperty(name)
-                }
-                known = new Set(Object.keys(authored))
-                for (const [name, value] of Object.entries(authored)) {
-                    if (element.style.getPropertyValue(name) !== value) {
-                        element.style.setProperty(name, value)
+    useLayoutEffect(() => {
+        const node = marker.current
+        if (!node || !name) return
+        const selector = target(name)
+        let detach: (() => void) | undefined
+        const attach = () => {
+            detach?.()
+            detach = undefined
+            // A canvas can contain several breakpoints with the same layer names.
+            let scope = boundary ? node.closest(target(boundary)) : node.parentElement
+            while (scope && !scope.querySelector(selector) && !boundary &&
+                   !scope.matches(':has(> [data-layout-template-root="true"])')) {
+                scope = scope.parentElement
+            }
+            const viewport = scope?.querySelector<HTMLElement>(selector)
+            if (!viewport) return
+            const overflow = ["overflow-x", "overflow-y"].map(property => ({
+                property,
+                value: viewport.style.getPropertyValue(property),
+                priority: viewport.style.getPropertyPriority(property),
+            }))
+            viewport.style.setProperty("overflow", "visible", "important")
+            const undo: (() => void)[] = []
+            let resize: ResizeObserver | undefined
+            if (props.edgeSpace !== false) {
+                const slides: HTMLElement[] = slideBoxes(viewport)
+                const first = slides[0], last = slides[slides.length - 1]
+                if (first && last) {
+                    const start = align === "start" ? 0 : align === "end" ? 1 : 0.5
+                    const edges = [
+                        [first, "margin-inline-start", start],
+                        [last, "margin-inline-end", 1 - start],
+                    ] as const
+                    const update = () => {
+                        for (const [slide, property, factor] of edges) {
+                            slide.style.setProperty(property, `calc((100% - ${slide.offsetWidth}px) * ${factor})`)
+                        }
                     }
+                    for (const [slide, property] of edges) {
+                        const value = slide.style.getPropertyValue(property)
+                        const priority = slide.style.getPropertyPriority(property)
+                        undo.push(() => slide.style.setProperty(property, value, priority))
+                    }
+                    update()
+                    resize = new ResizeObserver(update)
+                    resize.observe(first)
+                    if (last !== first) resize.observe(last)
                 }
             }
-            update()
-            const styleObserver = new MutationObserver(update)
-            styleObserver.observe(element, {
-                attributes: true,
-                attributeFilter: ["style"],
-            })
-            let childFrame = 0
-            const childrenObserver = new MutationObserver(() => {
-                cancelAnimationFrame(childFrame)
-                childFrame = requestAnimationFrame(() => {
-                    const firstSlide = element.firstElementChild
-                    if (firstSlide instanceof HTMLElement) {
-                        firstSlide.scrollIntoView({
-                            behavior: "instant",
-                            block: "nearest",
-                            inline: props.align ?? "center",
-                            container: "nearest",
-                        } as ScrollIntoViewOptions)
-                    }
-                })
-            })
-            childrenObserver.observe(element, { childList: true })
-            attached.set(element, () => {
-                styleObserver.disconnect()
-                childrenObserver.disconnect()
-                cancelAnimationFrame(childFrame)
-            })
-        }
-        const reconcile = () => {
-            const current = new Set(
-                document.querySelectorAll<HTMLElement>(canvasViewport)
-            )
-            for (const [element, detach] of attached) {
-                if (!current.has(element)) {
-                    detach()
-                    attached.delete(element)
-                }
-            }
-            for (const element of current) {
-                if (!attached.has(element)) attach(element)
+            detach = () => {
+                resize?.disconnect()
+                undo.forEach(restore => restore())
+                for (const { property, value, priority } of overflow)
+                    viewport.style.setProperty(property, value, priority)
             }
         }
-        const observer = new MutationObserver(() => {
-            cancelAnimationFrame(scanFrame)
-            scanFrame = requestAnimationFrame(reconcile)
-        })
-        observer.observe(document.body, { childList: true, subtree: true })
-        reconcile()
+        attach()
+        const changed = (event: Event) => {
+            if (event.target instanceof Element && event.target.matches(selector)) attach()
+        }
+        node.ownerDocument.addEventListener("kniff-canvas-slides", changed)
         return () => {
-            observer.disconnect()
-            cancelAnimationFrame(scanFrame)
-            attached.forEach((detach) => detach())
+            node.ownerDocument.removeEventListener("kniff-canvas-slides", changed)
+            detach?.()
         }
-    }, [canvasViewport, props.align])
-    const id = useId()
-    const viewport = canvasViewport
-    const align = (props.align ?? "center") as "start" | "center" | "end"
-    const firstMargins = { start: "0%", center: "50%", end: "100%" }
-    const lastMargins = { start: "100%", center: "50%", end: "0%" }
-    const firstSlideMargin =
-        props.edgeSpace === false ? "0%" : firstMargins[align]
-    const lastSlideMargin =
-        props.edgeSpace === false ? "0%" : lastMargins[align]
-    const canvasCSS =
-        viewport &&
-        `:has(> [data-layout-template-root="true"]) {
-            container-type: inline-size;
-
-&:has(#${CSS.escape(id)}) { 
-${viewport} {
-  display: flex !important;
-  flex-wrap: nowrap !important;
-  box-sizing: border-box;
-  flex: none !important;
-  width: 100cqw !important;
-  max-width: none !important;
-  min-width: 0;
-  margin-inline: calc((100% - 100cqw) / 2) !important;
-  --kniff-content-width: min(100cqw, var(--kniff-authored-width, 100cqw), var(--kniff-authored-max-width, 100cqw));
-  --kniff-gutter: calc((100cqw - var(--kniff-content-width)) / 2);
-  padding-left: calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter)) !important;
-  padding-right: calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter)) !important;
-  overflow-x: hidden !important;
-  overflow-y: hidden !important;
-  scroll-snap-type: x mandatory;
-  scroll-padding-left: calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter));
-  scroll-padding-right: calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter));
-  scrollbar-width: none !important;
-}
-${viewport}::-webkit-scrollbar {
-  display: none !important;
-}
-${viewport} > * {
-  flex-shrink: 0 !important;
-  scroll-snap-align: ${align};
-  scroll-snap-stop: ${props.stopEach ? "always" : "normal"};
-}
-${viewport} > :first-child {
-  margin-inline-start: ${firstSlideMargin};
-}
-${viewport} > :last-child {
-  margin-inline-end: ${lastSlideMargin};
-}}
-}`
+    })
     return (
         <>
-            {canvasCSS && (
-                <style
-                    ref={canvasStyleRef}
-                    data-kniff=""
-                    data-kniff-canvas-settings=""
-                    dangerouslySetInnerHTML={{ __html: canvasCSS }}
-                />
-            )}
+            <style ref={marker} data-kniff-canvas-settings="" />
             {props.showInstructions !== false && (
                 <CanvasInstructions
                     data-kniff=""
                     data-kniff-carousel-settings=""
                     title="Carousel Settings"
                     style={props.style}
-                    id={id}
                 >
                     Place these settings inside the carousel boundary. Apply
                     withKniffCarousel to the viewport and the Previous and Next
