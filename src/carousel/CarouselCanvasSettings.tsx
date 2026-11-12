@@ -10,6 +10,67 @@ function target(id: string) {
     const value = JSON.stringify(id.trim()).replace(/</g, "\\3c ")
     return `:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`
 }
+function observeCanvasEdges(viewport: HTMLElement, start: number) {
+    let first: HTMLElement | undefined
+    let last: HTMLElement | undefined
+    let frame: number | undefined
+    const restore: (() => void)[] = []
+
+    function saveMargin(slide: HTMLElement, property: string) {
+        const value = slide.style.getPropertyValue(property)
+        const priority = slide.style.getPropertyPriority(property)
+        restore.push(() => slide.style.setProperty(property, value, priority))
+    }
+
+    function refresh() {
+        frame = undefined
+        const slides: HTMLElement[] = slideBoxes(viewport)
+        const eligible = slides.filter(slide =>
+            slide.matches(":not([data-kniff])")
+        ).sort((a, b) => Number(getComputedStyle(a).order) - Number(getComputedStyle(b).order))
+        const nextFirst = eligible[0]
+        const nextLast = eligible[eligible.length - 1]
+        if (first !== nextFirst || last !== nextLast) {
+            resize.disconnect()
+            restore.splice(0).forEach(reset => reset())
+            first = nextFirst
+            last = nextLast
+            if (first && last) {
+                saveMargin(first, "margin-inline-start")
+                saveMargin(last, "margin-inline-end")
+                resize.observe(first)
+                if (last !== first) resize.observe(last)
+            }
+        }
+        if (!first || !last) return
+        const widths = [first.offsetWidth, last.offsetWidth]
+        const edges = [[first, "margin-inline-start", start], [last, "margin-inline-end", 1 - start]] as const
+        edges.forEach(([slide, property, factor], index) => {
+            const value = `calc(${100 * factor}% - ${widths[index]! * factor}px)`
+            if (slide.style.getPropertyValue(property) !== value)
+                slide.style.setProperty(property, value)
+        })
+        mutations.takeRecords() // Ignore the margin writes from this refresh.
+    }
+
+    function schedule() {
+        if (frame === undefined) frame = requestAnimationFrame(refresh)
+    }
+    const resize = new ResizeObserver(schedule)
+    const mutations = new MutationObserver(schedule)
+    refresh()
+    mutations.observe(viewport, {
+        subtree: true, childList: true, attributes: true,
+        attributeFilter: ["class", "style", "data-kniff", "hidden"],
+    })
+    return () => {
+        mutations.disconnect()
+        resize.disconnect()
+        if (frame !== undefined) cancelAnimationFrame(frame)
+        restore.forEach(reset => reset())
+    }
+}
+
 export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
     const marker = useRef<HTMLStyleElement>(null)
     const name = (props.containerID ?? "Percentage Sized Carousel").trim()
@@ -38,44 +99,10 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
                 priority: viewport.style.getPropertyPriority(property),
             }))
             viewport.style.setProperty("overflow", "visible", "important")
-            const undo: (() => void)[] = []
-            let pendingFrame: number | undefined
-            let resize: ResizeObserver | undefined
-            if (props.edgeSpace !== false) {
-                const slides: HTMLElement[] = slideBoxes(viewport)
-                const first = slides[0], last = slides[slides.length - 1]
-                if (first && last) {
-                    const start = align === "start" ? 0 : align === "end" ? 1 : 0.5
-                    const edges = [
-                        [first, "margin-inline-start", start],
-                        [last, "margin-inline-end", 1 - start],
-                    ] as const
-                    const update = () => {
-                        for (const [slide, property, factor] of edges) {
-                            slide.style.setProperty(property, `calc((100% - ${slide.offsetWidth}px) * ${factor})`)
-                        }
-                    }
-                    for (const [slide, property] of edges) {
-                        const value = slide.style.getPropertyValue(property)
-                        const priority = slide.style.getPropertyPriority(property)
-                        undo.push(() => slide.style.setProperty(property, value, priority))
-                    }
-                    update()
-                    resize = new ResizeObserver(() => {
-                        if (pendingFrame !== undefined) return
-                        pendingFrame = requestAnimationFrame(() => {
-                            pendingFrame = undefined
-                            update()
-                        })
-                    })
-                    resize.observe(first)
-                    if (last !== first) resize.observe(last)
-                }
-            }
+            const start = align === "start" ? 0 : align === "end" ? 1 : 0.5
+            const stop = props.edgeSpace !== false ? observeCanvasEdges(viewport, start) : undefined
             detach = () => {
-                resize?.disconnect()
-                if (pendingFrame !== undefined) cancelAnimationFrame(pendingFrame)
-                undo.forEach(restore => restore())
+                stop?.()
                 for (const { property, value, priority } of overflow)
                     viewport.style.setProperty(property, value, priority)
             }
@@ -92,7 +119,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
     })
     return (
         <>
-            <style ref={marker} data-kniff-canvas-settings="" />
+            <style ref={marker} data-kniff="" data-kniff-canvas-settings="" />
             {props.showInstructions !== false && (
                 <CanvasInstructions
                     data-kniff=""
