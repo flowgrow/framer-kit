@@ -137,6 +137,15 @@ ${viewport} {
   ${lastSlide} {
     margin-inline-end: ${lastSlideMargin};
   }
+  ${loop && align === "end" ? `
+  /* Before hydration, give the first slide the snapport's full width to align within. */
+  &:not([data-kniff-loop]):not(:has(> [data-kniff-loop-copy])) {
+    display: grid !important;
+    grid-auto-flow: column;
+    grid-auto-columns: 100%;
+    justify-items: start;
+    ${firstSlide} { justify-self: end; }
+  }` : ""}
   /* Retain the accepted Safari compositor workaround. */
   &[data-kniff-loop] {
     transform: translateZ(0);
