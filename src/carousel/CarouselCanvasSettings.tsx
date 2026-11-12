@@ -23,6 +23,7 @@ function observeCanvasEdges(viewport: HTMLElement, start: number) {
     }
 
     function refresh() {
+        if (frame !== undefined) cancelAnimationFrame(frame)
         frame = undefined
         const slides: HTMLElement[] = slideBoxes(viewport)
         const eligible = slides.filter(slide =>
@@ -57,18 +58,19 @@ function observeCanvasEdges(viewport: HTMLElement, start: number) {
         if (frame === undefined) frame = requestAnimationFrame(refresh)
     }
     const resize = new ResizeObserver(schedule)
-    const mutations = new MutationObserver(schedule)
+    const mutations = new MutationObserver(refresh)
     refresh()
     mutations.observe(viewport, {
         subtree: true, childList: true, attributes: true,
         attributeFilter: ["class", "style", "data-kniff", "hidden"],
     })
-    return () => {
+    function stop() {
         mutations.disconnect()
         resize.disconnect()
         if (frame !== undefined) cancelAnimationFrame(frame)
         restore.forEach(reset => reset())
     }
+    return { refresh, stop }
 }
 
 export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
@@ -81,10 +83,10 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
         const node = marker.current
         if (!node || !name) return
         const selector = target(name)
+        let activeViewport: HTMLElement | undefined
+        let edges: ReturnType<typeof observeCanvasEdges> | undefined
         let detach: (() => void) | undefined
         const attach = () => {
-            detach?.()
-            detach = undefined
             // A canvas can contain several breakpoints with the same layer names.
             let scope = boundary ? node.closest(target(boundary)) : node.parentElement
             while (scope && !scope.querySelector(selector) && !boundary &&
@@ -92,6 +94,13 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
                 scope = scope.parentElement
             }
             const viewport = scope?.querySelector<HTMLElement>(selector)
+            if (viewport && viewport === activeViewport) {
+                edges?.refresh()
+                return
+            }
+            detach?.()
+            detach = undefined
+            activeViewport = viewport ?? undefined
             if (!viewport) return
             const overflow = ["overflow-x", "overflow-y"].map(property => ({
                 property,
@@ -100,9 +109,10 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             }))
             viewport.style.setProperty("overflow", "visible", "important")
             const start = align === "start" ? 0 : align === "end" ? 1 : 0.5
-            const stop = props.edgeSpace !== false ? observeCanvasEdges(viewport, start) : undefined
+            edges = props.edgeSpace !== false ? observeCanvasEdges(viewport, start) : undefined
             detach = () => {
-                stop?.()
+                edges?.stop()
+                edges = undefined
                 for (const { property, value, priority } of overflow)
                     viewport.style.setProperty(property, value, priority)
             }
@@ -116,7 +126,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             node.ownerDocument.removeEventListener("kniff-canvas-slides", changed)
             detach?.()
         }
-    })
+    }, [name, boundary, align, props.edgeSpace])
     return (
         <>
             <style ref={marker} data-kniff="" data-kniff-canvas-settings="" />
