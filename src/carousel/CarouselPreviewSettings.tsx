@@ -85,6 +85,13 @@ export function CarouselPreviewSettings({
         if (!el) return
         let slides: HTMLElement[] = []
         let points: number[] = []
+        const animations = new Map<HTMLElement, Animation>()
+        const keyframes = [previous, current, next].map(transform => ({ transform: transform || "none" }))
+        const release = (slide: HTMLElement) => {
+            animations.get(slide)?.cancel()
+            animations.delete(slide)
+            delete slide.dataset.kniffSlidePosition
+        }
         let frame = 0
         let dirty = true
         const position = el.style.position
@@ -95,9 +102,14 @@ export function CarouselPreviewSettings({
             if (dirty) {
                 const updated: HTMLElement[] = slideBoxes(el).filter((s: HTMLElement) => !s.hasAttribute("data-kniff"))
                 const changed = new Set(updated)
-                slides.filter(s => !changed.has(s)).forEach(s => { resize.unobserve(s); delete s.dataset.kniffSlidePosition })
+                slides.filter(s => !changed.has(s)).forEach(s => { resize.unobserve(s); release(s) })
                 for (const s of updated) {
-                    if (!s.hasAttribute("data-kniff-slide-position")) s.dataset.kniffSlidePosition = "current"
+                    if (!animations.has(s)) {
+                        s.dataset.kniffSlidePosition = "current"
+                        const animation = s.animate(keyframes, { duration: 2, fill: "both" })
+                        animation.pause()
+                        animations.set(s, animation)
+                    }
                     resize.observe(s)
                 }
                 slides = updated
@@ -105,13 +117,18 @@ export function CarouselPreviewSettings({
                 dirty = false
             }
             const left = el.scrollLeft
-            let active = 0
-            for (let i = 1; i < points.length; i++) {
-                const delta = Math.abs(points[i]! - left) - Math.abs(points[active]! - left)
-                if (delta < 0 || (delta === 0 && left > 0 && left >= el.scrollWidth - el.clientWidth - 1)) active = i
-            }
+            let right = points.findIndex(point => point >= left)
+            if (right < 0 || (left > 0 && left >= el.scrollWidth - el.clientWidth - 1)) right = points.length - 1
+            const lower = Math.max(0, right - 1)
+            const span = points[right]! - points[lower]!
+            const fraction = span > 0 ? Math.max(0, Math.min(1, (left - points[lower]!) / span)) : 1
+            const position = lower + (right - lower) * fraction
             slides.forEach((s, i) => {
-                const role = i < active ? "previous" : i === active ? "current" : "next"
+                // Sample previous/current/next at times 0/1/2 using the physical slide index, including loop copies.
+                const time = Math.max(0, Math.min(2, 1 + i - position))
+                const animation = animations.get(s)!
+                if (animation.currentTime !== time) animation.currentTime = time
+                const role = i < Math.round(position) ? "previous" : i === Math.round(position) ? "current" : "next"
                 if (s.dataset.kniffSlidePosition !== role) s.dataset.kniffSlidePosition = role
             })
         }
@@ -128,10 +145,10 @@ export function CarouselPreviewSettings({
             resize.disconnect()
             el.removeEventListener("scroll", schedule)
             cancelAnimationFrame(frame)
-            slides.forEach(s => { delete s.dataset.kniffSlidePosition })
+            slides.forEach(release)
             if (needsPosition) el.style.position = position
         }
-    }, [registeredViewport, viewportSelector, boundary, transformEnabled, align])
+    }, [registeredViewport, viewportSelector, boundary, transformEnabled, align, previous, current, next])
     if (!viewportSelector) return null
     const viewport = viewportSelector
     // Relative selectors stay inside the viewport's native CSS nesting block.
@@ -164,9 +181,6 @@ export function CarouselPreviewSettings({
         includeEdgeSpace && !loop && align !== "end"
             ? `calc((100% - var(--kniff-last-slide-width, 0px)) * ${align === "start" ? 1 : 0.5})`
             : "0px"
-    const transformCSS = Object.entries({previous, current, next}).map(([role, value]) =>
-        value ? `${viewport} { ${slides} { &[data-kniff-slide-position="${role}"] { transform: ${value}; } } }` : ""
-    ).join("\n")
     const css = `
 div[data-framer-name]:has(> style[data-kniff-preview-settings]) {
   display: none !important;
@@ -180,7 +194,6 @@ ${boundary} {
   container-type: inline-size;
 }
 ${boundaryCSS}
-${transformCSS}
 ${viewport} {
   --kniff-slide-transition: ${JSON.stringify(slideTransition)};
   --kniff-initial-align: ${align};
