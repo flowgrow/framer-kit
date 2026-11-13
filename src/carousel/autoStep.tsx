@@ -49,7 +49,7 @@ export function installAutoStep(
   }
   const advance = () => {
     timer = 0
-    remaining = duration
+    remaining = 0
     if (!eligible()) {
       schedule()
       return
@@ -72,6 +72,7 @@ export function installAutoStep(
       return
     }
     if (next !== undefined) {
+      remaining = duration
       viewport.dataset.kniffAutoMove = "running"
       moveOverflowViewport(viewport, forward ? 1 : -1, true)
       schedule()
@@ -81,6 +82,7 @@ export function installAutoStep(
       halt()
       return
     }
+    remaining = duration
     cancelOverflowMove(viewport)
     viewport.scrollTo({
       left: forward ? points[0]! : points[points.length - 1]!,
@@ -108,10 +110,9 @@ export function installAutoStep(
   const manual = () => { if (stopOnInteraction) halt() }
   const scrolled = () => {
     if (holding) manual()
-    if (stopOnLastSlide && atTerminalSlide(viewport, direction === "left", viewport.scrollLeft)) halt()
   }
   const interrupt = (event: Event) => {
-    if (event.type === "kniff-scroll-navigation" && getPendingOverflowDestination(viewport) !== undefined) {
+    if (!stopped && event.type === "kniff-scroll-navigation" && getPendingOverflowDestination(viewport) !== undefined) {
       clear()
       remaining = duration
     }
