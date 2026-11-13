@@ -12,6 +12,7 @@ interface AutoMoveOptions {
   align: "start" | "center" | "end"
   autoMove: "none" | "perSlide" | "scroll"
   autoMoveDelay: number
+  autoMoveStartDelay: number
   autoMoveSpeed: number
   autoMoveDirection: "left" | "right"
   autoMoveStopOnInteraction: boolean
@@ -26,6 +27,7 @@ export function useAutoMove({
   align,
   autoMove,
   autoMoveDelay,
+  autoMoveStartDelay,
   autoMoveSpeed,
   autoMoveDirection,
   autoMoveStopOnInteraction,
@@ -52,6 +54,9 @@ export function useAutoMove({
       dispose =
         autoMove === "scroll"
           ? installAutoMove(viewport, {
+              startDelay: autoMoveStartDelay,
+              stopOnInteraction: autoMoveStopOnInteraction,
+              stopOnLastSlide: autoMoveStopOnLastSlide,
               speed: autoMoveSpeed,
               direction: autoMoveDirection,
             })
@@ -72,6 +77,7 @@ export function useAutoMove({
     registeredViewport,
     autoMove,
     autoMoveDelay,
+    autoMoveStartDelay,
     autoMoveSpeed,
     autoMoveDirection,
     autoMoveStopOnInteraction,

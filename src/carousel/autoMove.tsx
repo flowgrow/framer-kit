@@ -4,6 +4,9 @@ import { installTouchIntent } from "https://framer.com/m/touchIntent-1GV9VC.js@y
 export interface AutoMoveOptions {
   speed: number
   direction: "left" | "right"
+  startDelay?: number
+  stopOnInteraction?: boolean
+  stopOnLastSlide?: boolean
   resumeDelay?: number
 }
 
@@ -18,7 +21,7 @@ function boxes(parent: Element): HTMLElement[] {
 
 export function installAutoMove(
   viewport: HTMLElement,
-  { speed, direction, resumeDelay = 300 }: AutoMoveOptions,
+  { speed, direction, resumeDelay = 300, startDelay = 0, stopOnInteraction = false, stopOnLastSlide = false }: AutoMoveOptions,
 ) {
   const doc = viewport.ownerDocument,
     win = doc.defaultView!
@@ -43,6 +46,10 @@ export function installAutoMove(
     origin = 0,
     max = 0,
     points: number[] = []
+  let started = false
+  let terminal = 0
+  let farEdge = 0
+  let ended = false
   let manuallyPaused = false
   const externallyPaused = () => manuallyPaused || viewport.hasAttribute("data-kniff-auto-move-paused")
   const state = (next: typeof phase) => {
@@ -78,6 +85,12 @@ export function installAutoMove(
         ? following.getBoundingClientRect().left - first.getBoundingClientRect().left
         : 0
     origin = first ? offset(first) : 0
+    farEdge = originals.length ? offset(originals[originals.length - 1]!) : max
+    terminal = Math.min(max, Math.max(0, direction === "left" ? farEdge : origin))
+    if (cycle > 0) {
+      const cycles = (viewport.scrollLeft - terminal) / cycle
+      terminal += cycle * (direction === "left" ? Math.ceil(cycles - 0.0001) : Math.floor(cycles + 0.0001))
+    }
   }
   const wrap = (x: number) =>
     cycle > 0 ? origin + ((((x - origin) % cycle) + cycle) % cycle) : Math.max(0, Math.min(max, x))
@@ -93,10 +106,15 @@ export function installAutoMove(
   }
   const tick = (now: number) => {
     if (disposed || externallyPaused() || !inView || phase !== "running") return
-    if (last)
-      position = wrap(
-        position + ((direction === "left" ? 1 : -1) * speed * Math.min(now - last, 50)) / 1000,
-      )
+    const next = position + (last ? ((direction === "left" ? 1 : -1) * speed * Math.min(now - last, 50)) / 1000 : 0)
+    if (stopOnLastSlide && (direction === "left" ? next >= terminal : next <= terminal)) {
+      viewport.scrollLeft = terminal
+      ended = true
+      pause()
+      return
+    }
+    position = wrap(next)
+    if (cycle > 0) terminal += position - next
     last = now
     // Keep fractional accumulation independent of browsers that round scrollLeft.
     viewport.scrollLeft = position
@@ -106,7 +124,8 @@ export function installAutoMove(
       ((direction === "left" && position >= max) || (direction === "right" && position <= 0))
     ) {
       restore()
-      state("waiting")
+      ended = true
+      pause()
       frame = 0
       last = 0
       return
@@ -125,6 +144,7 @@ export function installAutoMove(
     )
       return
     stop()
+    started = true
     measure()
     position = viewport.scrollLeft
     writtenPosition = position
@@ -218,6 +238,7 @@ export function installAutoMove(
     if (phase === "running" && performance.now() < verticalWheelUntil) return
     if (gesture.ignoreScroll(delta)) return
     const userScrolled = Math.abs(delta) > 0.01
+    if (stopOnInteraction && userScrolled && (gesture.holding || awaitingScroll)) { pause(); return }
     if (gesture.holding && userScrolled) {
       nativeHandoff = true
       awaitingScroll = false
@@ -246,6 +267,7 @@ export function installAutoMove(
       return
     }
     verticalWheelUntil = 0
+    if (stopOnInteraction) { pause(); return }
     gesture.reset()
     awaitingScroll = true
     interrupt()
@@ -270,7 +292,7 @@ export function installAutoMove(
   const visibility = () => {
     if (externallyPaused() || !inView || doc.hidden || reduced.matches) {
       if (!suspended) {
-        resumeMoving = phase === "running"
+        resumeMoving = !started || phase === "running"
         suspended = true
         stop()
         state("held")
@@ -280,26 +302,40 @@ export function installAutoMove(
     }
     if (suspended) {
       suspended = false
-      if (resumeMoving && !gesture.holding) start()
+      if (resumeMoving && !gesture.holding) {
+        if (!started && startDelay > 0) {
+          state("waiting")
+          timer = win.setTimeout(start, startDelay * 1000)
+        } else start()
+      }
       else {
         measure()
         schedule()
       }
     }
   }
+  const pause = () => {
+    manuallyPaused = true
+    stop()
+    restore()
+    suspended = true
+    state("held")
+  }
+  const manual = () => { if (stopOnInteraction) pause() }
   const toggle = () => {
-    manuallyPaused = phase !== "held"
-    if (manuallyPaused) {
-      stop()
-      restore()
-      suspended = true
-      state("held")
-    } else {
+    if (phase !== "held") pause()
+    else {
+      manuallyPaused = false
+      if (ended) {
+        viewport.scrollTo({ left: direction === "left" ? origin : farEdge, behavior: "instant" })
+        ended = false
+      }
       resumeMoving = true
       suspended = true
       visibility()
     }
   }
+  viewport.addEventListener("kniff-manual-navigation", manual)
   viewport.addEventListener("kniff-toggle-playback", toggle)
   // No movement until the observer confirms a positive visible area. This also
   // respects clipping by scrollable ancestors, not just the window bounds.
@@ -344,6 +380,7 @@ export function installAutoMove(
   return () => {
     disposed = true
     stop()
+    viewport.removeEventListener("kniff-manual-navigation", manual)
     viewport.removeEventListener("kniff-toggle-playback", toggle)
     gesture.dispose()
     intersection.disconnect()

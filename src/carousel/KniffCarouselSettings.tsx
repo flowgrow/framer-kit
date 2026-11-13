@@ -21,6 +21,7 @@ export interface KniffCarouselSettingsProps {
     loop?: boolean
     autoMove?: "none" | "perSlide" | "scroll"
     autoMoveDelay?: number
+    autoMoveStartDelay?: number
     autoMoveSpeed?: number
     autoMoveDirection?: "left" | "right"
     autoMoveStopOnInteraction?: boolean
@@ -66,6 +67,15 @@ export const kniffCarouselSettingsPropertyControls = {
         step: 0.1,
         hidden: (props) => props.autoMove !== "perSlide",
     },
+    autoMoveStartDelay: {
+        title: "Start Delay",
+        type: ControlType.Number,
+        defaultValue: 0,
+        min: 0,
+        step: 0.1,
+        unit: "s",
+        hidden: (props) => props.autoMove !== "scroll",
+    },
     autoMoveSpeed: {
         title: "Speed",
         type: ControlType.Number,
@@ -88,13 +98,13 @@ export const kniffCarouselSettingsPropertyControls = {
         title: "Stop on Interaction",
         type: ControlType.Boolean,
         defaultValue: false,
-        hidden: (props) => props.autoMove !== "perSlide",
+        hidden: (props) => !props.autoMove || props.autoMove === "none",
     },
     autoMoveStopOnLastSlide: {
         title: "Stop on Last Slide",
         type: ControlType.Boolean,
         defaultValue: false,
-        hidden: (props) => props.autoMove !== "perSlide",
+        hidden: (props) => !props.autoMove || props.autoMove === "none",
     },
     loop: {
         title: "Loop",
