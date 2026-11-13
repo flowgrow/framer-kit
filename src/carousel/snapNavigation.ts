@@ -22,7 +22,7 @@ export function moveOverflowViewport(viewport: HTMLElement, direction: number, a
   scrollToSnapPosition(viewport, destination, automatic, true)
 }
 
-export function scrollToSnapPosition(viewport: HTMLElement, destination: number, automatic = false, useTransition = false) {
+export function scrollToSnapPosition(viewport: HTMLElement, destination: number, automatic = false, useTransition = true) {
   const pending = overflowMoves.get(viewport)
   if (!automatic) viewport.dispatchEvent(new Event("kniff-manual-navigation"))
   pending?.clear()
@@ -62,11 +62,18 @@ export function scrollToSnapPosition(viewport: HTMLElement, destination: number,
   viewport.addEventListener("keydown", clear)
   if (animated && config) {
     viewport.style.scrollSnapType = "none"
-    animation = animate(viewport.scrollLeft, destination, {
+    const start = viewport.scrollLeft
+    const points: number[] = [...new Set<number>(overflowSnapPoints(viewport))]
+    const nearestIndex = (position: number) => points.reduce((nearest, point, index) =>
+      Math.abs(point - position) < Math.abs(points[nearest]! - position) ? index : nearest, 0)
+    const steps = Math.max(1, Math.abs(nearestIndex(destination) - nearestIndex(start)))
+    const playback = animate(start, destination, {
       ...JSON.parse(config) as Transition,
       onUpdate: (left: number) => viewport.scrollTo({ left, behavior: "instant" }),
       onComplete: clear,
     })
+    playback.speed = 1 / steps
+    animation = playback
     return
   }
   timer = window.setTimeout(clear, 2000)
