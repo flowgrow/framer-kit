@@ -240,7 +240,7 @@ export function installAutoMove(
     if (phase === "running" && performance.now() < verticalWheelUntil) return
     if (gesture.ignoreScroll(delta)) return
     const userScrolled = Math.abs(delta) > 0.01
-    if (stopOnInteraction && userScrolled && (gesture.holding || awaitingScroll)) { pause("stopped"); return }
+    if (stopOnInteraction && userScrolled && (gesture.holding || awaitingScroll)) { pause("held"); return }
     if (gesture.holding && userScrolled) {
       nativeHandoff = true
       awaitingScroll = false
@@ -269,7 +269,7 @@ export function installAutoMove(
       return
     }
     verticalWheelUntil = 0
-    if (stopOnInteraction) { pause("stopped"); return }
+    if (stopOnInteraction) { pause("held"); return }
     gesture.reset()
     awaitingScroll = true
     interrupt()
@@ -334,7 +334,7 @@ export function installAutoMove(
     suspended = true
     state(next)
   }
-  const manual = () => { if (stopOnInteraction) pause("stopped") }
+  const manual = () => { if (stopOnInteraction) pause("held") }
   const toggle = () => {
     if (phase !== "held" && phase !== "stopped") pause("held")
     else {

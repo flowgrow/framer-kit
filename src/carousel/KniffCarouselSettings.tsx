@@ -135,7 +135,7 @@ export const kniffCarouselSettingsPropertyControls = {
         hidden: (props) => props.autoMove === "none",
     },
     autoMoveStopOnInteraction: {
-        title: "Stop on Interaction",
+        title: "Pause on Interaction",
         type: ControlType.Boolean,
         defaultValue: false,
         hidden: (props) => !props.autoMove || props.autoMove === "none",

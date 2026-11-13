@@ -130,7 +130,12 @@ export function installAutoStep(
     }
     schedule()
   }
-  const manual = () => { if (stopOnInteraction) halt() }
+  const manual = () => {
+    if (!stopOnInteraction) return
+    stopped = false
+    manuallyPaused = true
+    schedule()
+  }
   const settled = () => {
     win.clearTimeout(settleTimer)
     if (!settling) return
