@@ -28,6 +28,22 @@ function navigationOverride<P extends object>(
       setAvailable(0)
       if (viewport) return observeNavigation(viewport, setAvailable)
     }, [viewport])
+    React.useLayoutEffect(() => {
+      if (!button || !disabled) return
+      const { opacity, pointerEvents } = button.style
+      button.style.opacity = "0.5"
+      button.style.pointerEvents = "none"
+      const block = (event: MouseEvent) => {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+      }
+      button.addEventListener("click", block, true)
+      return () => {
+        button.style.opacity = opacity
+        button.style.pointerEvents = pointerEvents
+        button.removeEventListener("click", block, true)
+      }
+    }, [button, disabled])
     React.useEffect(() => {
       if (!button || !viewport || disabled) return
       // Design component instances forward their ref even when they don't pass
@@ -61,7 +77,7 @@ function navigationOverride<P extends object>(
       ...props,
       ref,
       role: original.role ?? "button",
-      tabIndex: original.tabIndex ?? 0,
+      tabIndex: disabled ? -1 : original.tabIndex ?? 0,
       "aria-label": original["aria-label"] ?? (direction === 1 ? "Next slide" : "Previous slide"),
       "aria-disabled": disabled,
     } as P)
