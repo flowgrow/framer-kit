@@ -125,6 +125,7 @@ export function useReactLoop(
           scroller.scrollLeft = position
         }
 
+        scroller.dispatchEvent(new Event("kniff-loop-reposition"))
         cancelAnimationFrame(restoreFrame)
         restoreFrame = requestAnimationFrame(() => {
           scroller.style.scrollSnapType = previousSnap

@@ -129,16 +129,22 @@ export function CarouselPreviewSettings({
             })
         }
         const schedule = () => { if (!frame) frame = requestAnimationFrame(refresh) }
+        const reposition = () => {
+            cancelAnimationFrame(frame)
+            refresh()
+        }
         const invalidate = () => { dirty = true; schedule() }
         const resize = new ResizeObserver(invalidate)
         const mutations = new MutationObserver(invalidate)
         mutations.observe(el, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "style", "hidden", "data-kniff"] })
         resize.observe(el)
+        el.addEventListener("kniff-loop-reposition", reposition)
         el.addEventListener("scroll", schedule, { passive: true })
         refresh()
         return () => {
             mutations.disconnect()
             resize.disconnect()
+            el.removeEventListener("kniff-loop-reposition", reposition)
             el.removeEventListener("scroll", schedule)
             cancelAnimationFrame(frame)
             slides.forEach(release)

@@ -121,6 +121,7 @@ export function installAutoMove(
     last = now
     // Keep fractional accumulation independent of browsers that round scrollLeft.
     viewport.scrollLeft = position
+    if (cycle > 0 && Math.abs(position - next) > 1) viewport.dispatchEvent(new Event("kniff-loop-reposition"))
     writtenPosition = viewport.scrollLeft
     if (
       !cycle &&
@@ -194,7 +195,9 @@ export function installAutoMove(
     const offset = cycle > 0 ? (((viewport.scrollLeft - origin) % cycle) + cycle) % cycle : 0
     const next =
       cycle > 0 && Math.min(offset, cycle - offset) < 1 ? origin : wrap(viewport.scrollLeft)
+    const repositioned = cycle > 0 && Math.abs(next - viewport.scrollLeft) > 1
     viewport.scrollTo({ left: next, behavior: "instant" })
+    if (repositioned) viewport.dispatchEvent(new Event("kniff-loop-reposition"))
     writtenPosition = viewport.scrollLeft
     wait()
   }
