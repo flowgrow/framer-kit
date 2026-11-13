@@ -1,5 +1,7 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { slideRect } from "../carousel/snapGeometry.ts"
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { getPendingOverflowDestination } from "../carousel/snapNavigation.ts"
 import { useLayoutEffect, type RefObject } from "react"
 
 function slideBoxes(parent: Element): HTMLElement[] {
@@ -137,6 +139,7 @@ export function useReactLoop(
       const normalize = () => {
         if (
           jumping ||
+          getPendingOverflowDestination(scroller) !== undefined ||
           pointerDown ||
           touchDown ||
           scroller.hasAttribute("data-kniff-auto-move") ||
@@ -177,6 +180,14 @@ export function useReactLoop(
         pointerDown = false
         scheduleSettle()
       }
+      let navigationFrame = 0
+      const navigationChanged = () => {
+        cancelAnimationFrame(navigationFrame)
+        if (getPendingOverflowDestination(scroller) === undefined) {
+          navigationFrame = requestAnimationFrame(normalize)
+        }
+      }
+      scroller.addEventListener("kniff-scroll-navigation", navigationChanged)
       scroller.addEventListener("scrollend", normalize)
       if (needsScrollEndFallback) {
         scroller.addEventListener("scroll", scheduleSettle, { passive: true })
@@ -197,6 +208,8 @@ export function useReactLoop(
         scroller.removeEventListener("touchstart", touchStart)
         window.removeEventListener("touchend", touchEnd)
         window.removeEventListener("touchcancel", touchEnd)
+        cancelAnimationFrame(navigationFrame)
+        scroller.removeEventListener("kniff-scroll-navigation", navigationChanged)
         scroller.removeEventListener("scrollend", normalize)
         scroller.removeEventListener("pointerdown", press)
         window.removeEventListener("pointerup", release)
