@@ -123,4 +123,41 @@ function withAutoMovePlayButton(Component: React.ComponentType<any>): React.Comp
   })
 }
 
-export const carouselButtonOverrides = { withKniffCarouselPrevious, withKniffCarouselNext, withAutoMovePlayButton }
+function withAutoMoveProgress(Component: React.ComponentType<any>): React.ComponentType<any> {
+  return React.forwardRef<HTMLElement, any>((props, forwardedRef) => {
+    const viewport = (React.useContext(CarouselContext) as any)?.viewport as HTMLElement | undefined
+    const [bar, setBar] = React.useState<HTMLElement | null>(null)
+    const ref = React.useCallback((node: HTMLElement | null) => {
+      setBar(node)
+      if (typeof forwardedRef === "function") forwardedRef(node)
+      else if (forwardedRef) forwardedRef.current = node
+    }, [forwardedRef])
+    React.useLayoutEffect(() => {
+      if (!viewport || !bar) return
+      const authored = bar.style.width
+      let frame = 0
+      const sync = () => {
+        cancelAnimationFrame(frame)
+        const clock = viewport.dataset.kniffStepClock
+        if (!clock) { bar.style.width = authored; return }
+        const [duration, remaining, deadline] = JSON.parse(clock) as [number, number, number]
+        const draw = () => {
+          const left = deadline ? deadline - performance.now() : remaining
+          bar.style.width = Math.max(0, Math.min(100, 100 * (1 - left / duration))) + "%"
+          if (deadline && left > 0) frame = requestAnimationFrame(draw)
+        }
+        draw()
+      }
+      sync()
+      viewport.addEventListener("kniff-step-clock", sync)
+      return () => {
+        cancelAnimationFrame(frame)
+        viewport.removeEventListener("kniff-step-clock", sync)
+        bar.style.width = authored
+      }
+    }, [bar, viewport])
+    return <Component {...props} ref={ref} />
+  })
+}
+
+export const carouselButtonOverrides = { withKniffCarouselPrevious, withKniffCarouselNext, withAutoMovePlayButton, withAutoMoveProgress }

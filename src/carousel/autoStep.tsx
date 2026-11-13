@@ -27,7 +27,10 @@ export function installAutoStep(
     stopped = false,
     disposed = false,
     holding = false
-  const paused = () => stopped || viewport.hasAttribute("data-kniff-auto-move-paused")
+  const duration = Math.max(0.1, delay) * 1000
+  let remaining = duration
+  let deadline = 0
+  const paused = () => viewport.hasAttribute("data-kniff-auto-move-paused")
   const eligible = () =>
     visible && !doc.hidden && !reduced.matches && !paused() && !stopped && !holding
   const clear = () => {
@@ -35,16 +38,21 @@ export function installAutoStep(
     timer = 0
   }
   const schedule = () => {
+    if (timer) remaining = Math.max(0, deadline - performance.now())
     clear()
+    deadline = eligible() ? performance.now() + remaining : 0
+    viewport.dataset.kniffStepClock = JSON.stringify([duration, remaining, deadline])
+    viewport.dispatchEvent(new Event("kniff-step-clock"))
     if (!eligible()) {
       viewport.dataset.kniffAutoMove = "held"
       return
     }
     viewport.dataset.kniffAutoMove = "waiting"
-    timer = win.setTimeout(advance, Math.max(0.1, delay) * 1000)
+    timer = win.setTimeout(advance, remaining)
   }
   const advance = () => {
     timer = 0
+    remaining = duration
     if (!eligible()) {
       schedule()
       return
@@ -104,6 +112,10 @@ export function installAutoStep(
     if (stopOnLastSlide && atTerminalSlide(viewport, direction === "left", viewport.scrollLeft)) halt()
   }
   const interrupt = (event: Event) => {
+    if (event.type === "kniff-scroll-navigation" && getPendingOverflowDestination(viewport) !== undefined) {
+      clear()
+      remaining = duration
+    }
     if (event instanceof WheelEvent && (Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.shiftKey)) manual()
     if (event instanceof KeyboardEvent && ["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", " "].includes(event.key)) manual()
     if (!disposed) schedule()
@@ -113,6 +125,7 @@ export function installAutoStep(
     schedule()
   }
   const release = () => {
+    if (!holding) return
     holding = false
     schedule()
   }
@@ -157,6 +170,8 @@ export function installAutoStep(
     doc.removeEventListener("visibilitychange", schedule)
     reduced.removeEventListener("change", schedule)
     cancelOverflowMove(viewport)
+    delete viewport.dataset.kniffStepClock
+    viewport.dispatchEvent(new Event("kniff-step-clock"))
     delete viewport.dataset.kniffAutoMove
   }
 }
