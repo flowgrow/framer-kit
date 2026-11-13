@@ -2,6 +2,8 @@ import * as React from "react"
 import type { ComponentType } from "react"
 import { RenderTarget } from "framer"
 // @ts-ignore Framer's checker does not resolve local code-file imports.
+import { scrollToSnapPosition } from "./carousel/snapNavigation.ts"
+// @ts-ignore Framer's checker does not resolve local code-file imports.
 import { snapPosition, slideBoxes } from "./carousel/snapGeometry.ts"
 // @ts-ignore Framer's checker does not resolve local code-file imports.
 import { CarouselContext, carouselContextOverrides } from "./carousel/carouselContext.tsx"
@@ -86,7 +88,28 @@ export function withAutoMoveProgress(Component: ComponentType<any>): ComponentTy
   return carouselButtonOverrides.withAutoMoveProgress(Component)
 }
 
-const ActiveDotContext = React.createContext<boolean | null>(null)
+const ActiveDotContext = React.createContext<{ active: boolean; index: number; viewport: HTMLElement } | null>(null)
+
+function dotSlides(viewport: HTMLElement): HTMLElement[] {
+  return slideBoxes(viewport).filter((slide: HTMLElement) => !slide.hasAttribute("data-kniff"))
+}
+
+function isOriginalSlide(viewport: HTMLElement, slide: HTMLElement) {
+  return slide.closest("[data-kniff-loop-copy]")?.parentElement !== viewport
+}
+
+function goToDot(viewport: HTMLElement, index: number) {
+  const slides = dotSlides(viewport)
+  const count = slides.filter(slide => isOriginalSlide(viewport, slide)).length
+  if (index >= count) return
+  const position = viewport.scrollLeft
+  let nearest = snapPosition(viewport, slides[index]!)
+  for (let i = index + count; i < slides.length; i += count) {
+    const point = snapPosition(viewport, slides[i]!)
+    if (Math.abs(point - position) < Math.abs(nearest - position)) nearest = point
+  }
+  scrollToSnapPosition(viewport, nearest)
+}
 
 function observeDots(viewport: HTMLElement, update: (count: number, active: number) => void) {
   let count = 0
@@ -95,8 +118,8 @@ function observeDots(viewport: HTMLElement, update: (count: number, active: numb
   let dirty = true
   const observed = new Set<HTMLElement>()
   const measure = () => {
-    const slides: HTMLElement[] = slideBoxes(viewport).filter((slide: HTMLElement) => !slide.hasAttribute("data-kniff"))
-    const originals = slides.filter(slide => slide.closest("[data-kniff-loop-copy]")?.parentElement !== viewport)
+    const slides = dotSlides(viewport)
+    const originals = slides.filter(slide => isOriginalSlide(viewport, slide))
     count = originals.length
     points = slides.map(slide => snapPosition(viewport, slide))
     const current = new Set(slides)
@@ -161,7 +184,7 @@ export function withDotsContainer(Component: ComponentType<any>): ComponentType<
     const template = React.Children.toArray(props.children).find(React.isValidElement)
     return <Component {...props} ref={ref}>
       {viewport && template && Array.from({ length: dots.count }, (_, index) =>
-        <ActiveDotContext.Provider key={index} value={index === dots.active}>
+        <ActiveDotContext.Provider key={index} value={{ index, active: index === dots.active, viewport }}>
           {React.cloneElement(template)}
         </ActiveDotContext.Provider>
       )}
@@ -171,9 +194,24 @@ export function withDotsContainer(Component: ComponentType<any>): ComponentType<
 
 export function withActiveDot(Component: ComponentType<any>): ComponentType<any> {
   return React.forwardRef<any, any>((props, ref) => {
-    const active = React.useContext(ActiveDotContext)
+    const dot = React.useContext(ActiveDotContext)
     const layoutId = React.useId()
-    if (active === null) return <Component {...props} ref={ref} />
-    return <Component {...props} ref={ref} layoutId={layoutId} variant={active ? "Active" : "Default"} />
+    if (!dot) return <Component {...props} ref={ref} />
+    const click = (event: React.MouseEvent<HTMLElement>) => {
+      props.onClick?.(event)
+      if (!event.defaultPrevented) goToDot(dot.viewport, dot.index)
+    }
+    const keyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+      props.onKeyDown?.(event)
+      if (event.defaultPrevented || event.target !== event.currentTarget ||
+          event.currentTarget.matches("button,input,a[href]")) return
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault()
+        if (!event.repeat) event.currentTarget.click()
+      }
+    }
+    return <Component {...props} ref={ref} layoutId={layoutId} variant={dot.active ? "Active" : "Default"}
+      onClick={click} onKeyDown={keyDown} role={props.role ?? "button"} tabIndex={props.tabIndex ?? 0}
+      aria-label={props["aria-label"] ?? `Go to slide ${dot.index + 1}`} aria-current={dot.active || undefined} />
   })
 }

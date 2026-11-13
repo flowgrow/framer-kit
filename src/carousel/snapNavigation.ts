@@ -18,6 +18,11 @@ export function moveOverflowViewport(viewport: HTMLElement, direction: number, a
       ? points.find((point: number) => point > current + 2)
       : points.reverse().find((point: number) => point < current - 2)
   if (destination === undefined) return
+  scrollToSnapPosition(viewport, destination, automatic)
+}
+
+export function scrollToSnapPosition(viewport: HTMLElement, destination: number, automatic = false) {
+  const pending = overflowMoves.get(viewport)
   if (!automatic) viewport.dispatchEvent(new Event("kniff-manual-navigation"))
   pending?.clear()
   let timer = 0
