@@ -172,7 +172,8 @@ export function withDotsContainer(Component: ComponentType<any>): ComponentType<
 export function withActiveDot(Component: ComponentType<any>): ComponentType<any> {
   return React.forwardRef<any, any>((props, ref) => {
     const active = React.useContext(ActiveDotContext)
+    const layoutId = React.useId()
     if (active === null) return <Component {...props} ref={ref} />
-    return <Component {...props} ref={ref} variant={active ? "Active" : "Default"} />
+    return <Component {...props} ref={ref} layoutId={layoutId} variant={active ? "Active" : "Default"} />
   })
 }
