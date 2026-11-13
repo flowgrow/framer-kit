@@ -7,26 +7,15 @@ import { useReactLoop } from "../hooks/useReactLoop.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { useAutoMove } from "../hooks/useAutoMove.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import type { KniffCarouselSettingsProps, SlideTransform } from "./KniffCarouselSettings.tsx"
+import type { KniffCarouselSettingsProps } from "./KniffCarouselSettings.tsx"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { slideBoxes, snapPosition } from "./snapGeometry.ts"
+import { cssTransform, slideBoxes, snapPosition } from "./snapGeometry.ts"
 import { useContext, useLayoutEffect, useRef } from "react"
 
 function target(id: string) {
     const value = JSON.stringify(id.trim()).replace(/</g, "\\3c ")
     return `:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`
 }
-function cssTransform(value: SlideTransform = {}, perspective: number) {
-    const transforms: string[] = []
-    if (perspective > 0) transforms.push(`perspective(${perspective}px)`)
-    if (value.x || value.y || value.z) transforms.push(`translate3d(${value.x ?? 0}px,${value.y ?? 0}px,${value.z ?? 0}px)`)
-    if (value.rotateX) transforms.push(`rotateX(${value.rotateX}deg)`)
-    if (value.rotateY) transforms.push(`rotateY(${value.rotateY}deg)`)
-    if (value.rotateZ) transforms.push(`rotateZ(${value.rotateZ}deg)`)
-    if (value.scale !== undefined && value.scale !== 1) transforms.push(`scale(${value.scale})`)
-    return transforms.join(" ")
-}
-
 export function CarouselPreviewSettings({
     containerID = "Percentage Sized Carousel",
     boundaryID = "",
@@ -74,13 +63,11 @@ export function CarouselPreviewSettings({
         autoMoveStopOnInteraction,
         autoMoveStopOnLastSlide,
     })
-    const perspective = slideTransforms?.perspective ?? (
-        slideTransforms?.current?.perspective || slideTransforms?.previous?.perspective || slideTransforms?.next?.perspective || 0
-    )
+    const perspective = slideTransforms?.perspective ?? 0
     const previous = cssTransform(slideTransforms?.previous, perspective)
     const current = cssTransform(slideTransforms?.current, perspective)
     const next = cssTransform(slideTransforms?.next, perspective)
-    const transformEnabled = Boolean(previous || current || next)
+    const transformEnabled = slideTransforms?.enabled && Boolean(previous || current || next)
     useLayoutEffect(() => {
         if (!transformEnabled || !viewportSelector) return
         const scope = styleRef.current?.closest(boundary)

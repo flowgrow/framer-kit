@@ -1,3 +1,17 @@
+// @ts-ignore Framer cannot resolve local code-file imports.
+import type { SlideTransform } from "./KniffCarouselSettings.tsx"
+
+export function cssTransform(value: SlideTransform = {}, perspective: number) {
+    const transforms: string[] = []
+    if (perspective > 0) transforms.push(`perspective(${perspective}px)`)
+    if (value.x || value.y || value.z) transforms.push(`translate3d(${value.x ?? 0}px,${value.y ?? 0}px,${value.z ?? 0}px)`)
+    if (value.rotateX) transforms.push(`rotateX(${value.rotateX}deg)`)
+    if (value.rotateY) transforms.push(`rotateY(${value.rotateY}deg)`)
+    if (value.rotateZ) transforms.push(`rotateZ(${value.rotateZ}deg)`)
+    if (value.scale !== undefined && value.scale !== 1) transforms.push(`scale(${value.scale})`)
+    return transforms.join(" ")
+}
+
 // Responsive Framer variants use boxless wrappers; measure their rendered slide.
 export function slideBoxes(parent: Element): HTMLElement[] {
   return Array.from(parent.children).flatMap((child) => {

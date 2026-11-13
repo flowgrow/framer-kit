@@ -22,13 +22,14 @@ export interface SlideTransform {
     rotateX?: number
     rotateY?: number
     rotateZ?: number
-    /** Previously stored per state. Read only for existing instances. */
-    perspective?: number
 }
 
 const axis = (title: string, unit: string) => ({
     type: ControlType.Number as const, title, unit, defaultValue: 0, displayStepper: true,
 })
+const hideTransformSettings = (props: { enabled?: boolean; slideTransforms?: { enabled?: boolean } }) =>
+    !(props.slideTransforms?.enabled ?? props.enabled)
+
 const transformControls = {
     scale: { type: ControlType.Number as const, title: "Scale", min: 0, defaultValue: 1, step: 0.05, displayStepper: true },
     x: axis("Translate X", "px"), y: axis("Translate Y", "px"), z: axis("Translate Z", "px"),
@@ -43,7 +44,7 @@ export interface KniffCarouselSettingsProps {
     align?: "start" | "center" | "end"
     loop?: boolean
     autoMove?: "none" | "perSlide" | "scroll"
-    slideTransforms?: { perspective?: number; previous?: SlideTransform; current?: SlideTransform; next?: SlideTransform }
+    slideTransforms?: { enabled?: boolean; perspective?: number; previous?: SlideTransform; current?: SlideTransform; next?: SlideTransform }
     slideTransition?: Transition
     autoMoveDelay?: number
     autoMoveStartDelay?: number
@@ -84,12 +85,12 @@ export const kniffCarouselSettingsPropertyControls = {
     slideTransforms: {
         type: ControlType.Object,
         title: "Slide Transforms",
-        optional: true,
         controls: {
-            perspective: { ...axis("Perspective", "px"), min: 0 },
-            previous: { type: ControlType.Object, title: "Previous Slides", controls: transformControls },
-            current: { type: ControlType.Object, title: "Current Slide", controls: transformControls },
-            next: { type: ControlType.Object, title: "Next Slides", controls: transformControls },
+            enabled: { type: ControlType.Boolean, title: "Enable Slide Transforms", defaultValue: false },
+            previous: { type: ControlType.Object, title: "Previous Slides", controls: transformControls, hidden: hideTransformSettings },
+            current: { type: ControlType.Object, title: "Current Slide", controls: transformControls, hidden: hideTransformSettings },
+            next: { type: ControlType.Object, title: "Next Slides", controls: transformControls, hidden: hideTransformSettings },
+            perspective: { ...axis("Perspective", "px"), min: 0, hidden: hideTransformSettings },
         },
     },
     slideTransition: {
