@@ -140,9 +140,9 @@ export const kniffCarouselSettingsPropertyControls = {
     },
     slideTransforms: {
         type: ControlType.Object,
-        title: "Slide Transforms",
+        title: "Effects",
         controls: {
-            enabled: { type: ControlType.Boolean, title: "Enable Slide Transforms", defaultValue: false },
+            enabled: { type: ControlType.Boolean, title: "Enable Effects", defaultValue: false },
             previous: { type: ControlType.Object, title: "Previous Slides", controls: transformControls, hidden: hideTransformSettings },
             current: { type: ControlType.Object, title: "Current Slide", controls: transformControls, hidden: hideTransformSettings },
             next: { type: ControlType.Object, title: "Next Slides", controls: transformControls, hidden: hideTransformSettings },
@@ -150,7 +150,7 @@ export const kniffCarouselSettingsPropertyControls = {
         },
     },
     slideTransition: {
-        title: "Slide Transition",
+        title: "Transition",
         type: ControlType.Transition,
         defaultValue: { type: "tween", duration: 0.4, ease: "easeInOut" },
     },
