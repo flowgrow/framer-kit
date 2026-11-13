@@ -22,6 +22,7 @@ export interface SlideTransform {
     rotateX?: number
     rotateY?: number
     rotateZ?: number
+    /** Previously stored per state. Read only for existing instances. */
     perspective?: number
 }
 
@@ -32,7 +33,6 @@ const transformControls = {
     scale: { type: ControlType.Number as const, title: "Scale", min: 0, defaultValue: 1, step: 0.05, displayStepper: true },
     x: axis("Translate X", "px"), y: axis("Translate Y", "px"), z: axis("Translate Z", "px"),
     rotateX: axis("Rotate X", "°"), rotateY: axis("Rotate Y", "°"), rotateZ: axis("Rotate Z", "°"),
-    perspective: { ...axis("Perspective", "px"), min: 0 },
 }
 
 export interface KniffCarouselSettingsProps {
@@ -43,7 +43,7 @@ export interface KniffCarouselSettingsProps {
     align?: "start" | "center" | "end"
     loop?: boolean
     autoMove?: "none" | "perSlide" | "scroll"
-    slideTransforms?: { previous?: SlideTransform; current?: SlideTransform; next?: SlideTransform }
+    slideTransforms?: { perspective?: number; previous?: SlideTransform; current?: SlideTransform; next?: SlideTransform }
     slideTransition?: Transition
     autoMoveDelay?: number
     autoMoveStartDelay?: number
@@ -86,6 +86,7 @@ export const kniffCarouselSettingsPropertyControls = {
         title: "Slide Transforms",
         optional: true,
         controls: {
+            perspective: { ...axis("Perspective", "px"), min: 0 },
             previous: { type: ControlType.Object, title: "Previous Slides", controls: transformControls },
             current: { type: ControlType.Object, title: "Current Slide", controls: transformControls },
             next: { type: ControlType.Object, title: "Next Slides", controls: transformControls },

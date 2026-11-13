@@ -16,9 +16,9 @@ function target(id: string) {
     const value = JSON.stringify(id.trim()).replace(/</g, "\\3c ")
     return `:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`
 }
-function cssTransform(value: SlideTransform = {}) {
+function cssTransform(value: SlideTransform = {}, perspective: number) {
     const transforms: string[] = []
-    if (value.perspective) transforms.push(`perspective(${value.perspective}px)`)
+    if (perspective > 0) transforms.push(`perspective(${perspective}px)`)
     if (value.x || value.y || value.z) transforms.push(`translate3d(${value.x ?? 0}px,${value.y ?? 0}px,${value.z ?? 0}px)`)
     if (value.rotateX) transforms.push(`rotateX(${value.rotateX}deg)`)
     if (value.rotateY) transforms.push(`rotateY(${value.rotateY}deg)`)
@@ -74,9 +74,12 @@ export function CarouselPreviewSettings({
         autoMoveStopOnInteraction,
         autoMoveStopOnLastSlide,
     })
-    const previous = cssTransform(slideTransforms?.previous)
-    const current = cssTransform(slideTransforms?.current)
-    const next = cssTransform(slideTransforms?.next)
+    const perspective = slideTransforms?.perspective ?? (
+        slideTransforms?.current?.perspective || slideTransforms?.previous?.perspective || slideTransforms?.next?.perspective || 0
+    )
+    const previous = cssTransform(slideTransforms?.previous, perspective)
+    const current = cssTransform(slideTransforms?.current, perspective)
+    const next = cssTransform(slideTransforms?.next, perspective)
     const transformEnabled = Boolean(previous || current || next)
     useLayoutEffect(() => {
         if (!transformEnabled || !viewportSelector) return
