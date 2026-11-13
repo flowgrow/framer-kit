@@ -16,13 +16,20 @@ export function overflowSnapPoints(viewport: HTMLElement) {
     .map((slide) => snapPosition(viewport, slide))
     .sort((a, b) => a - b)
 }
+export function slideRect(viewport: HTMLElement, slide: HTMLElement) {
+  if (slide.hasAttribute("data-kniff-slide-position") && slide.offsetParent === viewport) {
+    return { left: viewport.getBoundingClientRect().left + viewport.clientLeft + slide.offsetLeft - viewport.scrollLeft, width: slide.offsetWidth }
+  }
+  return slide.getBoundingClientRect()
+}
+
 export function snapPosition(viewport: HTMLElement, slide: HTMLElement): number {
   const box = viewport.getBoundingClientRect()
   const css = getComputedStyle(viewport)
   const left = parseFloat(css.scrollPaddingLeft) || 0
   const right = parseFloat(css.scrollPaddingRight) || 0
   const max = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
-  const rect = slide.getBoundingClientRect()
+  const rect = slideRect(viewport, slide)
   const align = getComputedStyle(slide).scrollSnapAlign
   const offset = align.includes("center")
     ? (viewport.clientWidth - left - right - rect.width) / 2
@@ -44,7 +51,7 @@ export function atTerminalSlide(viewport: HTMLElement, forward: boolean, positio
   const point = snapPosition(viewport, terminal)
   const following = slides[slides.indexOf(originals[originals.length - 1]!) + 1]
   if (following && viewport.hasAttribute("data-kniff-loop")) {
-    const cycle = following.getBoundingClientRect().left - originals[0]!.getBoundingClientRect().left
+    const cycle = slideRect(viewport, following).left - slideRect(viewport, originals[0]!).left
     if (cycle > 0) return Math.abs(position - point - Math.round((position - point) / cycle) * cycle) <= 2
   }
   return forward ? position >= point - 2 : position <= point + 2

@@ -1,3 +1,5 @@
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { slideRect } from "../carousel/snapGeometry.ts"
 import { useLayoutEffect, type RefObject } from "react"
 
 function slideBoxes(parent: Element): HTMLElement[] {
@@ -81,8 +83,8 @@ export function useReactLoop(
         const nextCycle = nextWrapper ? slideBoxes(nextWrapper)[0] : null
         if (!first || !nextCycle) return null
         const box = scroller.getBoundingClientRect()
-        const firstBox = first.getBoundingClientRect()
-        const cycle = nextCycle.getBoundingClientRect().left - firstBox.left
+        const firstBox = slideRect(scroller, first)
+        const cycle = slideRect(scroller, nextCycle).left - firstBox.left
         if (cycle <= 0 || scroller.clientWidth === 0) return null
         const css = getComputedStyle(scroller)
         const left = parseFloat(css.scrollPaddingLeft) || 0

@@ -2,7 +2,7 @@
 import { installTouchIntent } from "https://framer.com/m/touchIntent-1GV9VC.js@yw9Bc4mMxSyGwxci63kz"
 
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { restartAtFirstSlide } from "./snapGeometry.ts"
+import { restartAtFirstSlide, slideRect } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { cancelOverflowMove } from "./snapNavigation.ts"
 
@@ -67,7 +67,7 @@ export function installAutoMove(
       right = parseFloat(css.scrollPaddingRight) || 0
     max = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
     const offset = (slide: HTMLElement) => {
-      const r = slide.getBoundingClientRect(),
+      const r = slideRect(viewport, slide),
         align = getComputedStyle(slide).scrollSnapAlign
       const factor = align.includes("end") ? 1 : align.includes("center") ? 0.5 : 0
       return (
@@ -85,7 +85,7 @@ export function installAutoMove(
       following = slides[slides.indexOf(originals[originals.length - 1]!) + 1]
     cycle =
       viewport.hasAttribute("data-kniff-loop") && first && following
-        ? following.getBoundingClientRect().left - first.getBoundingClientRect().left
+        ? slideRect(viewport, following).left - slideRect(viewport, first).left
         : 0
     origin = first ? offset(first) : 0
     const farEdge = originals.length ? offset(originals[originals.length - 1]!) : max

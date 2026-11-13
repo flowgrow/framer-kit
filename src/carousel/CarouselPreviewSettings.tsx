@@ -7,13 +7,26 @@ import { useReactLoop } from "../hooks/useReactLoop.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { useAutoMove } from "../hooks/useAutoMove.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import type { KniffCarouselSettingsProps } from "./KniffCarouselSettings.tsx"
-import { useContext, useRef } from "react"
+import type { KniffCarouselSettingsProps, SlideTransform } from "./KniffCarouselSettings.tsx"
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { slideBoxes, snapPosition } from "./snapGeometry.ts"
+import { useContext, useLayoutEffect, useRef } from "react"
 
 function target(id: string) {
     const value = JSON.stringify(id.trim()).replace(/</g, "\\3c ")
     return `:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`
 }
+function cssTransform(value: SlideTransform = {}) {
+    const transforms: string[] = []
+    if (value.perspective) transforms.push(`perspective(${value.perspective}px)`)
+    if (value.x || value.y || value.z) transforms.push(`translate3d(${value.x ?? 0}px,${value.y ?? 0}px,${value.z ?? 0}px)`)
+    if (value.rotateX) transforms.push(`rotateX(${value.rotateX}deg)`)
+    if (value.rotateY) transforms.push(`rotateY(${value.rotateY}deg)`)
+    if (value.rotateZ) transforms.push(`rotateZ(${value.rotateZ}deg)`)
+    if (value.scale !== undefined && value.scale !== 1) transforms.push(`scale(${value.scale})`)
+    return transforms.join(" ")
+}
+
 export function CarouselPreviewSettings({
     containerID = "Percentage Sized Carousel",
     boundaryID = "",
@@ -21,6 +34,7 @@ export function CarouselPreviewSettings({
     edgeSpace = true,
     loop = true,
     autoMove = "none",
+    slideTransforms,
     slideTransition = { type: "tween", duration: 0.4, ease: "easeInOut" },
     autoMoveDelay = 8,
     autoMoveStartDelay = 0,
@@ -60,6 +74,64 @@ export function CarouselPreviewSettings({
         autoMoveStopOnInteraction,
         autoMoveStopOnLastSlide,
     })
+    const previous = cssTransform(slideTransforms?.previous)
+    const current = cssTransform(slideTransforms?.current)
+    const next = cssTransform(slideTransforms?.next)
+    const transformEnabled = Boolean(previous || current || next)
+    useLayoutEffect(() => {
+        if (!transformEnabled || !viewportSelector) return
+        const scope = styleRef.current?.closest(boundary)
+        const el: HTMLElement | null = registeredViewport ?? scope?.querySelector(viewportSelector)
+        if (!el) return
+        let slides: HTMLElement[] = []
+        let points: number[] = []
+        let frame = 0
+        let dirty = true
+        const position = el.style.position
+        const needsPosition = getComputedStyle(el).position === "static"
+        if (needsPosition) el.style.position = "relative"
+        const refresh = () => {
+            frame = 0
+            if (dirty) {
+                const updated: HTMLElement[] = slideBoxes(el).filter((s: HTMLElement) => !s.hasAttribute("data-kniff"))
+                const changed = new Set(updated)
+                slides.filter(s => !changed.has(s)).forEach(s => { resize.unobserve(s); delete s.dataset.kniffSlidePosition })
+                for (const s of updated) {
+                    if (!s.hasAttribute("data-kniff-slide-position")) s.dataset.kniffSlidePosition = "current"
+                    resize.observe(s)
+                }
+                slides = updated
+                points = slides.map(s => snapPosition(el, s))
+                dirty = false
+            }
+            const left = el.scrollLeft
+            let active = 0
+            for (let i = 1; i < points.length; i++) {
+                const delta = Math.abs(points[i]! - left) - Math.abs(points[active]! - left)
+                if (delta < 0 || (delta === 0 && left > 0 && left >= el.scrollWidth - el.clientWidth - 1)) active = i
+            }
+            slides.forEach((s, i) => {
+                const role = i < active ? "previous" : i === active ? "current" : "next"
+                if (s.dataset.kniffSlidePosition !== role) s.dataset.kniffSlidePosition = role
+            })
+        }
+        const schedule = () => { if (!frame) frame = requestAnimationFrame(refresh) }
+        const invalidate = () => { dirty = true; schedule() }
+        const resize = new ResizeObserver(invalidate)
+        const mutations = new MutationObserver(invalidate)
+        mutations.observe(el, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "style", "hidden", "data-kniff"] })
+        resize.observe(el)
+        el.addEventListener("scroll", schedule, { passive: true })
+        refresh()
+        return () => {
+            mutations.disconnect()
+            resize.disconnect()
+            el.removeEventListener("scroll", schedule)
+            cancelAnimationFrame(frame)
+            slides.forEach(s => { delete s.dataset.kniffSlidePosition })
+            if (needsPosition) el.style.position = position
+        }
+    }, [registeredViewport, viewportSelector, boundary, transformEnabled, align])
     if (!viewportSelector) return null
     const viewport = viewportSelector
     // Relative selectors stay inside the viewport's native CSS nesting block.
@@ -92,6 +164,9 @@ export function CarouselPreviewSettings({
         includeEdgeSpace && !loop && align !== "end"
             ? `calc((100% - var(--kniff-last-slide-width, 0px)) * ${align === "start" ? 1 : 0.5})`
             : "0px"
+    const transformCSS = Object.entries({previous, current, next}).map(([role, value]) =>
+        value ? `${viewport} { ${slides} { &[data-kniff-slide-position="${role}"] { transform: ${value}; } } }` : ""
+    ).join("\n")
     const css = `
 div[data-framer-name]:has(> style[data-kniff-preview-settings]) {
   display: none !important;
@@ -105,6 +180,7 @@ ${boundary} {
   container-type: inline-size;
 }
 ${boundaryCSS}
+${transformCSS}
 ${viewport} {
   --kniff-slide-transition: ${JSON.stringify(slideTransition)};
   --kniff-initial-align: ${align};

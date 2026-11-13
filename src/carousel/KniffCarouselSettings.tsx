@@ -14,6 +14,27 @@ import {
 
 import type { Transition } from "framer-motion"
 
+export interface SlideTransform {
+    scale?: number
+    x?: number
+    y?: number
+    z?: number
+    rotateX?: number
+    rotateY?: number
+    rotateZ?: number
+    perspective?: number
+}
+
+const axis = (title: string, unit: string) => ({
+    type: ControlType.Number as const, title, unit, defaultValue: 0, displayStepper: true,
+})
+const transformControls = {
+    scale: { type: ControlType.Number as const, title: "Scale", min: 0, defaultValue: 1, step: 0.05, displayStepper: true },
+    x: axis("Translate X", "px"), y: axis("Translate Y", "px"), z: axis("Translate Z", "px"),
+    rotateX: axis("Rotate X", "°"), rotateY: axis("Rotate Y", "°"), rotateZ: axis("Rotate Z", "°"),
+    perspective: { ...axis("Perspective", "px"), min: 0 },
+}
+
 export interface KniffCarouselSettingsProps {
     showInstructions?: boolean
     style?: CSSProperties
@@ -22,6 +43,7 @@ export interface KniffCarouselSettingsProps {
     align?: "start" | "center" | "end"
     loop?: boolean
     autoMove?: "none" | "perSlide" | "scroll"
+    slideTransforms?: { previous?: SlideTransform; current?: SlideTransform; next?: SlideTransform }
     slideTransition?: Transition
     autoMoveDelay?: number
     autoMoveStartDelay?: number
@@ -58,6 +80,16 @@ export const kniffCarouselSettingsPropertyControls = {
         options: ["none", "perSlide", "scroll"],
         optionTitles: ["Off", "Per Slide", "Scroll"],
         defaultValue: "none",
+    },
+    slideTransforms: {
+        type: ControlType.Object,
+        title: "Slide Transforms",
+        optional: true,
+        controls: {
+            previous: { type: ControlType.Object, title: "Previous Slides", controls: transformControls },
+            current: { type: ControlType.Object, title: "Current Slide", controls: transformControls },
+            next: { type: ControlType.Object, title: "Next Slides", controls: transformControls },
+        },
     },
     slideTransition: {
         title: "Slide Transition",
