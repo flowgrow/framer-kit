@@ -1,6 +1,7 @@
 import * as React from "react"
 import type { ComponentType } from "react"
 import { RenderTarget } from "framer"
+import { MotionConfig } from "framer-motion"
 // @ts-ignore Framer's checker does not resolve local code-file imports.
 import { scrollToSnapPosition } from "./carousel/snapNavigation.ts"
 // @ts-ignore Framer's checker does not resolve local code-file imports.
@@ -88,7 +89,7 @@ export function withAutoMoveProgress(Component: ComponentType<any>): ComponentTy
   return carouselButtonOverrides.withAutoMoveProgress(Component)
 }
 
-const ActiveDotContext = React.createContext<{ active: boolean; index: number; viewport: HTMLElement } | null>(null)
+const ActiveDotContext = React.createContext<{ active: boolean; weight: number; index: number; viewport: HTMLElement; widths: number[]; measure: (widths: number[]) => void } | null>(null)
 
 function dotSlides(viewport: HTMLElement): HTMLElement[] {
   return slideBoxes(viewport).filter((slide: HTMLElement) => !slide.hasAttribute("data-kniff"))
@@ -108,10 +109,10 @@ function goToDot(viewport: HTMLElement, index: number) {
     const point = snapPosition(viewport, slides[i]!)
     if (Math.abs(point - position) < Math.abs(nearest - position)) nearest = point
   }
-  scrollToSnapPosition(viewport, nearest)
+  scrollToSnapPosition(viewport, nearest, false, true)
 }
 
-function observeDots(viewport: HTMLElement, update: (count: number, active: number) => void) {
+function observeDots(viewport: HTMLElement, update: (count: number, position: number) => void) {
   let count = 0
   let points: number[] = []
   let frame = 0
@@ -143,14 +144,14 @@ function observeDots(viewport: HTMLElement, update: (count: number, active: numb
       dirty = false
     }
     const position = viewport.scrollLeft
-    const atEnd = position > 0 && position >= viewport.scrollWidth - viewport.clientWidth - 1
-    let nearest = 0
-    for (let i = 1; i < points.length; i++) {
-      const distance = Math.abs(points[i] - position)
-      const previous = Math.abs(points[nearest] - position)
-      if (distance < previous || (distance === previous && atEnd)) nearest = i
+    let right = points.findIndex(point => point >= position)
+    if (right < 0 || (position > 0 && position >= viewport.scrollWidth - viewport.clientWidth - 1)) {
+      right = points.length - 1
     }
-    update(count, count ? nearest % count : -1)
+    const left = Math.max(0, right - 1)
+    const span = points[right]! - points[left]!
+    const fraction = span > 0 ? Math.max(0, Math.min(1, (position - points[left]!) / span)) : 1
+    update(count, count ? (left + (right - left) * fraction) % count : 0)
   }
   const schedule = () => { if (!frame) frame = requestAnimationFrame(refresh) }
   const invalidate = () => { dirty = true; schedule() }
@@ -173,18 +174,20 @@ export function withDotsContainer(Component: ComponentType<any>): ComponentType<
   return React.forwardRef<any, any>((props, ref) => {
     const scope = React.useContext(CarouselContext) as unknown as { viewport: HTMLElement | null } | null
     const viewport = scope?.viewport
-    const [dots, setDots] = React.useState({ count: 0, active: -1 })
+    const [dots, setDots] = React.useState({ count: 0, position: 0 })
+    const [widths, measure] = React.useState<number[]>([])
     React.useLayoutEffect(() => {
       if (!viewport) return
-      return observeDots(viewport, (count, active) => {
-        setDots(previous => previous.count === count && previous.active === active ? previous : { count, active })
+      return observeDots(viewport, (count, position) => {
+        setDots(previous => previous.count === count && previous.position === position ? previous : { count, position })
       })
     }, [viewport])
     if (!scope || RenderTarget.current() === RenderTarget.canvas) return <Component {...props} ref={ref} />
     const template = React.Children.toArray(props.children).find(React.isValidElement)
     return <Component {...props} ref={ref}>
       {viewport && template && Array.from({ length: dots.count }, (_, index) =>
-        <ActiveDotContext.Provider key={index} value={{ index, active: index === dots.active, viewport }}>
+        <ActiveDotContext.Provider key={index} value={{ index, active: index === Math.round(dots.position) % dots.count, viewport, widths, measure,
+          weight: Math.max(0, 1 - Math.min(Math.abs(index - dots.position), dots.count - Math.abs(index - dots.position))) }}>
           {React.cloneElement(template)}
         </ActiveDotContext.Provider>
       )}
@@ -196,6 +199,18 @@ export function withActiveDot(Component: ComponentType<any>): ComponentType<any>
   return React.forwardRef<any, any>((props, ref) => {
     const dot = React.useContext(ActiveDotContext)
     const layoutId = React.useId()
+    const probes = React.useRef<HTMLSpanElement>(null)
+    const measure = dot?.index === 0 ? dot.measure : undefined
+    React.useLayoutEffect(() => {
+      const pair = probes.current
+      if (!pair || !measure) return
+      const elements = Array.from(pair.children) as HTMLElement[]
+      const read = () => measure(elements.map(el => el.offsetWidth))
+      const resize = new ResizeObserver(read)
+      elements.forEach(el => resize.observe(el))
+      read()
+      return () => resize.disconnect()
+    }, [measure])
     if (!dot) return <Component {...props} ref={ref} />
     const click = (event: React.MouseEvent<HTMLElement>) => {
       props.onClick?.(event)
@@ -210,8 +225,17 @@ export function withActiveDot(Component: ComponentType<any>): ComponentType<any>
         if (!event.repeat) event.currentTarget.click()
       }
     }
-    return <Component {...props} ref={ref} layoutId={layoutId} variant={dot.active ? "Active" : "Default"}
+    const [small, large] = dot.widths
+    const width = small !== undefined && large !== undefined ? small + (large - small) * dot.weight : undefined
+    return <MotionConfig reducedMotion="always">
+      {measure && <span ref={probes} aria-hidden="true" style={{ position: "absolute", visibility: "hidden", pointerEvents: "none", display: "flex", width: "max-content", overflow: "hidden", height: 0 }}>
+        {["Default", "Active"].map(variant => <Component {...props} key={variant} id={undefined} ref={undefined} tabIndex={-1}
+          layoutId={layoutId + variant} variant={variant} />)}
+      </span>}
+      <Component {...props} ref={ref} layoutId={layoutId} variant={dot.weight > 0 ? "Active" : "Default"}
+      style={{ ...props.style, ...(width === undefined ? {} : { width }), "--kniff-dot-activeness": dot.weight }}
       onClick={click} onKeyDown={keyDown} role={props.role ?? "button"} tabIndex={props.tabIndex ?? 0}
       aria-label={props["aria-label"] ?? `Go to slide ${dot.index + 1}`} aria-current={dot.active || undefined} />
+    </MotionConfig>
   })
 }
