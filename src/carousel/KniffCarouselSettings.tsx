@@ -38,20 +38,20 @@ const transformControls = {
     rotateX: axis("Rotate X", "°"), rotateY: axis("Rotate Y", "°"), rotateZ: axis("Rotate Z", "°"),
 }
 
-interface NextSlideTransform extends SlideTransform {
-    copyPrevious?: boolean
+interface PreviousSlideTransform extends SlideTransform {
+    copyNext?: boolean
     invert?: boolean
 }
 
-type NextControlProps = NextSlideTransform & { slideTransforms?: { next?: NextSlideTransform } }
-const copiesPrevious = (props: NextControlProps) =>
-    props.slideTransforms?.next?.copyPrevious ?? props.copyPrevious ?? false
+type PreviousControlProps = PreviousSlideTransform & { slideTransforms?: { previous?: PreviousSlideTransform } }
+const copiesNext = (props: PreviousControlProps) =>
+    props.slideTransforms?.previous?.copyNext ?? props.copyNext ?? false
 
-const nextTransformControls = {
-    copyPrevious: { type: ControlType.Boolean as const, title: "Copy Previous", defaultValue: false },
-    invert: { type: ControlType.Boolean as const, title: "Invert", defaultValue: false, hidden: (props: NextControlProps) => !copiesPrevious(props) },
+const previousTransformControls = {
+    copyNext: { type: ControlType.Boolean as const, title: "Copy Next", defaultValue: false },
+    invert: { type: ControlType.Boolean as const, title: "Invert", defaultValue: false, hidden: (props: PreviousControlProps) => !copiesNext(props) },
     ...Object.fromEntries(Object.entries(transformControls).map(([key, control]) => [
-        key, { ...control, hidden: copiesPrevious },
+        key, { ...control, hidden: copiesNext },
     ])),
 }
 
@@ -62,7 +62,7 @@ export interface KniffCarouselSettingsProps {
     align?: "start" | "center" | "end"
     loop?: boolean
     autoMove?: "none" | "perSlide" | "scroll"
-    slideTransforms?: { enabled?: boolean; preview?: boolean; perspective?: number; previous?: SlideTransform; current?: SlideTransform; next?: NextSlideTransform }
+    slideTransforms?: { enabled?: boolean; preview?: boolean; perspective?: number; previous?: PreviousSlideTransform; current?: SlideTransform; next?: SlideTransform }
     slideTransition?: Transition
     autoMoveDelay?: number
     autoMoveStartDelay?: number
@@ -161,9 +161,9 @@ export const kniffCarouselSettingsPropertyControls = {
         controls: {
             enabled: { type: ControlType.Boolean, title: "Enable Effects", defaultValue: false },
             preview: { type: ControlType.Boolean, title: "Canvas Preview", defaultValue: true, hidden: hideTransformSettings },
-            previous: { type: ControlType.Object, title: "Previous Slides", controls: transformControls, hidden: hideTransformSettings },
+            previous: { type: ControlType.Object, title: "Previous Slides", controls: previousTransformControls, hidden: hideTransformSettings },
             current: { type: ControlType.Object, title: "Current Slide", controls: transformControls, hidden: hideTransformSettings },
-            next: { type: ControlType.Object, title: "Next Slides", controls: nextTransformControls, hidden: hideTransformSettings },
+            next: { type: ControlType.Object, title: "Next Slides", controls: transformControls, hidden: hideTransformSettings },
             perspective: { ...axis("Perspective", "px"), min: 0, hidden: hideTransformSettings },
         },
     },

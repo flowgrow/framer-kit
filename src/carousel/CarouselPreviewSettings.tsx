@@ -9,7 +9,7 @@ import { useAutoMove } from "../hooks/useAutoMove.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import type { KniffCarouselSettingsProps } from "./KniffCarouselSettings.tsx"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { cssTransform, nextSlideEffect, slideBoxes, snapPosition } from "./snapGeometry.ts"
+import { cssTransform, previousSlideEffect, slideBoxes, snapPosition } from "./snapGeometry.ts"
 import { useContext, useLayoutEffect, useRef } from "react"
 
 function target(id: string) {
@@ -61,13 +61,13 @@ export function CarouselPreviewSettings({
         autoMoveStopOnLastSlide,
     })
     const perspective = slideTransforms?.perspective ?? 0
-    const previous = cssTransform(slideTransforms?.previous, perspective)
+    const previousEffect = previousSlideEffect(slideTransforms)
+    const previous = cssTransform(previousEffect, perspective)
     const current = cssTransform(slideTransforms?.current, perspective)
-    const nextEffect = nextSlideEffect(slideTransforms)
-    const next = cssTransform(nextEffect, perspective)
-    const previousOpacity = slideTransforms?.previous?.opacity ?? 1
+    const next = cssTransform(slideTransforms?.next, perspective)
+    const previousOpacity = previousEffect?.opacity ?? 1
     const currentOpacity = slideTransforms?.current?.opacity ?? 1
-    const nextOpacity = nextEffect?.opacity ?? 1
+    const nextOpacity = slideTransforms?.next?.opacity ?? 1
     const hasTransform = Boolean(previous || current || next)
     const hasOpacity = previousOpacity !== 1 || currentOpacity !== 1 || nextOpacity !== 1
     const transformEnabled = slideTransforms?.enabled && (hasTransform || hasOpacity)
