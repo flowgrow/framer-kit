@@ -67,6 +67,7 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, l
                     saveStyle(last, "--kniff-first-snap-offset")
                     saveStyle(last, "--kniff-loop-gap")
                     saveStyle(last, "--kniff-loop-width")
+                    saveStyle(last, "--kniff-loop-height")
                     const wrapped = last
                     restore.push(() => wrapped.removeAttribute("data-kniff-canvas-wrap"))
                 }
@@ -78,9 +79,10 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, l
         if (loop && first !== last) {
             // Measure in the authored flex layout before absolute positioning removes the last slide from it.
             last.removeAttribute("data-kniff-canvas-wrap")
-            const width = getComputedStyle(last).width
+            const { width, height } = getComputedStyle(last)
             const gap = getComputedStyle(viewport).columnGap
             last.style.setProperty("--kniff-loop-width", width)
+            last.style.setProperty("--kniff-loop-height", height)
             last.style.setProperty("--kniff-loop-gap", gap === "normal" ? "0px" : gap)
             last.setAttribute("data-kniff-canvas-wrap", "")
         }
@@ -198,6 +200,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
     right: 100% !important;
     margin-right: calc(var(--kniff-loop-gap) - var(--kniff-first-snap-offset)) !important;
     width: var(--kniff-loop-width) !important;
+    height: var(--kniff-loop-height) !important;
 }`}</style>
             {props.showInstructions !== false && (
                 <CanvasInstructions
