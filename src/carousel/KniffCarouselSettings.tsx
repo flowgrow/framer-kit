@@ -15,6 +15,7 @@ import {
 import type { Transition } from "framer-motion"
 
 export interface SlideTransform {
+    opacity?: number
     scale?: number
     x?: number
     y?: number
@@ -31,6 +32,7 @@ const hideTransformSettings = (props: { enabled?: boolean; slideTransforms?: { e
     !(props.slideTransforms?.enabled ?? props.enabled)
 
 const transformControls = {
+    opacity: { type: ControlType.Number as const, title: "Opacity", min: 0, max: 1, defaultValue: 1, step: 0.01 },
     scale: { type: ControlType.Number as const, title: "Scale", min: 0, defaultValue: 1, step: 0.05, displayStepper: true },
     x: axis("Translate X", "px"), y: axis("Translate Y", "px"), z: axis("Translate Z", "px"),
     rotateX: axis("Rotate X", "°"), rotateY: axis("Rotate Y", "°"), rotateZ: axis("Rotate Z", "°"),

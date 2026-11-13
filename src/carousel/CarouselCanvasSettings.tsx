@@ -10,8 +10,8 @@ function target(id: string) {
     const value = JSON.stringify(id.trim()).replace(/</g, "\\3c ")
     return `:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`
 }
-function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, current: string, next: string) {
-    const transformed = new Map<HTMLElement, { value: string; animation: Animation }>()
+function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, current: Keyframe | undefined, next: Keyframe | undefined) {
+    const transformed = new Map<HTMLElement, { value: Keyframe; animation: Animation }>()
     let currentSlide: HTMLElement | undefined
     let first: HTMLElement | undefined
     let last: HTMLElement | undefined
@@ -44,7 +44,7 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, c
             const previous = transformed.get(slide)
             if (previous?.value === value) return
             previous?.animation.cancel()
-            const animation = slide.animate([{ transform: value }, { transform: value }], { duration: 1, fill: "both" })
+            const animation = slide.animate([value, value], { duration: 1, fill: "both" })
             transformed.set(slide, { value, animation })
         })
         for (const slide of pendingRemoval) {
@@ -108,7 +108,13 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
     const current = transforms?.enabled ? cssTransform(transforms.current, transforms.perspective ?? 0) : ""
     const next = transforms?.enabled ? cssTransform(transforms.next, transforms.perspective ?? 0) : ""
 
+    const currentOpacity = transforms?.enabled ? transforms.current?.opacity ?? 1 : 1
+    const nextOpacity = transforms?.enabled ? transforms.next?.opacity ?? 1 : 1
     useLayoutEffect(() => {
+        const keyframe = (transform: string, opacity: number): Keyframe | undefined =>
+            transform || opacity !== 1 ? { ...(transform && { transform }), ...(opacity !== 1 && { opacity }) } : undefined
+        const currentFrame = keyframe(current, currentOpacity)
+        const nextFrame = keyframe(next, nextOpacity)
         const node = marker.current
         if (!node || !name) return
         const selector = target(name)
@@ -138,7 +144,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             }))
             viewport.style.setProperty("overflow", "visible", "important")
             const start = align === "start" ? 0 : align === "end" ? 1 : 0.5
-            edges = observeCanvasSlides(viewport, props.edgeSpace === false ? undefined : start, current, next)
+            edges = observeCanvasSlides(viewport, props.edgeSpace === false ? undefined : start, currentFrame, nextFrame)
             detach = () => {
                 edges?.stop()
                 edges = undefined
@@ -155,7 +161,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             node.ownerDocument.removeEventListener("kniff-canvas-slides", changed)
             detach?.()
         }
-    }, [name, boundary, align, props.edgeSpace, current, next])
+    }, [name, boundary, align, props.edgeSpace, current, next, currentOpacity, nextOpacity])
     return (
         <>
             <style ref={marker} data-kniff="" data-kniff-canvas-settings="">{`[data-kniff-canvas-current] { z-index: 1 !important; }`}</style>

@@ -67,7 +67,12 @@ export function CarouselPreviewSettings({
     const previous = cssTransform(slideTransforms?.previous, perspective)
     const current = cssTransform(slideTransforms?.current, perspective)
     const next = cssTransform(slideTransforms?.next, perspective)
-    const transformEnabled = slideTransforms?.enabled && Boolean(previous || current || next)
+    const previousOpacity = slideTransforms?.previous?.opacity ?? 1
+    const currentOpacity = slideTransforms?.current?.opacity ?? 1
+    const nextOpacity = slideTransforms?.next?.opacity ?? 1
+    const hasTransform = Boolean(previous || current || next)
+    const hasOpacity = previousOpacity !== 1 || currentOpacity !== 1 || nextOpacity !== 1
+    const transformEnabled = slideTransforms?.enabled && (hasTransform || hasOpacity)
     useLayoutEffect(() => {
         if (!viewportSelector) return
         const scope = styleRef.current?.closest(boundary)
@@ -76,7 +81,11 @@ export function CarouselPreviewSettings({
         let slides: HTMLElement[] = []
         let points: number[] = []
         const animations = new Map<HTMLElement, Animation>()
-        const keyframes = [previous, current, next].map(transform => ({ transform: transform || "none" }))
+        const opacities = [previousOpacity, currentOpacity, nextOpacity]
+        const keyframes = [previous, current, next].map((transform, index) => ({
+            ...(hasTransform && { transform: transform || "none" }),
+            ...(hasOpacity && { opacity: opacities[index] }),
+        }))
         const release = (slide: HTMLElement) => {
             animations.get(slide)?.cancel()
             animations.delete(slide)
@@ -138,7 +147,7 @@ export function CarouselPreviewSettings({
             slides.forEach(release)
             if (needsPosition) el.style.position = position
         }
-    }, [registeredViewport, viewportSelector, boundary, transformEnabled, align, previous, current, next])
+    }, [registeredViewport, viewportSelector, boundary, transformEnabled, align, previous, current, next, previousOpacity, currentOpacity, nextOpacity, hasTransform, hasOpacity])
     if (!viewportSelector) return null
     const viewport = viewportSelector
     // Relative selectors stay inside the viewport's native CSS nesting block.
