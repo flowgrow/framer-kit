@@ -101,7 +101,6 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, c
 export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
     const marker = useRef<HTMLStyleElement>(null)
     const name = (props.containerID ?? "Percentage Sized Carousel").trim()
-    const boundary = props.boundaryID?.trim()
     const align = props.align ?? "center"
 
     const transforms = props.slideTransforms
@@ -123,8 +122,8 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
         let detach: (() => void) | undefined
         const attach = () => {
             // A canvas can contain several breakpoints with the same layer names.
-            let scope = boundary ? node.closest(target(boundary)) : node.parentElement
-            while (scope && !scope.querySelector(selector) && !boundary &&
+            let scope = node.parentElement
+            while (scope && !scope.querySelector(selector) &&
                    !scope.matches(':has(> [data-layout-template-root="true"])')) {
                 scope = scope.parentElement
             }
@@ -161,7 +160,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             node.ownerDocument.removeEventListener("kniff-canvas-slides", changed)
             detach?.()
         }
-    }, [name, boundary, align, props.edgeSpace, current, next, currentOpacity, nextOpacity])
+    }, [name, align, props.edgeSpace, current, next, currentOpacity, nextOpacity])
     return (
         <>
             <style ref={marker} data-kniff="" data-kniff-canvas-settings="">{`[data-kniff-canvas-current] { z-index: 1 !important; }`}</style>

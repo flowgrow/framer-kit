@@ -18,7 +18,6 @@ function target(id: string) {
 }
 export function CarouselPreviewSettings({
     containerID = "Percentage Sized Carousel",
-    boundaryID = "",
     align = "center",
     edgeSpace = true,
     loop = true,
@@ -37,9 +36,7 @@ export function CarouselPreviewSettings({
     const viewportSelector =
         scope?.viewportSelector ??
         (containerID.trim() ? target(containerID) : "")
-    const boundary =
-        scope?.boundarySelector ??
-        (boundaryID.trim() ? target(boundaryID) : "body")
+    const boundary = scope?.boundarySelector ?? "body"
     const registeredViewport = scope?.viewport ?? null
     const includeEdgeSpace = loop || edgeSpace
     useEdgeSlideWidths(

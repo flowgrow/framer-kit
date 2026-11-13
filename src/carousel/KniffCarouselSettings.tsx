@@ -42,7 +42,6 @@ export interface KniffCarouselSettingsProps {
     showInstructions?: boolean
     style?: CSSProperties
     containerID?: string
-    boundaryID?: string
     align?: "start" | "center" | "end"
     loop?: boolean
     autoMove?: "none" | "perSlide" | "scroll"
@@ -83,22 +82,6 @@ export const kniffCarouselSettingsPropertyControls = {
         options: ["none", "perSlide", "scroll"],
         optionTitles: ["Off", "Per Slide", "Scroll"],
         defaultValue: "none",
-    },
-    slideTransforms: {
-        type: ControlType.Object,
-        title: "Slide Transforms",
-        controls: {
-            enabled: { type: ControlType.Boolean, title: "Enable Slide Transforms", defaultValue: false },
-            previous: { type: ControlType.Object, title: "Previous Slides", controls: transformControls, hidden: hideTransformSettings },
-            current: { type: ControlType.Object, title: "Current Slide", controls: transformControls, hidden: hideTransformSettings },
-            next: { type: ControlType.Object, title: "Next Slides", controls: transformControls, hidden: hideTransformSettings },
-            perspective: { ...axis("Perspective", "px"), min: 0, hidden: hideTransformSettings },
-        },
-    },
-    slideTransition: {
-        title: "Slide Transition",
-        type: ControlType.Transition,
-        defaultValue: { type: "tween", duration: 0.4, ease: "easeInOut" },
     },
     autoMoveDelay: {
         title: "Pause per Slide",
@@ -150,25 +133,31 @@ export const kniffCarouselSettingsPropertyControls = {
         defaultValue: false,
         hidden: (props) => !props.autoMove || props.autoMove === "none",
     },
+    slideTransforms: {
+        type: ControlType.Object,
+        title: "Slide Transforms",
+        controls: {
+            enabled: { type: ControlType.Boolean, title: "Enable Slide Transforms", defaultValue: false },
+            previous: { type: ControlType.Object, title: "Previous Slides", controls: transformControls, hidden: hideTransformSettings },
+            current: { type: ControlType.Object, title: "Current Slide", controls: transformControls, hidden: hideTransformSettings },
+            next: { type: ControlType.Object, title: "Next Slides", controls: transformControls, hidden: hideTransformSettings },
+            perspective: { ...axis("Perspective", "px"), min: 0, hidden: hideTransformSettings },
+        },
+    },
+    slideTransition: {
+        title: "Slide Transition",
+        type: ControlType.Transition,
+        defaultValue: { type: "tween", duration: 0.4, ease: "easeInOut" },
+    },
     loop: {
         title: "Loop",
         type: ControlType.Boolean,
         defaultValue: true,
-        description:
-            "Apply withKniffCarousel to the overflow viewport. Loop copies are rendered through React in preview and on the published site.",
     },
     containerID: {
         title: "Viewport",
         type: ControlType.String,
         defaultValue: "Percentage Sized Carousel",
-        description: "Match the overflow viewport’s aria-label or layer name.",
-    },
-    boundaryID: {
-        title: "Boundary",
-        type: ControlType.String,
-        defaultValue: "",
-        description:
-            "Optional full-width ancestor name. Leave blank to use the page body.",
     },
     align: {
         title: "Snap Align",
@@ -185,7 +174,6 @@ export const kniffCarouselSettingsPropertyControls = {
         type: ControlType.Boolean,
         defaultValue: true,
         hidden: (props) => props.loop !== false,
-        description: "This allows us to align first and last slide as well",
     },
 } satisfies PropertyControls<KniffCarouselSettingsProps>
 
