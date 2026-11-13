@@ -71,9 +71,14 @@ export function KniffCarouselSettings(props: KniffCarouselSettingsProps) {
 }
 
 export const kniffCarouselSettingsPropertyControls = {
-    showInstructions: {
+    containerID: {
+        title: "Viewport",
+        type: ControlType.String,
+        defaultValue: "Percentage Sized Carousel",
+    },
+    loop: {
+        title: "Loop",
         type: ControlType.Boolean,
-        title: "Instructions",
         defaultValue: true,
     },
     autoMove: {
@@ -149,16 +154,6 @@ export const kniffCarouselSettingsPropertyControls = {
         type: ControlType.Transition,
         defaultValue: { type: "tween", duration: 0.4, ease: "easeInOut" },
     },
-    loop: {
-        title: "Loop",
-        type: ControlType.Boolean,
-        defaultValue: true,
-    },
-    containerID: {
-        title: "Viewport",
-        type: ControlType.String,
-        defaultValue: "Percentage Sized Carousel",
-    },
     align: {
         title: "Snap Align",
         type: ControlType.Enum,
@@ -174,6 +169,11 @@ export const kniffCarouselSettingsPropertyControls = {
         type: ControlType.Boolean,
         defaultValue: true,
         hidden: (props) => props.loop !== false,
+    },
+    showInstructions: {
+        type: ControlType.Boolean,
+        title: "Instructions",
+        defaultValue: true,
     },
 } satisfies PropertyControls<KniffCarouselSettingsProps>
 
