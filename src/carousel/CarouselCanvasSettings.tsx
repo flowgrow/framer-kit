@@ -4,13 +4,13 @@ import { CanvasInstructions } from "../shared/CanvasInstructions.tsx"
 import { cssTransform, slideBoxes } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import type { KniffCarouselSettingsProps } from "./KniffCarouselSettings.tsx"
-import { useId, useLayoutEffect, useRef } from "react"
+import { useLayoutEffect, useRef } from "react"
 
 function target(id: string) {
     const value = JSON.stringify(id.trim()).replace(/</g, "\\3c ")
     return `:is([aria-label=${value}], [data-framer-name=${value}]:not([aria-label]))`
 }
-function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, anchor: string | undefined, previousFrame: Keyframe | undefined, current: Keyframe | undefined, next: Keyframe | undefined) {
+function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, loop: boolean, previousFrame: Keyframe | undefined, current: Keyframe | undefined, next: Keyframe | undefined) {
     const transformed = new Map<HTMLElement, { value: Keyframe; animation: Animation }>()
     let currentSlide: HTMLElement | undefined
     let first: HTMLElement | undefined
@@ -38,7 +38,7 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, a
         }
         const pendingRemoval = new Set(transformed.keys())
         eligible.forEach((slide, index) => {
-            const value = index === 0 ? current : anchor && index === eligible.length - 1 ? previousFrame : next
+            const value = index === 0 ? current : loop && index === eligible.length - 1 ? previousFrame : next
             if (!value) return
             pendingRemoval.delete(slide)
             const previous = transformed.get(slide)
@@ -63,13 +63,10 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, a
             if (first && last) {
                 saveStyle(first, "margin-inline-start")
                 saveStyle(last, "margin-inline-end")
-                if (anchor && first !== last) {
-                    saveStyle(first, "anchor-name")
-                    saveStyle(last, "position-anchor")
+                if (loop && first !== last) {
+                    saveStyle(last, "--kniff-first-snap-offset")
                     saveStyle(last, "--kniff-loop-gap")
                     saveStyle(last, "--kniff-loop-width")
-                    first.style.setProperty("anchor-name", anchor)
-                    last.style.setProperty("position-anchor", anchor)
                     const wrapped = last
                     restore.push(() => wrapped.removeAttribute("data-kniff-canvas-wrap"))
                 }
@@ -78,7 +75,7 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, a
             }
         }
         if (!first || !last) return
-        if (anchor && first !== last) {
+        if (loop && first !== last) {
             // Measure in the authored flex layout before absolute positioning removes the last slide from it.
             last.removeAttribute("data-kniff-canvas-wrap")
             const width = getComputedStyle(last).width
@@ -91,9 +88,14 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, a
         const edges = [[first, "margin-inline-start", start], [last, "margin-inline-end", 1 - start]] as const
         edges.forEach(([slide, property, factor], index) => {
             const value = `calc(${100 * factor}% - ${widths[index]! * factor}px)`
+            if (loop && first !== last && property === "margin-inline-end") return
             if (slide.style.getPropertyValue(property) !== value)
                 slide.style.setProperty(property, value)
         })
+        if (loop && first !== last) {
+            // offsetLeft includes the snap margin and viewport padding, independent of slide effects.
+            last.style.setProperty("--kniff-first-snap-offset", `${first.offsetLeft}px`)
+        }
         mutations.takeRecords() // Ignore the margin writes from this refresh.
     }
 
@@ -123,7 +125,6 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
     const name = (props.containerID ?? "Percentage Sized Carousel").trim()
     const align = props.align ?? "center"
 
-    const anchor = "--kniff-loop-" + useId().replace(/[^a-zA-Z0-9_-]/g, "")
     const loop = props.loop !== false
     const transforms = props.slideTransforms?.preview === false ? undefined : props.slideTransforms
     const previous = transforms?.enabled ? cssTransform(transforms.previous, transforms.perspective ?? 0) : ""
@@ -161,15 +162,16 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             detach = undefined
             activeViewport = viewport ?? undefined
             if (!viewport) return
-            const overflow = ["overflow-x", "overflow-y"].map(property => ({
+            const overflow = ["overflow-x", "overflow-y", "position"].map(property => ({
                 property,
                 value: viewport.style.getPropertyValue(property),
                 priority: viewport.style.getPropertyPriority(property),
             }))
+            if (loop && getComputedStyle(viewport).position === "static") viewport.style.position = "relative"
             viewport.style.setProperty("overflow", "visible", "important")
             const start = align === "start" ? 0 : align === "end" ? 1 : 0.5
             edges = observeCanvasSlides(viewport, loop || props.edgeSpace !== false ? start : undefined,
-                loop && CSS.supports("right: anchor(left)") ? anchor : undefined, previousFrame, currentFrame, nextFrame)
+                loop, previousFrame, currentFrame, nextFrame)
             detach = () => {
                 edges?.stop()
                 edges = undefined
@@ -186,15 +188,15 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             node.ownerDocument.removeEventListener("kniff-canvas-slides", changed)
             detach?.()
         }
-    }, [name, align, loop, anchor, previous, previousOpacity, props.edgeSpace, current, next, currentOpacity, nextOpacity])
+    }, [name, align, loop, previous, previousOpacity, props.edgeSpace, current, next, currentOpacity, nextOpacity])
     return (
         <>
             <style ref={marker} data-kniff="" data-kniff-canvas-settings="">{`[data-kniff-canvas-current] { z-index: 1 !important; }
 [data-kniff-canvas-wrap] {
     position: absolute !important;
     inset: auto !important;
-    right: anchor(left) !important;
-    margin-right: var(--kniff-loop-gap) !important;
+    right: 100% !important;
+    margin-right: calc(var(--kniff-loop-gap) - var(--kniff-first-snap-offset)) !important;
     width: var(--kniff-loop-width) !important;
 }`}</style>
             {props.showInstructions !== false && (
