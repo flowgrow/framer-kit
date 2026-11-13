@@ -232,7 +232,7 @@ export function withActiveDot(Component: ComponentType<any>): ComponentType<any>
         {["Default", "Active"].map(variant => <Component {...props} key={variant} id={undefined} ref={undefined} tabIndex={-1}
           layoutId={layoutId + variant} variant={variant} />)}
       </span>}
-      <Component {...props} ref={ref} layoutId={layoutId} variant={dot.weight > 0 ? "Active" : "Default"}
+      <Component {...props} ref={ref} layoutId={layoutId} variant={dot.active ? "Active" : "Default"}
       style={{ ...props.style, ...(width === undefined ? {} : { width }), "--kniff-dot-activeness": dot.weight }}
       onClick={click} onKeyDown={keyDown} role={props.role ?? "button"} tabIndex={props.tabIndex ?? 0}
       aria-label={props["aria-label"] ?? `Go to slide ${dot.index + 1}`} aria-current={dot.active || undefined} />
