@@ -12,6 +12,8 @@ import {
     type PropertyControls,
 } from "framer"
 
+import type { Transition } from "framer-motion"
+
 export interface KniffCarouselSettingsProps {
     showInstructions?: boolean
     style?: CSSProperties
@@ -20,6 +22,7 @@ export interface KniffCarouselSettingsProps {
     align?: "start" | "center" | "end"
     loop?: boolean
     autoMove?: "none" | "perSlide" | "scroll"
+    slideTransition?: Transition
     autoMoveDelay?: number
     autoMoveStartDelay?: number
     autoMoveSpeed?: number
@@ -55,6 +58,11 @@ export const kniffCarouselSettingsPropertyControls = {
         options: ["none", "perSlide", "scroll"],
         optionTitles: ["Off", "Per Slide", "Scroll"],
         defaultValue: "none",
+    },
+    slideTransition: {
+        title: "Slide Transition",
+        type: ControlType.Transition,
+        defaultValue: { type: "tween", duration: 0.4, ease: "easeInOut" },
     },
     autoMoveDelay: {
         title: "Pause per Slide",

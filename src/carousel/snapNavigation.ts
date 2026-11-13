@@ -1,3 +1,4 @@
+import { animate, type Transition } from "framer-motion"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { overflowSnapPoints } from "./snapGeometry.ts"
 
@@ -18,15 +19,21 @@ export function moveOverflowViewport(viewport: HTMLElement, direction: number, a
       ? points.find((point: number) => point > current + 2)
       : points.reverse().find((point: number) => point < current - 2)
   if (destination === undefined) return
-  scrollToSnapPosition(viewport, destination, automatic)
+  scrollToSnapPosition(viewport, destination, automatic, true)
 }
 
-export function scrollToSnapPosition(viewport: HTMLElement, destination: number, automatic = false) {
+export function scrollToSnapPosition(viewport: HTMLElement, destination: number, automatic = false, useTransition = false) {
   const pending = overflowMoves.get(viewport)
   if (!automatic) viewport.dispatchEvent(new Event("kniff-manual-navigation"))
   pending?.clear()
+  const config = useTransition && getComputedStyle(viewport).getPropertyValue("--kniff-slide-transition").trim()
+  const animated = Boolean(config) && !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  const snap = viewport.style.scrollSnapType
+  let animation: { stop(): void } | undefined
   let timer = 0
   const clear = () => {
+    animation?.stop()
+    if (animated) viewport.style.scrollSnapType = snap
     window.clearTimeout(timer)
     viewport.removeEventListener("scroll", onScroll)
     viewport.removeEventListener("scrollend", clear)
@@ -45,12 +52,23 @@ export function scrollToSnapPosition(viewport: HTMLElement, destination: number,
   }
   overflowMoves.set(viewport, { destination, clear })
   viewport.dispatchEvent(new Event("kniff-scroll-navigation"))
-  viewport.addEventListener("scroll", onScroll, { passive: true })
-  viewport.addEventListener("scrollend", clear)
+  if (!animated) {
+    viewport.addEventListener("scroll", onScroll, { passive: true })
+    viewport.addEventListener("scrollend", clear)
+  }
   viewport.addEventListener("pointerdown", clear, { passive: true })
   viewport.addEventListener("touchstart", clear, { passive: true })
   viewport.addEventListener("wheel", clear, { passive: true })
   viewport.addEventListener("keydown", clear)
+  if (animated && config) {
+    viewport.style.scrollSnapType = "none"
+    animation = animate(viewport.scrollLeft, destination, {
+      ...JSON.parse(config) as Transition,
+      onUpdate: (left: number) => viewport.scrollTo({ left, behavior: "instant" }),
+      onComplete: clear,
+    })
+    return
+  }
   timer = window.setTimeout(clear, 2000)
   viewport.scrollTo({
     left: destination,

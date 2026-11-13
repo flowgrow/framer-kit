@@ -1,7 +1,7 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { atTerminalSlide, overflowSnapPoints, restartAtFirstSlide } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { cancelOverflowMove, getPendingOverflowDestination, moveOverflowViewport } from "./snapNavigation.ts"
+import { cancelOverflowMove, getPendingOverflowDestination, moveOverflowViewport, scrollToSnapPosition } from "./snapNavigation.ts"
 
 export interface AutoStepOptions {
   delay: number
@@ -27,6 +27,8 @@ export function installAutoStep(
   const duration = Math.max(0.1, delay) * 1000
   let remaining = duration
   let deadline = 0
+  let settling = false
+  let settleTimer = 0
   const paused = () => viewport.hasAttribute("data-kniff-auto-move-paused")
   const eligible = () =>
     visible && !doc.hidden && !reduced.matches && !paused() && !stopped && !manuallyPaused && !holding
@@ -37,11 +39,16 @@ export function installAutoStep(
   const schedule = () => {
     if (timer) remaining = Math.max(0, deadline - performance.now())
     clear()
-    deadline = eligible() ? performance.now() + remaining : 0
+    const moving = settling || getPendingOverflowDestination(viewport) !== undefined
+    deadline = eligible() && !moving ? performance.now() + remaining : 0
     viewport.dataset.kniffStepClock = JSON.stringify([duration, remaining, deadline])
     viewport.dispatchEvent(new Event("kniff-step-clock"))
     if (!eligible()) {
       viewport.dataset.kniffAutoMove = stopped ? "stopped" : "held"
+      return
+    }
+    if (moving) {
+      viewport.dataset.kniffAutoMove = "running"
       return
     }
     viewport.dataset.kniffAutoMove = "waiting"
@@ -83,11 +90,7 @@ export function installAutoStep(
       return
     }
     remaining = duration
-    cancelOverflowMove(viewport)
-    viewport.scrollTo({
-      left: forward ? points[0]! : points[points.length - 1]!,
-      behavior: "smooth",
-    })
+    scrollToSnapPosition(viewport, forward ? points[0]! : points[points.length - 1]!, true, true)
     schedule()
   }
   const halt = () => {
@@ -108,8 +111,23 @@ export function installAutoStep(
     schedule()
   }
   const manual = () => { if (stopOnInteraction) halt() }
+  const settled = () => {
+    win.clearTimeout(settleTimer)
+    if (!settling) return
+    settling = false
+    schedule()
+  }
   const scrolled = () => {
     if (holding) manual()
+    if (stopped || getPendingOverflowDestination(viewport) !== undefined) return
+    if (!settling) {
+      clear()
+      remaining = duration
+      settling = true
+      schedule()
+    }
+    win.clearTimeout(settleTimer)
+    settleTimer = win.setTimeout(settled, 160)
   }
   const interrupt = (event: Event) => {
     if (!stopped && event.type === "kniff-scroll-navigation" && getPendingOverflowDestination(viewport) !== undefined) {
@@ -145,6 +163,7 @@ export function installAutoStep(
   mutation.observe(viewport, { attributes: true, attributeFilter: ["data-kniff-auto-move-paused"] })
   viewport.addEventListener("kniff-toggle-playback", toggle)
   viewport.addEventListener("kniff-manual-navigation", manual)
+  viewport.addEventListener("scrollend", settled)
   viewport.addEventListener("scroll", scrolled)
   intersection.observe(viewport)
   for (const event of ["pointerdown", "touchstart"]) viewport.addEventListener(event, press)
@@ -161,6 +180,8 @@ export function installAutoStep(
     mutation.disconnect()
     viewport.removeEventListener("kniff-toggle-playback", toggle)
     viewport.removeEventListener("kniff-manual-navigation", manual)
+    win.clearTimeout(settleTimer)
+    viewport.removeEventListener("scrollend", settled)
     viewport.removeEventListener("scroll", scrolled)
     for (const event of ["pointerdown", "touchstart"]) viewport.removeEventListener(event, press)
     for (const event of ["pointerup", "pointercancel", "touchend", "touchcancel"])
