@@ -1,11 +1,7 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { atTerminalSlide, overflowSnapPoints } from "./snapGeometry.ts"
+import { atTerminalSlide, overflowSnapPoints, restartAtFirstSlide } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import {
-  cancelOverflowMove,
-  getPendingOverflowDestination,
-  moveOverflowViewport,
-} from "./snapNavigation.ts"
+import { cancelOverflowMove, getPendingOverflowDestination, moveOverflowViewport } from "./snapNavigation.ts"
 
 export interface AutoStepOptions {
   delay: number
@@ -25,6 +21,7 @@ export function installAutoStep(
   let timer = 0,
     visible = false,
     stopped = false,
+    manuallyPaused = false,
     disposed = false,
     holding = false
   const duration = Math.max(0.1, delay) * 1000
@@ -32,7 +29,7 @@ export function installAutoStep(
   let deadline = 0
   const paused = () => viewport.hasAttribute("data-kniff-auto-move-paused")
   const eligible = () =>
-    visible && !doc.hidden && !reduced.matches && !paused() && !stopped && !holding
+    visible && !doc.hidden && !reduced.matches && !paused() && !stopped && !manuallyPaused && !holding
   const clear = () => {
     win.clearTimeout(timer)
     timer = 0
@@ -44,7 +41,7 @@ export function installAutoStep(
     viewport.dataset.kniffStepClock = JSON.stringify([duration, remaining, deadline])
     viewport.dispatchEvent(new Event("kniff-step-clock"))
     if (!eligible()) {
-      viewport.dataset.kniffAutoMove = "held"
+      viewport.dataset.kniffAutoMove = stopped ? "stopped" : "held"
       return
     }
     viewport.dataset.kniffAutoMove = "waiting"
@@ -81,8 +78,7 @@ export function installAutoStep(
       return
     }
     if (stopOnLastSlide || points.length < 2) {
-      stopped = true
-      viewport.dataset.kniffAutoMove = "held"
+      halt()
       return
     }
     cancelOverflowMove(viewport)
@@ -97,14 +93,17 @@ export function installAutoStep(
     schedule()
   }
   const toggle = () => {
-    if (viewport.dataset.kniffAutoMove === "held") {
-      if (stopped && stopOnLastSlide && atTerminalSlide(viewport, direction === "left", viewport.scrollLeft)) {
-        const points = overflowSnapPoints(viewport)
-        viewport.scrollTo({ left: (direction === "left" ? points[0] : points.pop()) ?? 0, behavior: "instant" })
-      }
+    if (stopped) {
+      cancelOverflowMove(viewport)
+      restartAtFirstSlide(viewport)
+      clear()
+      remaining = duration
       stopped = false
-      schedule()
-    } else halt()
+      manuallyPaused = false
+    } else {
+      manuallyPaused = viewport.dataset.kniffAutoMove !== "held"
+    }
+    schedule()
   }
   const manual = () => { if (stopOnInteraction) halt() }
   const scrolled = () => {

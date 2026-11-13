@@ -1,6 +1,11 @@
 // @ts-ignore Framer resolves sibling code files at runtime; the repo build checks this path.
 import { installTouchIntent } from "https://framer.com/m/touchIntent-1GV9VC.js@yw9Bc4mMxSyGwxci63kz"
 
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { restartAtFirstSlide } from "./snapGeometry.ts"
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { cancelOverflowMove } from "./snapNavigation.ts"
+
 export interface AutoMoveOptions {
   speed: number
   direction: "left" | "right"
@@ -28,7 +33,7 @@ export function installAutoMove(
   const reduced = win.matchMedia("(prefers-reduced-motion: reduce)")
   const snap = viewport.style.scrollSnapType,
     behavior = viewport.style.scrollBehavior
-  let phase: "running" | "held" | "settling" | "waiting" = "waiting"
+  let phase: "running" | "held" | "settling" | "waiting" | "stopped" = "waiting"
   let frame = 0,
     timer = 0,
     last = 0,
@@ -48,8 +53,6 @@ export function installAutoMove(
     points: number[] = []
   let started = false
   let terminal = 0
-  let farEdge = 0
-  let ended = false
   let manuallyPaused = false
   const externallyPaused = () => manuallyPaused || viewport.hasAttribute("data-kniff-auto-move-paused")
   const state = (next: typeof phase) => {
@@ -85,7 +88,7 @@ export function installAutoMove(
         ? following.getBoundingClientRect().left - first.getBoundingClientRect().left
         : 0
     origin = first ? offset(first) : 0
-    farEdge = originals.length ? offset(originals[originals.length - 1]!) : max
+    const farEdge = originals.length ? offset(originals[originals.length - 1]!) : max
     terminal = Math.min(max, Math.max(0, direction === "left" ? farEdge : origin))
     if (cycle > 0) {
       const cycles = (viewport.scrollLeft - terminal) / cycle
@@ -109,8 +112,7 @@ export function installAutoMove(
     const next = position + (last ? ((direction === "left" ? 1 : -1) * speed * Math.min(now - last, 50)) / 1000 : 0)
     if (stopOnLastSlide && (direction === "left" ? next >= terminal : next <= terminal)) {
       viewport.scrollLeft = terminal
-      ended = true
-      pause()
+      pause("stopped")
       return
     }
     position = wrap(next)
@@ -124,8 +126,7 @@ export function installAutoMove(
       ((direction === "left" && position >= max) || (direction === "right" && position <= 0))
     ) {
       restore()
-      ended = true
-      pause()
+      pause("stopped")
       frame = 0
       last = 0
       return
@@ -238,7 +239,7 @@ export function installAutoMove(
     if (phase === "running" && performance.now() < verticalWheelUntil) return
     if (gesture.ignoreScroll(delta)) return
     const userScrolled = Math.abs(delta) > 0.01
-    if (stopOnInteraction && userScrolled && (gesture.holding || awaitingScroll)) { pause(); return }
+    if (stopOnInteraction && userScrolled && (gesture.holding || awaitingScroll)) { pause("stopped"); return }
     if (gesture.holding && userScrolled) {
       nativeHandoff = true
       awaitingScroll = false
@@ -267,7 +268,7 @@ export function installAutoMove(
       return
     }
     verticalWheelUntil = 0
-    if (stopOnInteraction) { pause(); return }
+    if (stopOnInteraction) { pause("stopped"); return }
     gesture.reset()
     awaitingScroll = true
     interrupt()
@@ -314,21 +315,22 @@ export function installAutoMove(
       }
     }
   }
-  const pause = () => {
+  const pause = (next: "held" | "stopped") => {
     manuallyPaused = true
     stop()
     restore()
     suspended = true
-    state("held")
+    state(next)
   }
-  const manual = () => { if (stopOnInteraction) pause() }
+  const manual = () => { if (stopOnInteraction) pause("stopped") }
   const toggle = () => {
-    if (phase !== "held") pause()
+    if (phase !== "held" && phase !== "stopped") pause("held")
     else {
       manuallyPaused = false
-      if (ended) {
-        viewport.scrollTo({ left: direction === "left" ? origin : farEdge, behavior: "instant" })
-        ended = false
+      if (phase === "stopped") {
+        cancelOverflowMove(viewport)
+        restartAtFirstSlide(viewport)
+        writtenPosition = viewport.scrollLeft
       }
       resumeMoving = true
       suspended = true

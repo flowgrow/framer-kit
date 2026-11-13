@@ -101,7 +101,7 @@ function withAutoMovePlayButton(Component: React.ComponentType<any>): React.Comp
   return React.forwardRef<HTMLElement, any>((props, forwardedRef) => {
     const viewport = (React.useContext(CarouselContext) as any)?.viewport as HTMLElement | undefined
     const [button, setButton] = React.useState<HTMLElement | null>(null)
-    const [playing, setPlaying] = React.useState(false)
+    const [variant, setVariant] = React.useState("Stopped")
     const ref = React.useCallback((node: HTMLElement | null) => {
       setButton(node)
       if (typeof forwardedRef === "function") forwardedRef(node)
@@ -111,7 +111,9 @@ function withAutoMovePlayButton(Component: React.ComponentType<any>): React.Comp
       if (!viewport || !button) return
       const update = () => {
         const state = viewport.dataset.kniffAutoMove
-        setPlaying(state === "running" || state === "waiting")
+        if (state === "running" || state === "waiting") setVariant("Playing")
+        else if (state === "held" || state === "settling") setVariant("Paused")
+        else setVariant("Stopped")
       }
       update()
       const observer = new MutationObserver(update)
@@ -133,9 +135,9 @@ function withAutoMovePlayButton(Component: React.ComponentType<any>): React.Comp
       }
     }, [button, viewport])
     if (RenderTarget.current() === RenderTarget.canvas) return <Component {...props} ref={forwardedRef} />
-    return <Component {...props} ref={ref} variant={playing && viewport ? "Playing" : "Paused"}
+    return <Component {...props} ref={ref} variant={viewport ? variant : "Stopped"}
       role={props.role ?? "button"} tabIndex={props.tabIndex ?? 0}
-      aria-label={props["aria-label"] ?? "Auto Move"} aria-pressed={Boolean(viewport && playing)} />
+      aria-label={props["aria-label"] ?? "Auto Move"} aria-pressed={Boolean(viewport && variant === "Playing")} />
   })
 }
 

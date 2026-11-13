@@ -49,3 +49,8 @@ export function atTerminalSlide(viewport: HTMLElement, forward: boolean, positio
   }
   return forward ? position >= point - 2 : position <= point + 2
 }
+
+export function restartAtFirstSlide(viewport: HTMLElement) {
+  const first = slideBoxes(viewport).find(slide => !slide.closest("[data-kniff-loop-copy]"))
+  if (first) viewport.scrollTo({ left: snapPosition(viewport, first), behavior: "instant" })
+}
