@@ -34,3 +34,18 @@ export function snapPosition(viewport: HTMLElement, slide: HTMLElement): number 
     Math.min(max, rect.left - box.left - viewport.clientLeft + viewport.scrollLeft - left - offset),
   )
 }
+
+// Loop copies share the same logical terminal slide in each cycle.
+export function atTerminalSlide(viewport: HTMLElement, forward: boolean, position: number) {
+  const slides = slideBoxes(viewport)
+  const originals = slides.filter(slide => !slide.closest("[data-kniff-loop-copy]"))
+  const terminal = forward ? originals[originals.length - 1] : originals[0]
+  if (!terminal) return false
+  const point = snapPosition(viewport, terminal)
+  const following = slides[slides.indexOf(originals[originals.length - 1]!) + 1]
+  if (following && viewport.hasAttribute("data-kniff-loop")) {
+    const cycle = following.getBoundingClientRect().left - originals[0]!.getBoundingClientRect().left
+    if (cycle > 0) return Math.abs(position - point - Math.round((position - point) / cycle) * cycle) <= 2
+  }
+  return forward ? position >= point - 2 : position <= point + 2
+}

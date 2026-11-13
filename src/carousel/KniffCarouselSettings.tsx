@@ -23,6 +23,7 @@ export interface KniffCarouselSettingsProps {
     autoMoveDelay?: number
     autoMoveSpeed?: number
     autoMoveDirection?: "left" | "right"
+    autoMoveStopOnInteraction?: boolean
     autoMoveStopOnLastSlide?: boolean
     edgeSpace?: boolean
 }
@@ -82,6 +83,12 @@ export const kniffCarouselSettingsPropertyControls = {
         defaultValue: "left",
         displaySegmentedControl: true,
         hidden: (props) => props.autoMove === "none",
+    },
+    autoMoveStopOnInteraction: {
+        title: "Stop on Interaction",
+        type: ControlType.Boolean,
+        defaultValue: false,
+        hidden: (props) => props.autoMove !== "perSlide",
     },
     autoMoveStopOnLastSlide: {
         title: "Stop on Last Slide",

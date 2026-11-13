@@ -1,5 +1,5 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { overflowSnapPoints } from "./snapGeometry.ts"
+import { atTerminalSlide, overflowSnapPoints } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import {
   cancelOverflowMove,
@@ -10,13 +10,14 @@ import {
 export interface AutoStepOptions {
   delay: number
   direction: "left" | "right"
+  stopOnInteraction?: boolean
   stopOnLastSlide: boolean
 }
 
 /** Advances one native snap point after each pause, without an animation plugin. */
 export function installAutoStep(
   viewport: HTMLElement,
-  { delay, direction, stopOnLastSlide }: AutoStepOptions,
+  { delay, direction, stopOnLastSlide, stopOnInteraction = false }: AutoStepOptions,
 ) {
   const doc = viewport.ownerDocument,
     win = doc.defaultView!
@@ -61,9 +62,13 @@ export function installAutoStep(
           .slice()
           .reverse()
           .find((point) => point < current - 2)
+    if (stopOnLastSlide && atTerminalSlide(viewport, forward, current)) {
+      halt()
+      return
+    }
     if (next !== undefined) {
       viewport.dataset.kniffAutoMove = "running"
-      moveOverflowViewport(viewport, forward ? 1 : -1)
+      moveOverflowViewport(viewport, forward ? 1 : -1, true)
       schedule()
       return
     }
@@ -79,7 +84,18 @@ export function installAutoStep(
     })
     schedule()
   }
-  const interrupt = () => {
+  const halt = () => {
+    stopped = true
+    schedule()
+  }
+  const manual = () => { if (stopOnInteraction) halt() }
+  const scrolled = () => {
+    if (holding) manual()
+    if (stopOnLastSlide && atTerminalSlide(viewport, direction === "left", viewport.scrollLeft)) halt()
+  }
+  const interrupt = (event: Event) => {
+    if (event instanceof WheelEvent && (Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.shiftKey)) manual()
+    if (event instanceof KeyboardEvent && ["ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", " "].includes(event.key)) manual()
     if (!disposed) schedule()
   }
   const press = () => {
@@ -104,6 +120,8 @@ export function installAutoStep(
   )
   const mutation = new MutationObserver(schedule)
   mutation.observe(viewport, { attributes: true, attributeFilter: ["data-kniff-auto-move-paused"] })
+  viewport.addEventListener("kniff-manual-navigation", manual)
+  viewport.addEventListener("scroll", scrolled)
   intersection.observe(viewport)
   for (const event of ["pointerdown", "touchstart"]) viewport.addEventListener(event, press)
   for (const event of ["pointerup", "pointercancel", "touchend", "touchcancel"])
@@ -117,6 +135,8 @@ export function installAutoStep(
     clear()
     intersection.disconnect()
     mutation.disconnect()
+    viewport.removeEventListener("kniff-manual-navigation", manual)
+    viewport.removeEventListener("scroll", scrolled)
     for (const event of ["pointerdown", "touchstart"]) viewport.removeEventListener(event, press)
     for (const event of ["pointerup", "pointercancel", "touchend", "touchcancel"])
       win.removeEventListener(event, release)

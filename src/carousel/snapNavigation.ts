@@ -9,7 +9,7 @@ export function getPendingOverflowDestination(viewport: HTMLElement): number | u
 export function cancelOverflowMove(viewport: HTMLElement) {
   overflowMoves.get(viewport)?.clear()
 }
-export function moveOverflowViewport(viewport: HTMLElement, direction: number) {
+export function moveOverflowViewport(viewport: HTMLElement, direction: number, automatic = false) {
   const points = overflowSnapPoints(viewport)
   const pending = overflowMoves.get(viewport)
   const current = pending?.destination ?? viewport.scrollLeft
@@ -18,6 +18,7 @@ export function moveOverflowViewport(viewport: HTMLElement, direction: number) {
       ? points.find((point: number) => point > current + 2)
       : points.reverse().find((point: number) => point < current - 2)
   if (destination === undefined) return
+  if (!automatic) viewport.dispatchEvent(new Event("kniff-manual-navigation"))
   pending?.clear()
   let timer = 0
   const clear = () => {

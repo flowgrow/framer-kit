@@ -14,6 +14,7 @@ interface AutoMoveOptions {
   autoMoveDelay: number
   autoMoveSpeed: number
   autoMoveDirection: "left" | "right"
+  autoMoveStopOnInteraction: boolean
   autoMoveStopOnLastSlide: boolean
 }
 
@@ -27,6 +28,7 @@ export function useAutoMove({
   autoMoveDelay,
   autoMoveSpeed,
   autoMoveDirection,
+  autoMoveStopOnInteraction,
   autoMoveStopOnLastSlide,
 }: AutoMoveOptions) {
   useEffect(() => {
@@ -56,6 +58,7 @@ export function useAutoMove({
           : installAutoStep(viewport, {
               delay: autoMoveDelay,
               direction: autoMoveDirection,
+              stopOnInteraction: autoMoveStopOnInteraction,
               stopOnLastSlide: autoMoveStopOnLastSlide,
             })
     }
@@ -71,6 +74,7 @@ export function useAutoMove({
     autoMoveDelay,
     autoMoveSpeed,
     autoMoveDirection,
+    autoMoveStopOnInteraction,
     autoMoveStopOnLastSlide,
     viewportSelector,
     loop,

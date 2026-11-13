@@ -24,6 +24,7 @@ export function CarouselPreviewSettings({
     autoMoveDelay = 8,
     autoMoveSpeed = 30,
     autoMoveDirection = "left",
+    autoMoveStopOnInteraction = false,
     autoMoveStopOnLastSlide = false,
 }: KniffCarouselSettingsProps) {
     const styleRef = useRef<HTMLStyleElement>(null)
@@ -53,6 +54,7 @@ export function CarouselPreviewSettings({
         autoMoveDelay,
         autoMoveSpeed,
         autoMoveDirection,
+        autoMoveStopOnInteraction,
         autoMoveStopOnLastSlide,
     })
     if (!viewportSelector) return null
