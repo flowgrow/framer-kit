@@ -1,7 +1,7 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { CanvasInstructions } from "../shared/CanvasInstructions.tsx"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { cssTransform, slideBoxes } from "./snapGeometry.ts"
+import { cssTransform, nextSlideEffect, slideBoxes } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import type { KniffCarouselSettingsProps } from "./KniffCarouselSettings.tsx"
 import { useLayoutEffect, useRef } from "react"
@@ -131,11 +131,12 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
     const transforms = props.slideTransforms?.preview === false ? undefined : props.slideTransforms
     const previous = transforms?.enabled ? cssTransform(transforms.previous, transforms.perspective ?? 0) : ""
     const current = transforms?.enabled ? cssTransform(transforms.current, transforms.perspective ?? 0) : ""
-    const next = transforms?.enabled ? cssTransform(transforms.next, transforms.perspective ?? 0) : ""
+    const nextEffect = nextSlideEffect(transforms)
+    const next = transforms?.enabled ? cssTransform(nextEffect, transforms.perspective ?? 0) : ""
 
     const previousOpacity = transforms?.enabled ? transforms.previous?.opacity ?? 1 : 1
     const currentOpacity = transforms?.enabled ? transforms.current?.opacity ?? 1 : 1
-    const nextOpacity = transforms?.enabled ? transforms.next?.opacity ?? 1 : 1
+    const nextOpacity = transforms?.enabled ? nextEffect?.opacity ?? 1 : 1
     useLayoutEffect(() => {
         const keyframe = (transform: string, opacity: number): Keyframe | undefined =>
             transform || opacity !== 1 ? { ...(transform && { transform }), ...(opacity !== 1 && { opacity }) } : undefined

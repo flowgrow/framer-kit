@@ -38,6 +38,23 @@ const transformControls = {
     rotateX: axis("Rotate X", "°"), rotateY: axis("Rotate Y", "°"), rotateZ: axis("Rotate Z", "°"),
 }
 
+interface NextSlideTransform extends SlideTransform {
+    copyPrevious?: boolean
+    invert?: boolean
+}
+
+type NextControlProps = NextSlideTransform & { slideTransforms?: { next?: NextSlideTransform } }
+const copiesPrevious = (props: NextControlProps) =>
+    props.slideTransforms?.next?.copyPrevious ?? props.copyPrevious ?? false
+
+const nextTransformControls = {
+    copyPrevious: { type: ControlType.Boolean as const, title: "Copy Previous", defaultValue: false },
+    invert: { type: ControlType.Boolean as const, title: "Invert", defaultValue: false, hidden: (props: NextControlProps) => !copiesPrevious(props) },
+    ...Object.fromEntries(Object.entries(transformControls).map(([key, control]) => [
+        key, { ...control, hidden: copiesPrevious },
+    ])),
+}
+
 export interface KniffCarouselSettingsProps {
     showInstructions?: boolean
     style?: CSSProperties
@@ -45,7 +62,7 @@ export interface KniffCarouselSettingsProps {
     align?: "start" | "center" | "end"
     loop?: boolean
     autoMove?: "none" | "perSlide" | "scroll"
-    slideTransforms?: { enabled?: boolean; preview?: boolean; perspective?: number; previous?: SlideTransform; current?: SlideTransform; next?: SlideTransform }
+    slideTransforms?: { enabled?: boolean; preview?: boolean; perspective?: number; previous?: SlideTransform; current?: SlideTransform; next?: NextSlideTransform }
     slideTransition?: Transition
     autoMoveDelay?: number
     autoMoveStartDelay?: number
@@ -146,7 +163,7 @@ export const kniffCarouselSettingsPropertyControls = {
             preview: { type: ControlType.Boolean, title: "Canvas Preview", defaultValue: true, hidden: hideTransformSettings },
             previous: { type: ControlType.Object, title: "Previous Slides", controls: transformControls, hidden: hideTransformSettings },
             current: { type: ControlType.Object, title: "Current Slide", controls: transformControls, hidden: hideTransformSettings },
-            next: { type: ControlType.Object, title: "Next Slides", controls: transformControls, hidden: hideTransformSettings },
+            next: { type: ControlType.Object, title: "Next Slides", controls: nextTransformControls, hidden: hideTransformSettings },
             perspective: { ...axis("Perspective", "px"), min: 0, hidden: hideTransformSettings },
         },
     },

@@ -1,5 +1,17 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
-import type { SlideTransform } from "./KniffCarouselSettings.tsx"
+import type { KniffCarouselSettingsProps, SlideTransform } from "./KniffCarouselSettings.tsx"
+
+export function nextSlideEffect(effects: KniffCarouselSettingsProps["slideTransforms"]): SlideTransform | undefined {
+    if (!effects?.next?.copyPrevious) return effects?.next
+    const previous = effects.previous
+    if (!effects.next.invert || !previous) return previous
+    return {
+        scale: previous.scale,
+        opacity: previous.opacity,
+        x: -(previous.x ?? 0), y: -(previous.y ?? 0), z: -(previous.z ?? 0),
+        rotateX: -(previous.rotateX ?? 0), rotateY: -(previous.rotateY ?? 0), rotateZ: -(previous.rotateZ ?? 0),
+    }
+}
 
 export function cssTransform(value: SlideTransform = {}, perspective: number) {
     const transforms: string[] = []
