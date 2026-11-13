@@ -12,6 +12,7 @@ function target(id: string) {
 }
 function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, current: string, next: string) {
     const transformed = new Map<HTMLElement, { value: string; animation: Animation }>()
+    let currentSlide: HTMLElement | undefined
     let first: HTMLElement | undefined
     let last: HTMLElement | undefined
     let frame: number | undefined
@@ -30,6 +31,11 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, c
         const eligible = slides.filter(slide =>
             slide.matches(":not([data-kniff])")
         ).sort((a, b) => Number(getComputedStyle(a).order) - Number(getComputedStyle(b).order))
+        if (currentSlide !== eligible[0]) {
+            currentSlide?.removeAttribute("data-kniff-canvas-current")
+            currentSlide = eligible[0]
+            currentSlide?.setAttribute("data-kniff-canvas-current", "")
+        }
         const pendingRemoval = new Set(transformed.keys())
         eligible.forEach((slide, index) => {
             const value = index === 0 ? current : next
@@ -85,6 +91,7 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, c
         mutations.disconnect()
         resize.disconnect()
         if (frame !== undefined) cancelAnimationFrame(frame)
+        currentSlide?.removeAttribute("data-kniff-canvas-current")
         transformed.forEach(({ animation }) => animation.cancel())
         restore.forEach(reset => reset())
     }
@@ -131,9 +138,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             }))
             viewport.style.setProperty("overflow", "visible", "important")
             const start = align === "start" ? 0 : align === "end" ? 1 : 0.5
-            edges = props.edgeSpace !== false || current || next
-                ? observeCanvasSlides(viewport, props.edgeSpace === false ? undefined : start, current, next)
-                : undefined
+            edges = observeCanvasSlides(viewport, props.edgeSpace === false ? undefined : start, current, next)
             detach = () => {
                 edges?.stop()
                 edges = undefined
@@ -153,7 +158,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
     }, [name, boundary, align, props.edgeSpace, current, next])
     return (
         <>
-            <style ref={marker} data-kniff="" data-kniff-canvas-settings="" />
+            <style ref={marker} data-kniff="" data-kniff-canvas-settings="">{`[data-kniff-canvas-current] { z-index: 1 !important; }`}</style>
             {props.showInstructions !== false && (
                 <CanvasInstructions
                     data-kniff=""

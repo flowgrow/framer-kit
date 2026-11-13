@@ -69,7 +69,7 @@ export function CarouselPreviewSettings({
     const next = cssTransform(slideTransforms?.next, perspective)
     const transformEnabled = slideTransforms?.enabled && Boolean(previous || current || next)
     useLayoutEffect(() => {
-        if (!transformEnabled || !viewportSelector) return
+        if (!viewportSelector) return
         const scope = styleRef.current?.closest(boundary)
         const el: HTMLElement | null = registeredViewport ?? scope?.querySelector(viewportSelector)
         if (!el) return
@@ -94,7 +94,7 @@ export function CarouselPreviewSettings({
                 const changed = new Set(updated)
                 slides.filter(s => !changed.has(s)).forEach(s => { resize.unobserve(s); release(s) })
                 for (const s of updated) {
-                    if (!animations.has(s)) {
+                    if (transformEnabled && !animations.has(s)) {
                         s.dataset.kniffSlidePosition = "current"
                         const animation = s.animate(keyframes, { duration: 2, fill: "both" })
                         animation.pause()
@@ -116,8 +116,8 @@ export function CarouselPreviewSettings({
             slides.forEach((s, i) => {
                 // Sample previous/current/next at times 0/1/2 using the physical slide index, including loop copies.
                 const time = Math.max(0, Math.min(2, 1 + i - position))
-                const animation = animations.get(s)!
-                if (animation.currentTime !== time) animation.currentTime = time
+                const animation = animations.get(s)
+                if (animation && animation.currentTime !== time) animation.currentTime = time
                 const role = i < Math.round(position) ? "previous" : i === Math.round(position) ? "current" : "next"
                 if (s.dataset.kniffSlidePosition !== role) s.dataset.kniffSlidePosition = role
             })
@@ -213,6 +213,7 @@ ${viewport} {
 
   ${slides} {
     flex-shrink: 0 !important;
+    &[data-kniff-slide-position="current"] { z-index: 1 !important; }
     scroll-snap-align: ${align};
     scroll-snap-stop: always;
   }
