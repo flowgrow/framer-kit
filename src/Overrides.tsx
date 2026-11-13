@@ -207,15 +207,13 @@ export function withActiveDot(Component: ComponentType<any>): ComponentType<any>
     const [small, large] = dot.widths
     const width = small !== undefined && large !== undefined ? small + (large - small) * dot.weight : undefined
     return <MotionConfig reducedMotion="always">
-      {measure && <style>{`[data-kniff-carousel-dot][aria-current=true] > * { opacity: var(--kniff-dot-content-opacity) !important; }`}</style>}
       {measure && <span ref={probes} aria-hidden="true" style={{ position: "absolute", visibility: "hidden", pointerEvents: "none", display: "flex", width: "max-content", overflow: "hidden", height: 0 }}>
         {["Default", "Active"].map(variant => <Component {...props} key={variant} id={undefined} ref={undefined} tabIndex={-1}
           layoutId={layoutId + variant} variant={variant} />)}
       </span>}
       <Component {...props} ref={ref} layoutId={layoutId} variant={dot.active ? "Active" : "Default"}
-      data-kniff-carousel-dot=""
-      style={{ ...props.style, ...(width === undefined ? {} : { width }), "--kniff-dot-activeness": dot.weight,
-        "--kniff-dot-content-opacity": Math.max(0, 2 * dot.weight - 1) }}
+      data-kniff-dot-index={dot.index}
+      style={{ ...props.style, ...(width === undefined ? {} : { width }), "--kniff-dot-activeness": dot.weight }}
       onClick={click} onKeyDown={keyDown} role={props.role ?? "button"} tabIndex={props.tabIndex ?? 0}
       aria-label={props["aria-label"] ?? `Go to slide ${dot.index + 1}`} aria-current={dot.active || undefined} />
     </MotionConfig>

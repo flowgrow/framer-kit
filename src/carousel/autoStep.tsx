@@ -1,5 +1,5 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { atTerminalSlide, overflowSnapPoints } from "./snapGeometry.ts"
+import { atTerminalSlide, dotSlides, isOriginalSlide, snapPosition, overflowSnapPoints } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { cancelOverflowMove, getPendingOverflowDestination, moveOverflowViewport, scrollToSlide, scrollToSnapPosition } from "./snapNavigation.ts"
 
@@ -36,12 +36,33 @@ export function installAutoStep(
     win.clearTimeout(timer)
     timer = 0
   }
+  const slideAt = (position: number) => {
+    const slides = dotSlides(viewport)
+    const count = slides.filter(slide => isOriginalSlide(viewport, slide)).length
+    let nearest = 0
+    let distance = Infinity
+    for (const [index, slide] of slides.entries()) {
+      const delta = Math.abs(snapPosition(viewport, slide) - position)
+      if (delta < distance || (delta === distance && position >= viewport.scrollWidth - viewport.clientWidth - 1)) {
+        nearest = index
+        distance = delta
+      }
+    }
+    return count ? nearest % count : 0
+  }
+  let clockSlide = slideAt(viewport.scrollLeft)
   const schedule = () => {
     if (timer) remaining = Math.max(0, deadline - performance.now())
     clear()
     const moving = settling || getPendingOverflowDestination(viewport) !== undefined
     deadline = eligible() && !moving ? performance.now() + remaining : 0
-    viewport.dataset.kniffStepClock = JSON.stringify([duration, remaining, deadline])
+    const currentSlide = slideAt(viewport.scrollLeft)
+    // At a loop seam the outgoing slide belongs to the previous playback cycle.
+    const wrapped = viewport.hasAttribute("data-kniff-loop") &&
+      (direction === "left" ? currentSlide === 0 && clockSlide > 0 : clockSlide === 0 && currentSlide > 0)
+    const outgoing = moving && wrapped ? clockSlide : null
+    if (!moving) clockSlide = currentSlide
+    viewport.dataset.kniffStepClock = JSON.stringify([duration, remaining, deadline, currentSlide, direction, outgoing, moving && currentSlide === clockSlide])
     viewport.dispatchEvent(new Event("kniff-step-clock"))
     if (!eligible()) {
       viewport.dataset.kniffAutoMove = stopped ? "stopped" : "held"
@@ -118,13 +139,21 @@ export function installAutoStep(
   }
   const scrolled = () => {
     if (holding) manual()
-    if (stopped || getPendingOverflowDestination(viewport) !== undefined) return
+    if (getPendingOverflowDestination(viewport) !== undefined) {
+      schedule()
+      return
+    }
+    if (stopped && !settling) {
+      if (slideAt(viewport.scrollLeft) !== clockSlide) remaining = duration
+      schedule()
+      return
+    }
     if (!settling) {
       clear()
       remaining = duration
       settling = true
-      schedule()
     }
+    schedule()
     win.clearTimeout(settleTimer)
     settleTimer = win.setTimeout(settled, 160)
   }

@@ -158,7 +158,21 @@ function withAutoMoveProgress(Component: React.ComponentType<any>): React.Compon
         cancelAnimationFrame(frame)
         const clock = viewport.dataset.kniffStepClock
         if (!clock) { bar.style.width = authored; return }
-        const [duration, remaining, deadline] = JSON.parse(clock) as [number, number, number]
+        const [duration, remaining, deadline, currentSlide, direction, outgoing, leaving] = JSON.parse(clock) as
+          [number, number, number, number, "left" | "right", number | null, boolean]
+        const dot = bar.closest<HTMLElement>("[data-kniff-dot-index]")
+        if (dot && currentSlide !== undefined) {
+          const index = Number(dot.dataset.kniffDotIndex)
+          if (leaving && index === currentSlide) {
+            bar.style.width = "100%"
+            return
+          }
+          if (index !== currentSlide) {
+            const past = direction === "left" ? index < currentSlide : index > currentSlide
+            bar.style.width = past || index === outgoing ? "100%" : "0%"
+            return
+          }
+        }
         const draw = () => {
           const left = deadline ? deadline - performance.now() : remaining
           bar.style.width = Math.max(0, Math.min(100, 100 * (1 - left / duration))) + "%"
