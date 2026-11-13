@@ -1,5 +1,5 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { installAutoMove } from "https://framer.com/m/autoMove-qikVR0.js"
+import { installAutoMove } from "../carousel/autoMove.tsx"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { installAutoStep } from "../carousel/autoStep.tsx"
 import { useEffect, type RefObject } from "react"

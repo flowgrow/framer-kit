@@ -27,7 +27,7 @@ export function installAutoStep(
     stopped = false,
     disposed = false,
     holding = false
-  const paused = () => viewport.hasAttribute("data-kniff-auto-move-paused")
+  const paused = () => stopped || viewport.hasAttribute("data-kniff-auto-move-paused")
   const eligible = () =>
     visible && !doc.hidden && !reduced.matches && !paused() && !stopped && !holding
   const clear = () => {
@@ -88,6 +88,16 @@ export function installAutoStep(
     stopped = true
     schedule()
   }
+  const toggle = () => {
+    if (viewport.dataset.kniffAutoMove === "held") {
+      if (stopped && stopOnLastSlide && atTerminalSlide(viewport, direction === "left", viewport.scrollLeft)) {
+        const points = overflowSnapPoints(viewport)
+        viewport.scrollTo({ left: (direction === "left" ? points[0] : points.pop()) ?? 0, behavior: "instant" })
+      }
+      stopped = false
+      schedule()
+    } else halt()
+  }
   const manual = () => { if (stopOnInteraction) halt() }
   const scrolled = () => {
     if (holding) manual()
@@ -120,6 +130,7 @@ export function installAutoStep(
   )
   const mutation = new MutationObserver(schedule)
   mutation.observe(viewport, { attributes: true, attributeFilter: ["data-kniff-auto-move-paused"] })
+  viewport.addEventListener("kniff-toggle-playback", toggle)
   viewport.addEventListener("kniff-manual-navigation", manual)
   viewport.addEventListener("scroll", scrolled)
   intersection.observe(viewport)
@@ -135,6 +146,7 @@ export function installAutoStep(
     clear()
     intersection.disconnect()
     mutation.disconnect()
+    viewport.removeEventListener("kniff-toggle-playback", toggle)
     viewport.removeEventListener("kniff-manual-navigation", manual)
     viewport.removeEventListener("scroll", scrolled)
     for (const event of ["pointerdown", "touchstart"]) viewport.removeEventListener(event, press)

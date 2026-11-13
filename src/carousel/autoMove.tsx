@@ -43,7 +43,8 @@ export function installAutoMove(
     origin = 0,
     max = 0,
     points: number[] = []
-  const externallyPaused = () => viewport.hasAttribute("data-kniff-auto-move-paused")
+  let manuallyPaused = false
+  const externallyPaused = () => manuallyPaused || viewport.hasAttribute("data-kniff-auto-move-paused")
   const state = (next: typeof phase) => {
     phase = next
     viewport.dataset.kniffAutoMove = next
@@ -286,6 +287,20 @@ export function installAutoMove(
       }
     }
   }
+  const toggle = () => {
+    manuallyPaused = phase !== "held"
+    if (manuallyPaused) {
+      stop()
+      restore()
+      suspended = true
+      state("held")
+    } else {
+      resumeMoving = true
+      suspended = true
+      visibility()
+    }
+  }
+  viewport.addEventListener("kniff-toggle-playback", toggle)
   // No movement until the observer confirms a positive visible area. This also
   // respects clipping by scrollable ancestors, not just the window bounds.
   const intersection = new IntersectionObserver(
@@ -329,6 +344,7 @@ export function installAutoMove(
   return () => {
     disposed = true
     stop()
+    viewport.removeEventListener("kniff-toggle-playback", toggle)
     gesture.dispose()
     intersection.disconnect()
     resize.disconnect()

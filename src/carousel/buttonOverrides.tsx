@@ -81,4 +81,46 @@ function withKniffCarouselNext<P extends object>(
   return navigationOverride(Component, 1)
 }
 
-export const carouselButtonOverrides = { withKniffCarouselPrevious, withKniffCarouselNext }
+function withAutoMovePlayButton(Component: React.ComponentType<any>): React.ComponentType<any> {
+  return React.forwardRef<HTMLElement, any>((props, forwardedRef) => {
+    const viewport = (React.useContext(CarouselContext) as any)?.viewport as HTMLElement | undefined
+    const [button, setButton] = React.useState<HTMLElement | null>(null)
+    const [playing, setPlaying] = React.useState(false)
+    const ref = React.useCallback((node: HTMLElement | null) => {
+      setButton(node)
+      if (typeof forwardedRef === "function") forwardedRef(node)
+      else if (forwardedRef) forwardedRef.current = node
+    }, [forwardedRef])
+    React.useLayoutEffect(() => {
+      if (!viewport || !button) return
+      const update = () => {
+        const state = viewport.dataset.kniffAutoMove
+        setPlaying(state === "running" || state === "waiting")
+      }
+      update()
+      const observer = new MutationObserver(update)
+      observer.observe(viewport, { attributes: true, attributeFilter: ["data-kniff-auto-move"] })
+      const toggle = () => viewport.dispatchEvent(new Event("kniff-toggle-playback"))
+      const keyDown = (event: KeyboardEvent) => {
+        if (button.matches("button,input,a[href]") || event.target !== button || event.defaultPrevented) return
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          if (!event.repeat) button.click()
+        }
+      }
+      button.addEventListener("click", toggle)
+      button.addEventListener("keydown", keyDown)
+      return () => {
+        observer.disconnect()
+        button.removeEventListener("click", toggle)
+        button.removeEventListener("keydown", keyDown)
+      }
+    }, [button, viewport])
+    if (RenderTarget.current() === RenderTarget.canvas) return <Component {...props} ref={forwardedRef} />
+    return <Component {...props} ref={ref} variant={playing && viewport ? "Playing" : "Paused"}
+      role={props.role ?? "button"} tabIndex={props.tabIndex ?? 0}
+      aria-label={props["aria-label"] ?? "Auto Move"} aria-pressed={Boolean(viewport && playing)} />
+  })
+}
+
+export const carouselButtonOverrides = { withKniffCarouselPrevious, withKniffCarouselNext, withAutoMovePlayButton }

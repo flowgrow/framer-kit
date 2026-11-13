@@ -75,3 +75,7 @@ export function withProbeReader(Component: ComponentType<any>): ComponentType<an
     )
   })
 }
+
+export function withAutoMovePlayButton(Component: ComponentType<any>): ComponentType<any> {
+  return carouselButtonOverrides.withAutoMovePlayButton(Component)
+}
