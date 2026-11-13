@@ -1,7 +1,7 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { atTerminalSlide, overflowSnapPoints, restartAtFirstSlide } from "./snapGeometry.ts"
+import { atTerminalSlide, overflowSnapPoints } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { cancelOverflowMove, getPendingOverflowDestination, moveOverflowViewport, scrollToSnapPosition } from "./snapNavigation.ts"
+import { cancelOverflowMove, getPendingOverflowDestination, moveOverflowViewport, scrollToSlide, scrollToSnapPosition } from "./snapNavigation.ts"
 
 export interface AutoStepOptions {
   delay: number
@@ -99,12 +99,11 @@ export function installAutoStep(
   }
   const toggle = () => {
     if (stopped) {
-      cancelOverflowMove(viewport)
-      restartAtFirstSlide(viewport)
       clear()
       remaining = duration
       stopped = false
       manuallyPaused = false
+      scrollToSlide(viewport, 0, true)
     } else {
       manuallyPaused = viewport.dataset.kniffAutoMove !== "held"
     }

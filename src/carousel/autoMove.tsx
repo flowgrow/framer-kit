@@ -2,9 +2,9 @@
 import { installTouchIntent } from "https://framer.com/m/touchIntent-1GV9VC.js@yw9Bc4mMxSyGwxci63kz"
 
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { restartAtFirstSlide, slideRect } from "./snapGeometry.ts"
+import { slideRect } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { cancelOverflowMove } from "./snapNavigation.ts"
+import { cancelOverflowMove, getPendingOverflowDestination, scrollToSlide } from "./snapNavigation.ts"
 
 export interface AutoMoveOptions {
   speed: number
@@ -53,6 +53,7 @@ export function installAutoMove(
     points: number[] = []
   let started = false
   let terminal = 0
+  let restarting = false
   let manuallyPaused = false
   const externallyPaused = () => manuallyPaused || viewport.hasAttribute("data-kniff-auto-move-paused")
   const state = (next: typeof phase) => {
@@ -232,7 +233,7 @@ export function installAutoMove(
     measure()
   }
   const scroll = () => {
-    if (externallyPaused() || !inView || doc.hidden || reduced.matches) return
+    if (restarting || externallyPaused() || !inView || doc.hidden || reduced.matches) return
     // Auto Move also emits scroll events. Only a position different from our
     // last write is user scrolling; wheel/key intent cancels rAF before it moves.
     const delta = viewport.scrollLeft - writtenPosition
@@ -279,6 +280,13 @@ export function installAutoMove(
       wheel()
   }
   const navigation = () => {
+    if (restarting) {
+      if (getPendingOverflowDestination(viewport) === undefined) {
+        restarting = false
+        visibility()
+      }
+      return
+    }
     gesture.reset()
     interrupt()
     schedule()
@@ -301,7 +309,7 @@ export function installAutoMove(
       if (reduced.matches) restore()
       return
     }
-    if (suspended) {
+    if (suspended && !restarting) {
       suspended = false
       if (resumeMoving && !gesture.holding) {
         if (!started && startDelay > 0) {
@@ -317,6 +325,10 @@ export function installAutoMove(
   }
   const pause = (next: "held" | "stopped") => {
     manuallyPaused = true
+    if (restarting) {
+      restarting = false
+      cancelOverflowMove(viewport)
+    }
     stop()
     restore()
     suspended = true
@@ -327,13 +339,16 @@ export function installAutoMove(
     if (phase !== "held" && phase !== "stopped") pause("held")
     else {
       manuallyPaused = false
-      if (phase === "stopped") {
-        cancelOverflowMove(viewport)
-        restartAtFirstSlide(viewport)
-        writtenPosition = viewport.scrollLeft
-      }
       resumeMoving = true
       suspended = true
+      if (phase === "stopped") {
+        cancelOverflowMove(viewport)
+        restarting = true
+        state("waiting")
+        scrollToSlide(viewport, 0, true)
+        if (getPendingOverflowDestination(viewport) !== undefined) return
+        restarting = false
+      }
       visibility()
     }
   }
@@ -381,6 +396,7 @@ export function installAutoMove(
   measure()
   return () => {
     disposed = true
+    if (restarting) cancelOverflowMove(viewport)
     stop()
     viewport.removeEventListener("kniff-manual-navigation", manual)
     viewport.removeEventListener("kniff-toggle-playback", toggle)

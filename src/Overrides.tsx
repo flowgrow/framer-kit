@@ -3,9 +3,9 @@ import type { ComponentType } from "react"
 import { RenderTarget } from "framer"
 import { MotionConfig } from "framer-motion"
 // @ts-ignore Framer's checker does not resolve local code-file imports.
-import { scrollToSnapPosition } from "./carousel/snapNavigation.ts"
+import { scrollToSlide } from "./carousel/snapNavigation.ts"
 // @ts-ignore Framer's checker does not resolve local code-file imports.
-import { snapPosition, slideBoxes } from "./carousel/snapGeometry.ts"
+import { snapPosition, dotSlides, isOriginalSlide } from "./carousel/snapGeometry.ts"
 // @ts-ignore Framer's checker does not resolve local code-file imports.
 import { CarouselContext, carouselContextOverrides } from "./carousel/carouselContext.tsx"
 // @ts-ignore
@@ -90,27 +90,6 @@ export function withAutoMoveProgress(Component: ComponentType<any>): ComponentTy
 }
 
 const ActiveDotContext = React.createContext<{ active: boolean; weight: number; index: number; viewport: HTMLElement; widths: number[]; measure: (widths: number[]) => void } | null>(null)
-
-function dotSlides(viewport: HTMLElement): HTMLElement[] {
-  return slideBoxes(viewport).filter((slide: HTMLElement) => !slide.hasAttribute("data-kniff"))
-}
-
-function isOriginalSlide(viewport: HTMLElement, slide: HTMLElement) {
-  return slide.closest("[data-kniff-loop-copy]")?.parentElement !== viewport
-}
-
-function goToDot(viewport: HTMLElement, index: number) {
-  const slides = dotSlides(viewport)
-  const count = slides.filter(slide => isOriginalSlide(viewport, slide)).length
-  if (index >= count) return
-  const position = viewport.scrollLeft
-  let nearest = snapPosition(viewport, slides[index]!)
-  for (let i = index + count; i < slides.length; i += count) {
-    const point = snapPosition(viewport, slides[i]!)
-    if (Math.abs(point - position) < Math.abs(nearest - position)) nearest = point
-  }
-  scrollToSnapPosition(viewport, nearest, false, true)
-}
 
 function observeDots(viewport: HTMLElement, update: (count: number, position: number) => void) {
   let count = 0
@@ -214,7 +193,7 @@ export function withActiveDot(Component: ComponentType<any>): ComponentType<any>
     if (!dot) return <Component {...props} ref={ref} />
     const click = (event: React.MouseEvent<HTMLElement>) => {
       props.onClick?.(event)
-      if (!event.defaultPrevented) goToDot(dot.viewport, dot.index)
+      if (!event.defaultPrevented) scrollToSlide(dot.viewport, dot.index)
     }
     const keyDown = (event: React.KeyboardEvent<HTMLElement>) => {
       props.onKeyDown?.(event)

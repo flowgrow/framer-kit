@@ -1,6 +1,6 @@
 import { animate, type Transition } from "framer-motion"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { overflowSnapPoints } from "./snapGeometry.ts"
+import { dotSlides, isOriginalSlide, overflowSnapPoints, snapPosition } from "./snapGeometry.ts"
 
 // Shared by both arrows so retargeting and direction changes count every click.
 const overflowMoves = new WeakMap<HTMLElement, { destination: number; clear: () => void }>()
@@ -76,4 +76,17 @@ export function scrollToSnapPosition(viewport: HTMLElement, destination: number,
       ? ("instant" as ScrollBehavior)
       : "smooth",
   })
+}
+
+export function scrollToSlide(viewport: HTMLElement, index: number, automatic = false) {
+  const slides = dotSlides(viewport)
+  const count = slides.filter(slide => isOriginalSlide(viewport, slide)).length
+  if (index < 0 || index >= count) return
+  const position = viewport.scrollLeft
+  let nearest = snapPosition(viewport, slides[index]!)
+  for (let i = index + count; i < slides.length; i += count) {
+    const point = snapPosition(viewport, slides[i]!)
+    if (Math.abs(point - position) < Math.abs(nearest - position)) nearest = point
+  }
+  scrollToSnapPosition(viewport, nearest, automatic, true)
 }
