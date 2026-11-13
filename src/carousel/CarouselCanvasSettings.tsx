@@ -125,7 +125,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
 
     const anchor = "--kniff-loop-" + useId().replace(/[^a-zA-Z0-9_-]/g, "")
     const loop = props.loop !== false
-    const transforms = props.slideTransforms
+    const transforms = props.slideTransforms?.preview === false ? undefined : props.slideTransforms
     const previous = transforms?.enabled ? cssTransform(transforms.previous, transforms.perspective ?? 0) : ""
     const current = transforms?.enabled ? cssTransform(transforms.current, transforms.perspective ?? 0) : ""
     const next = transforms?.enabled ? cssTransform(transforms.next, transforms.perspective ?? 0) : ""

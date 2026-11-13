@@ -45,7 +45,7 @@ export interface KniffCarouselSettingsProps {
     align?: "start" | "center" | "end"
     loop?: boolean
     autoMove?: "none" | "perSlide" | "scroll"
-    slideTransforms?: { enabled?: boolean; perspective?: number; previous?: SlideTransform; current?: SlideTransform; next?: SlideTransform }
+    slideTransforms?: { enabled?: boolean; preview?: boolean; perspective?: number; previous?: SlideTransform; current?: SlideTransform; next?: SlideTransform }
     slideTransition?: Transition
     autoMoveDelay?: number
     autoMoveStartDelay?: number
@@ -143,6 +143,7 @@ export const kniffCarouselSettingsPropertyControls = {
         title: "Effects",
         controls: {
             enabled: { type: ControlType.Boolean, title: "Enable Effects", defaultValue: false },
+            preview: { type: ControlType.Boolean, title: "Canvas Preview", defaultValue: true, hidden: hideTransformSettings },
             previous: { type: ControlType.Object, title: "Previous Slides", controls: transformControls, hidden: hideTransformSettings },
             current: { type: ControlType.Object, title: "Current Slide", controls: transformControls, hidden: hideTransformSettings },
             next: { type: ControlType.Object, title: "Next Slides", controls: transformControls, hidden: hideTransformSettings },
