@@ -26,16 +26,40 @@ export interface SlideTransform {
 }
 
 const axis = (title: string, unit: string) => ({
-    type: ControlType.Number as const, title, unit, defaultValue: 0, displayStepper: true,
+    type: ControlType.Number as const,
+    title,
+    unit,
+    defaultValue: 0,
+    displayStepper: true,
 })
-const hideTransformSettings = (props: { enabled?: boolean; slideTransforms?: { enabled?: boolean } }) =>
-    !(props.slideTransforms?.enabled ?? props.enabled)
+const hideTransformSettings = (props: {
+    enabled?: boolean
+    slideTransforms?: { enabled?: boolean }
+}) => !(props.slideTransforms?.enabled ?? props.enabled)
 
 const transformControls = {
-    opacity: { type: ControlType.Number as const, title: "Opacity", min: 0, max: 1, defaultValue: 1, step: 0.01 },
-    scale: { type: ControlType.Number as const, title: "Scale", min: 0, defaultValue: 1, step: 0.05, displayStepper: true },
-    x: axis("Translate X", "px"), y: axis("Translate Y", "px"), z: axis("Translate Z", "px"),
-    rotateX: axis("Rotate X", "°"), rotateY: axis("Rotate Y", "°"), rotateZ: axis("Rotate Z", "°"),
+    opacity: {
+        type: ControlType.Number as const,
+        title: "Opacity",
+        min: 0,
+        max: 1,
+        defaultValue: 1,
+        step: 0.01,
+    },
+    scale: {
+        type: ControlType.Number as const,
+        title: "Scale",
+        min: 0,
+        defaultValue: 1,
+        step: 0.05,
+        displayStepper: true,
+    },
+    x: axis("Translate X", "px"),
+    y: axis("Translate Y", "px"),
+    z: axis("Translate Z", "px"),
+    rotateX: axis("Rotate X", "°"),
+    rotateY: axis("Rotate Y", "°"),
+    rotateZ: axis("Rotate Z", "°"),
 }
 
 interface PreviousSlideTransform extends SlideTransform {
@@ -43,16 +67,30 @@ interface PreviousSlideTransform extends SlideTransform {
     invert?: boolean
 }
 
-type PreviousControlProps = PreviousSlideTransform & { slideTransforms?: { previous?: PreviousSlideTransform } }
+type PreviousControlProps = PreviousSlideTransform & {
+    slideTransforms?: { previous?: PreviousSlideTransform }
+}
 const copiesNext = (props: PreviousControlProps) =>
     props.slideTransforms?.previous?.copyNext ?? props.copyNext ?? false
 
 const previousTransformControls = {
-    copyNext: { type: ControlType.Boolean as const, title: "Copy Next", defaultValue: false },
-    invert: { type: ControlType.Boolean as const, title: "Invert", defaultValue: false, hidden: (props: PreviousControlProps) => !copiesNext(props) },
-    ...Object.fromEntries(Object.entries(transformControls).map(([key, control]) => [
-        key, { ...control, hidden: copiesNext },
-    ])),
+    copyNext: {
+        type: ControlType.Boolean as const,
+        title: "Copy Next",
+        defaultValue: false,
+    },
+    invert: {
+        type: ControlType.Boolean as const,
+        title: "Invert",
+        defaultValue: false,
+        hidden: (props: PreviousControlProps) => !copiesNext(props),
+    },
+    ...Object.fromEntries(
+        Object.entries(transformControls).map(([key, control]) => [
+            key,
+            { ...control, hidden: copiesNext },
+        ])
+    ),
 }
 
 export interface KniffCarouselSettingsProps {
@@ -62,7 +100,15 @@ export interface KniffCarouselSettingsProps {
     align?: "start" | "center" | "end"
     loop?: boolean
     autoMove?: "none" | "perSlide" | "scroll"
-    slideTransforms?: { enabled?: boolean; preview?: boolean; perspective?: number; previous?: PreviousSlideTransform; current?: SlideTransform; next?: SlideTransform }
+    slideTransforms?: {
+        enabled?: boolean
+        preview?: boolean
+        perspective?: number
+        previous?: PreviousSlideTransform
+        current?: SlideTransform
+        next?: SlideTransform
+    }
+    customTransition?: boolean
     slideTransition?: Transition
     autoMoveDelay?: number
     autoMoveStartDelay?: number
@@ -92,6 +138,7 @@ export const kniffCarouselSettingsPropertyControls = {
         title: "Viewport",
         type: ControlType.String,
         defaultValue: "Percentage Sized Carousel",
+        description: "This is needed for Canvas Preview.",
     },
     loop: {
         title: "Loop",
@@ -159,15 +206,49 @@ export const kniffCarouselSettingsPropertyControls = {
         type: ControlType.Object,
         title: "Effects",
         controls: {
-            enabled: { type: ControlType.Boolean, title: "Enable Effects", defaultValue: false },
-            preview: { type: ControlType.Boolean, title: "Canvas Preview", defaultValue: true, hidden: hideTransformSettings },
-            previous: { type: ControlType.Object, title: "Previous Slides", controls: previousTransformControls, hidden: hideTransformSettings },
-            current: { type: ControlType.Object, title: "Current Slide", controls: transformControls, hidden: hideTransformSettings },
-            next: { type: ControlType.Object, title: "Next Slides", controls: transformControls, hidden: hideTransformSettings },
-            perspective: { ...axis("Perspective", "px"), min: 0, hidden: hideTransformSettings },
+            enabled: {
+                type: ControlType.Boolean,
+                title: "Enable Effects",
+                defaultValue: false,
+            },
+            preview: {
+                type: ControlType.Boolean,
+                title: "Canvas Preview",
+                defaultValue: true,
+                hidden: hideTransformSettings,
+            },
+            previous: {
+                type: ControlType.Object,
+                title: "Previous Slides",
+                controls: previousTransformControls,
+                hidden: hideTransformSettings,
+            },
+            current: {
+                type: ControlType.Object,
+                title: "Current Slide",
+                controls: transformControls,
+                hidden: hideTransformSettings,
+            },
+            next: {
+                type: ControlType.Object,
+                title: "Next Slides",
+                controls: transformControls,
+                hidden: hideTransformSettings,
+            },
+            perspective: {
+                ...axis("Perspective", "px"),
+                min: 0,
+                hidden: hideTransformSettings,
+            },
         },
     },
+    customTransition: {
+        title: "Custom Transition",
+        type: ControlType.Boolean,
+        defaultValue: false,
+    },
     slideTransition: {
+        hidden: (props) => !props.customTransition,
         title: "Transition",
         type: ControlType.Transition,
         defaultValue: { type: "tween", duration: 0.4, ease: "easeInOut" },
@@ -187,6 +268,8 @@ export const kniffCarouselSettingsPropertyControls = {
         type: ControlType.Boolean,
         defaultValue: true,
         hidden: (props) => props.loop !== false,
+        description:
+            "Makes sure, first and last slide also have enough space for snap alignment",
     },
     showInstructions: {
         type: ControlType.Boolean,

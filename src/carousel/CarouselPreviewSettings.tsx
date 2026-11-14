@@ -23,6 +23,7 @@ export function CarouselPreviewSettings({
     loop = true,
     autoMove = "none",
     slideTransforms,
+    customTransition = false,
     slideTransition = { type: "tween", duration: 0.4, ease: "easeInOut" },
     autoMoveDelay = 8,
     autoMoveStartDelay = 0,
@@ -198,7 +199,7 @@ ${boundary} {
 }
 ${boundaryCSS}
 ${viewport} {
-  --kniff-slide-transition: ${JSON.stringify(slideTransition)};
+  --kniff-slide-transition: ${customTransition ? JSON.stringify(slideTransition) : "initial"};
   --kniff-initial-align: ${align};
   --kniff-initial-position: ${align === "start" ? "0%" : align === "end" ? "100%" : "50%"};
   display: flex !important;
