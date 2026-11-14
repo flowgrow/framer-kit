@@ -107,10 +107,12 @@ function RenderedSettings(props: RamkaSettingsProps) {
 
 RamkaSettings.displayName = "Kniff Lightbox Settings"
 export const ramkaSettingsPropertyControls = {
-    showInstructions: {
-        type: ControlType.Boolean,
-        title: "Instructions",
-        defaultValue: true,
+    layout: {
+        type: ControlType.Enum,
+        title: "Layout",
+        options: ["peek", "theater"],
+        optionTitles: ["Peek", "Theater"],
+        defaultValue: ramkaSettingsDefaults.layout,
     },
     preload: {
         type: ControlType.Number,
@@ -120,13 +122,7 @@ export const ramkaSettingsPropertyControls = {
         max: 4,
         step: 1,
         displayStepper: true,
-    },
-    layout: {
-        type: ControlType.Enum,
-        title: "Layout",
-        options: ["peek", "theater"],
-        optionTitles: ["Peek", "Theater"],
-        defaultValue: ramkaSettingsDefaults.layout,
+        hidden: (props) => (props.layout ?? ramkaSettingsDefaults.layout) !== "peek",
     },
     zoom: {
         type: ControlType.Boolean,
@@ -147,6 +143,11 @@ export const ramkaSettingsPropertyControls = {
         type: ControlType.Color,
         title: "Backdrop",
         defaultValue: ramkaSettingsDefaults.backdropColor,
+    },
+    showInstructions: {
+        type: ControlType.Boolean,
+        title: "Instructions",
+        defaultValue: true,
     },
 } satisfies PropertyControls<RamkaSettingsProps>
 
