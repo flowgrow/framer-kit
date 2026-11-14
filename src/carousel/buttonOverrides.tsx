@@ -30,19 +30,12 @@ function navigationOverride<P extends object>(
     }, [viewport])
     React.useLayoutEffect(() => {
       if (!button || !disabled) return
-      const { opacity, pointerEvents } = button.style
-      button.style.opacity = "0.5"
-      button.style.pointerEvents = "none"
       const block = (event: MouseEvent) => {
         event.preventDefault()
         event.stopImmediatePropagation()
       }
       button.addEventListener("click", block, true)
-      return () => {
-        button.style.opacity = opacity
-        button.style.pointerEvents = pointerEvents
-        button.removeEventListener("click", block, true)
-      }
+      return () => button.removeEventListener("click", block, true)
     }, [button, disabled])
     React.useEffect(() => {
       if (!button || !viewport || disabled) return
@@ -76,6 +69,7 @@ function navigationOverride<P extends object>(
     return React.createElement(Component, {
       ...props,
       ref,
+      ...(disabled ? { variant: "Disabled" } : {}),
       role: original.role ?? "button",
       tabIndex: disabled ? -1 : original.tabIndex ?? 0,
       "aria-label": original["aria-label"] ?? (direction === 1 ? "Next slide" : "Previous slide"),
