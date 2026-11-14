@@ -2,9 +2,9 @@
 import { installTouchIntent } from "https://framer.com/m/touchIntent-1GV9VC.js@yw9Bc4mMxSyGwxci63kz"
 
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { slideRect } from "./snapGeometry.ts"
+import { overflowSnapPoints, slideRect } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { cancelOverflowMove, getPendingOverflowDestination, scrollToSlide } from "./snapNavigation.ts"
+import { cancelOverflowMove, getPendingOverflowDestination, scrollToSlide, scrollToSnapPosition } from "./snapNavigation.ts"
 
 export interface AutoMoveOptions {
   speed: number
@@ -54,6 +54,7 @@ export function installAutoMove(
   let started = false
   let terminal = 0
   let restarting = false
+  let settlingPause = false
   let manuallyPaused = false
   const externallyPaused = () => manuallyPaused || viewport.hasAttribute("data-kniff-auto-move-paused")
   const state = (next: typeof phase) => {
@@ -283,6 +284,13 @@ export function installAutoMove(
       wheel()
   }
   const navigation = () => {
+    if (settlingPause) {
+      if (getPendingOverflowDestination(viewport) === undefined) {
+        settlingPause = false
+        restore()
+      }
+      return
+    }
     if (restarting) {
       if (getPendingOverflowDestination(viewport) === undefined) {
         restarting = false
@@ -326,21 +334,34 @@ export function installAutoMove(
       }
     }
   }
-  const pause = (next: "held" | "stopped") => {
+  const pause = (next: "held" | "stopped", settle = false) => {
     manuallyPaused = true
     if (restarting) {
       restarting = false
       cancelOverflowMove(viewport)
     }
     stop()
-    restore()
     suspended = true
     state(next)
+    if (settle) {
+      cancelOverflowMove(viewport)
+      const left = viewport.scrollLeft
+      const nearest = overflowSnapPoints(viewport).reduce<number | undefined>((best, point) =>
+        best === undefined || Math.abs(point - left) < Math.abs(best - left) ? point : best, undefined)
+      if (nearest !== undefined && Math.abs(nearest - left) > 1) {
+        settlingPause = true
+        viewport.style.scrollSnapType = "none"
+        scrollToSnapPosition(viewport, nearest, true, true)
+        return
+      }
+    }
+    restore()
   }
   const manual = () => { if (stopOnInteraction) pause("held") }
   const toggle = () => {
-    if (phase !== "held" && phase !== "stopped") pause("held")
+    if (phase !== "held" && phase !== "stopped") pause("held", true)
     else {
+      if (settlingPause) cancelOverflowMove(viewport)
       manuallyPaused = false
       resumeMoving = true
       suspended = true
@@ -399,7 +420,7 @@ export function installAutoMove(
   measure()
   return () => {
     disposed = true
-    if (restarting) cancelOverflowMove(viewport)
+    if (restarting || settlingPause) cancelOverflowMove(viewport)
     stop()
     viewport.removeEventListener("kniff-manual-navigation", manual)
     viewport.removeEventListener("kniff-toggle-playback", toggle)
