@@ -59,6 +59,7 @@ function RenderedSettings(props: RamkaSettingsProps) {
         showThumbnails,
         showCaptions,
         backdropColor,
+        showInstructions,
     } = settings
 
     useEffect(() => {
@@ -74,6 +75,7 @@ function RenderedSettings(props: RamkaSettingsProps) {
             showThumbnails,
             showCaptions,
             backdropColor,
+            showInstructions,
         }
         setGalleryConfig(config)
         return () => setGalleryConfig(defaultRamkaGalleryConfig)
@@ -89,6 +91,7 @@ function RenderedSettings(props: RamkaSettingsProps) {
         showThumbnails,
         showCaptions,
         backdropColor,
+        showInstructions,
     ])
 
     return (

@@ -11,6 +11,9 @@ interface CarouselScope {
 
 export const CarouselContext = React.createContext<CarouselScope | null>(null)
 
+export const CarouselSettingsSnapshot = React.createContext<string | null>(null)
+export const SetCarouselSettingsSnapshot = React.createContext<React.Dispatch<React.SetStateAction<string | null>> | null>(null)
+
 function withKniffCarouselBoundary<P extends object>(
   Component: React.ComponentType<P>,
   _internal?: undefined,
@@ -18,6 +21,7 @@ function withKniffCarouselBoundary<P extends object>(
   const Override = React.forwardRef<unknown, P>((props, ref) => {
     const id = React.useId()
     const [viewport, register] = React.useState<HTMLElement | null>(null)
+    const [settings, setSettings] = React.useState<string | null>(null)
     const scope = React.useMemo(
       () => ({
         boundarySelector: `[data-kniff-boundary="${id}"]`,
@@ -32,7 +36,11 @@ function withKniffCarouselBoundary<P extends object>(
       return React.createElement(Component, { ...props, ref } as P)
     return (
       <CarouselContext.Provider value={scope}>
-        {React.createElement(Component, { ...props, ref, "data-kniff-boundary": id } as P)}
+        <SetCarouselSettingsSnapshot.Provider value={setSettings}>
+          <CarouselSettingsSnapshot.Provider value={settings}>
+            {React.createElement(Component, { ...props, ref, "data-kniff-boundary": id } as P)}
+          </CarouselSettingsSnapshot.Provider>
+        </SetCarouselSettingsSnapshot.Provider>
       </CarouselContext.Provider>
     )
   })

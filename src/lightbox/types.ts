@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react"
 export type RamkaMorphTarget = "active" | "origin" | "closest"
 
 export interface RamkaGalleryConfig {
+  showInstructions?: boolean
   loop: boolean
   viewTransition: boolean
   morphTo: RamkaMorphTarget

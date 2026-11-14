@@ -4,7 +4,9 @@ import { RamkaGalleryContext } from "../lightbox/context.ts"
 import { CarouselCanvasSettings } from "./CarouselCanvasSettings.tsx"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { CarouselPreviewSettings } from "./CarouselPreviewSettings.tsx"
-import { useContext, type CSSProperties } from "react"
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { SetCarouselSettingsSnapshot } from "./carouselContext.tsx"
+import { useEffect, useContext, type CSSProperties } from "react"
 import {
     addPropertyControls,
     ControlType,
@@ -127,6 +129,17 @@ export interface KniffCarouselSettingsProps {
  */
 export function KniffCarouselSettings(props: KniffCarouselSettingsProps) {
     const gallery = useContext(RamkaGalleryContext) as any
+    const setSnapshot = useContext(SetCarouselSettingsSnapshot)
+    const snapshot = setSnapshot && !gallery?.isLoopCopy
+        ? JSON.stringify(Object.fromEntries(Object.entries(kniffCarouselSettingsPropertyControls).map(([key, control]) => [
+            key, props[key as keyof KniffCarouselSettingsProps] ?? ("defaultValue" in control ? control.defaultValue : undefined),
+        ])))
+        : null
+    useEffect(() => {
+        if (!setSnapshot || !snapshot) return
+        setSnapshot(snapshot)
+        return () => setSnapshot(current => current === snapshot ? null : current)
+    }, [setSnapshot, snapshot])
     if (RenderTarget.current() === RenderTarget.canvas)
         return <CarouselCanvasSettings {...props} />
     if (gallery?.isLoopCopy) return null

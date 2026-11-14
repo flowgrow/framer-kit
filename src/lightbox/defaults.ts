@@ -16,6 +16,7 @@ export const ramkaSettingsDefaults = {
 } as const
 
 export const defaultRamkaGalleryConfig: RamkaGalleryConfig = {
+  showInstructions: ramkaSettingsDefaults.showInstructions,
   loop: ramkaSettingsDefaults.loop,
   viewTransition: ramkaSettingsDefaults.viewTransition,
   morphTo: ramkaSettingsDefaults.morphTo,
