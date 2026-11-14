@@ -18,7 +18,10 @@ import type { RamkaGalleryConfig, RamkaSettingsProps } from "./types.ts"
 /** Configures the nearest parent carrying the withKniffLightboxGallery override. */
 export function RamkaSettings(props: RamkaSettingsProps) {
     if (RenderTarget.current() === RenderTarget.canvas) {
-        if (props.showInstructions === false) return null
+        if (props.showInstructions === false) {
+            // Framer keeps the canvas wrapper. Mark it so the carousel skips it.
+            return <span hidden data-kniff data-kniff-ramka-settings="" />
+        }
         return (
             <CanvasInstructions
                 data-kniff

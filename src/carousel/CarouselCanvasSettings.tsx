@@ -29,7 +29,7 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, l
         frame = undefined
         const slides: HTMLElement[] = slideBoxes(viewport)
         const eligible = slides.filter(slide =>
-            slide.matches(":not([data-kniff])")
+            !slide.hasAttribute("data-kniff") && !slide.querySelector("[data-kniff-canvas-settings]")
         ).sort((a, b) => Number(getComputedStyle(a).order) - Number(getComputedStyle(b).order))
         if (currentSlide !== eligible[0]) {
             currentSlide?.removeAttribute("data-kniff-canvas-current")
