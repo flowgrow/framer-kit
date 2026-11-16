@@ -78,20 +78,20 @@ function navigationOverride<P extends object>(
   })
   return Override as unknown as React.ComponentType<P>
 }
-function withKniffCarouselPrevious<P extends object>(
+function withKniffCarouselPreviousButton<P extends object>(
   Component: React.ComponentType<P>,
   _internal?: undefined,
 ): React.ComponentType<P> {
   return navigationOverride(Component, -1)
 }
-function withKniffCarouselNext<P extends object>(
+function withKniffCarouselNextButton<P extends object>(
   Component: React.ComponentType<P>,
   _internal?: undefined,
 ): React.ComponentType<P> {
   return navigationOverride(Component, 1)
 }
 
-function withAutoMovePlayButton(Component: React.ComponentType<any>): React.ComponentType<any> {
+function withKniffCarouselPlayButton(Component: React.ComponentType<any>): React.ComponentType<any> {
   return React.forwardRef<HTMLElement, any>((props, forwardedRef) => {
     const viewport = (React.useContext(CarouselContext) as any)?.viewport as HTMLElement | undefined
     const [button, setButton] = React.useState<HTMLElement | null>(null)
@@ -135,7 +135,7 @@ function withAutoMovePlayButton(Component: React.ComponentType<any>): React.Comp
   })
 }
 
-function withAutoMoveProgress(Component: React.ComponentType<any>): React.ComponentType<any> {
+function withKniffCarouselProgress(Component: React.ComponentType<any>): React.ComponentType<any> {
   return React.forwardRef<HTMLElement, any>((props, forwardedRef) => {
     const viewport = (React.useContext(CarouselContext) as any)?.viewport as HTMLElement | undefined
     const [bar, setBar] = React.useState<HTMLElement | null>(null)
@@ -186,4 +186,4 @@ function withAutoMoveProgress(Component: React.ComponentType<any>): React.Compon
   })
 }
 
-export const carouselButtonOverrides = { withKniffCarouselPrevious, withKniffCarouselNext, withAutoMovePlayButton, withAutoMoveProgress }
+export const carouselButtonOverrides = { withKniffCarouselPreviousButton, withKniffCarouselNextButton, withKniffCarouselPlayButton, withKniffCarouselProgress }

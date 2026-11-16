@@ -16,77 +16,35 @@ import { carouselButtonOverrides } from "./carousel/buttonOverrides.tsx"
 import { lightboxOverrides } from "./lightbox/overrides.tsx"
 
 // Contexts for outer frames.
-export function withKitContext(Component: ComponentType<any>): ComponentType<any> {
-  return carouselContextOverrides.withKniffCarouselBoundary(
+export function withKniffContext(Component: ComponentType<any>): ComponentType<any> {
+  return carouselContextOverrides.withKniffContextBoundary(
     lightboxOverrides.withKniffLightboxGallery(Component),
   )
 }
 
-export function withCarouselContext(Component: ComponentType<any>): ComponentType<any> {
-  return carouselContextOverrides.withKniffCarouselBoundary(Component)
-}
-
-export function withLightboxContext(Component: ComponentType<any>): ComponentType<any> {
-  return lightboxOverrides.withKniffLightboxGallery(Component)
-}
-
 // Viewport, triggers, and navigation.
-export function withCarouselViewport(Component: ComponentType<any>): ComponentType<any> {
+export function withKniffCarouselViewport(Component: ComponentType<any>): ComponentType<any> {
   return carouselViewportOverride.withKniffCarousel(Component)
 }
 
-export function withKitLightboxTrigger(Component: ComponentType<any>): ComponentType<any> {
+export function withKniffLightboxTrigger(Component: ComponentType<any>): ComponentType<any> {
   return lightboxOverrides.withKniffLightboxTrigger(Component)
 }
 
-export function withKitCarouselPrevious(Component: ComponentType<any>): ComponentType<any> {
-  return carouselButtonOverrides.withKniffCarouselPrevious(Component)
+export function withKniffCarouselPreviousButton(Component: ComponentType<any>): ComponentType<any> {
+  return carouselButtonOverrides.withKniffCarouselPreviousButton(Component)
 }
 
-export function withKitCarouselNext(Component: ComponentType<any>): ComponentType<any> {
-  return carouselButtonOverrides.withKniffCarouselNext(Component)
+export function withKniffCarouselNextButton(Component: ComponentType<any>): ComponentType<any> {
+  return carouselButtonOverrides.withKniffCarouselNextButton(Component)
 }
 
-// Used by /tmp/carousel-context-probe.
-const ProbeContext = React.createContext<string | null>(null)
-export function withProbeProvider(Component: ComponentType<any>): ComponentType<any> {
-  return React.forwardRef<any, any>((props, ref) => (
-    <ProbeContext.Provider value="kniff-context-ok">
-      <Component {...props} ref={ref} />
-    </ProbeContext.Provider>
-  ))
+export function withKniffCarouselPlayButton(Component: ComponentType<any>): ComponentType<any> {
+  return carouselButtonOverrides.withKniffCarouselPlayButton(Component)
 }
 
-export function withProbeReader(Component: ComponentType<any>): ComponentType<any> {
-  return React.forwardRef<any, any>((props, ref) => {
-    const found = React.useContext(ProbeContext) === "kniff-context-ok"
-    const canvas = RenderTarget.current() === RenderTarget.canvas
-    return (
-      <Component
-        {...props}
-        ref={ref}
-        data-kniff-context-result={found ? "found" : "missing"}
-        data-kniff-render-target={canvas ? "canvas" : "preview"}
-        style={{
-          ...props.style,
-          backgroundColor: found ? (canvas ? "#86efac" : "#93c5fd") : "#fca5a5",
-          outline: found
-            ? canvas
-              ? "4px solid #15803d"
-              : "4px solid #1d4ed8"
-            : "4px solid #dc2626",
-        }}
-      />
-    )
-  })
-}
-
-export function withAutoMovePlayButton(Component: ComponentType<any>): ComponentType<any> {
-  return carouselButtonOverrides.withAutoMovePlayButton(Component)
-}
-
-export function withAutoMoveProgress(Component: ComponentType<any>): ComponentType<any> {
-  return carouselButtonOverrides.withAutoMoveProgress(Component)
+export function withKniffCarouselProgress(Component: ComponentType<any>): ComponentType<any> {
+  return carouselButtonOverrides.withKniffCarouselProgress(Component)
 }
 
 const ActiveDotContext = React.createContext<{ active: boolean; weight: number; index: number; viewport: HTMLElement; widths: number[]; measure: (widths: number[]) => void } | null>(null)
@@ -149,7 +107,7 @@ function observeDots(viewport: HTMLElement, update: (count: number, position: nu
   }
 }
 
-export function withDotsContainer(Component: ComponentType<any>): ComponentType<any> {
+export function withKniffCarouselDotsContainer(Component: ComponentType<any>): ComponentType<any> {
   return React.forwardRef<any, any>((props, ref) => {
     const scope = React.useContext(CarouselContext) as unknown as { viewport: HTMLElement | null } | null
     const viewport = scope?.viewport
@@ -174,7 +132,7 @@ export function withDotsContainer(Component: ComponentType<any>): ComponentType<
   })
 }
 
-export function withActiveDot(Component: ComponentType<any>): ComponentType<any> {
+export function withKniffCarouselDot(Component: ComponentType<any>): ComponentType<any> {
   return React.forwardRef<any, any>((props, ref) => {
     const dot = React.useContext(ActiveDotContext)
     const layoutId = React.useId()

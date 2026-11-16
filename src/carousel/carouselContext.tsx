@@ -14,7 +14,7 @@ export const CarouselContext = React.createContext<CarouselScope | null>(null)
 export const CarouselSettingsSnapshot = React.createContext<string | null>(null)
 export const SetCarouselSettingsSnapshot = React.createContext<React.Dispatch<React.SetStateAction<string | null>> | null>(null)
 
-function withKniffCarouselBoundary<P extends object>(
+function withKniffContextBoundary<P extends object>(
   Component: React.ComponentType<P>,
   _internal?: undefined,
 ): React.ComponentType<P> {
@@ -47,4 +47,4 @@ function withKniffCarouselBoundary<P extends object>(
   return Override as unknown as React.ComponentType<P>
 }
 
-export const carouselContextOverrides = { withKniffCarouselBoundary }
+export const carouselContextOverrides = { withKniffContextBoundary }
