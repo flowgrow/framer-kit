@@ -3,7 +3,6 @@ import { RenderTarget } from "framer"
 
 interface CarouselScope {
   id: string
-  boundarySelector: string
   viewportSelector: string
   viewport: HTMLElement | null
   register?: React.Dispatch<React.SetStateAction<HTMLElement | null>>
@@ -24,7 +23,6 @@ function withKniffContextBoundary<P extends object>(
     const [settings, setSettings] = React.useState<string | null>(null)
     const scope = React.useMemo(
       () => ({
-        boundarySelector: `[data-kniff-boundary="${id}"]`,
         viewportSelector: `[data-kniff-viewport="${id}"]`,
         viewport,
         register,
