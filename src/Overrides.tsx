@@ -8,8 +8,6 @@ import { scrollToSlide } from "./carousel/snapNavigation.ts"
 import { snapPosition, dotSlides, isOriginalSlide } from "./carousel/snapGeometry.ts"
 // @ts-ignore Framer's checker does not resolve local code-file imports.
 import { CarouselContext, carouselContextOverrides } from "./carousel/carouselContext.tsx"
-// @ts-ignore Framer's checker does not resolve local code-file imports.
-import { withCarouselPaddingProvider as paddingProvider } from "./carousel/paddingProvider.tsx"
 // @ts-ignore
 import { carouselViewportOverride } from "./carousel/withKniffCarousel.tsx"
 // @ts-ignore
@@ -18,10 +16,6 @@ import { carouselButtonOverrides } from "./carousel/buttonOverrides.tsx"
 import { lightboxOverrides } from "./lightbox/overrides.tsx"
 
 // Contexts for outer frames.
-export function withCarouselPaddingProvider(Component: ComponentType<any>): ComponentType<any> {
-  return paddingProvider(Component)
-}
-
 export function withKniffContext(Component: ComponentType<any>): ComponentType<any> {
   return carouselContextOverrides.withKniffContextBoundary(
     lightboxOverrides.withKniffLightboxGallery(Component),

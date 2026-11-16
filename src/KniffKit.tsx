@@ -2,10 +2,6 @@ import type { ComponentType } from "react"
 // @ts-ignore Framer resolves shared code module URLs at runtime.
 import * as KniffOverrides from "https://framer.com/m/Overrides-7UtuzA.js"
 
-export function withCarouselPaddingProvider(Component: ComponentType<any>): ComponentType<any> {
-  return KniffOverrides.withCarouselPaddingProvider(Component)
-}
-
 export function withKniffContext(Component: ComponentType<any>): ComponentType<any> {
   return KniffOverrides.withKniffContext(Component)
 }
