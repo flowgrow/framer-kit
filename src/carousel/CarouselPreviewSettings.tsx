@@ -175,7 +175,7 @@ export function CarouselPreviewSettings({
     const firstSlide = edgeSlide("first")
     const lastSlide = edgeSlide("last")
     const boundaryCSS = `${boundary} ${viewport} {
-  --kniff-bleed-page-span: 100cqw;
+  --kniff-bleed-page-span: 100vw;
 }`
     const firstSlideMargin =
         includeEdgeSpace && !loop && align !== "start"
