@@ -37,7 +37,7 @@ export function CarouselPreviewSettings({
     const viewportSelector =
         scope?.viewportSelector ??
         (containerID.trim() ? target(containerID) : "")
-    const boundary = "body"
+    const boundary = scope?.boundarySelector ?? "body"
     const registeredViewport = scope?.viewport ?? null
     const includeEdgeSpace = loop || edgeSpace
     useEdgeSlideWidths(

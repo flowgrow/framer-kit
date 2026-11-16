@@ -86,6 +86,7 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
       <CarouselContext.Provider
         value={{
           id,
+          boundarySelector: scope?.boundarySelector ?? "body",
           viewportSelector: `[data-kniff-viewport="${id}"]`,
           viewport,
         }}
