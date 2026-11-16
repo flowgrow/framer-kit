@@ -218,7 +218,6 @@ ${viewport} {
   overflow-y: hidden !important;
   overscroll-behavior-x: none;
   overflow-anchor: none;
-  align-items: inherit !important;
   justify-content: flex-start !important;
   scroll-snap-type: x mandatory;
   scroll-padding-left: calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter));
