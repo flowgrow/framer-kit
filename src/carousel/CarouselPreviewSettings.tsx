@@ -212,8 +212,8 @@ ${viewport} {
   margin-inline: calc((100% - var(--kniff-bleed-page-span)) / 2) !important;
   --kniff-content-width: min(100cqw, var(--kniff-authored-width, 100cqw), var(--kniff-authored-max-width, 100cqw));
   --kniff-gutter: calc((var(--kniff-bleed-page-span) - var(--kniff-content-width)) / 2);
-  padding-left: calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter)) !important;
-  padding-right: calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter)) !important;
+  padding-left: calc(var(--kniff-provider-padding-left, var(--kniff-authored-padding-left, 0px)) + var(--kniff-gutter)) !important;
+  padding-right: calc(var(--kniff-provider-padding-right, var(--kniff-authored-padding-right, 0px)) + var(--kniff-gutter)) !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
   overscroll-behavior-x: none;
@@ -221,8 +221,8 @@ ${viewport} {
   align-items: inherit !important;
   justify-content: flex-start !important;
   scroll-snap-type: x mandatory;
-  scroll-padding-left: calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter));
-  scroll-padding-right: calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter));
+  scroll-padding-left: calc(var(--kniff-provider-padding-left, var(--kniff-authored-padding-left, 0px)) + var(--kniff-gutter));
+  scroll-padding-right: calc(var(--kniff-provider-padding-right, var(--kniff-authored-padding-right, 0px)) + var(--kniff-gutter));
   scrollbar-width: none !important;
 
   ${slides} {
