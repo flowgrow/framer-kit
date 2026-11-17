@@ -34,12 +34,13 @@
   },
   "scripts": {
     "build": "FRAMER_KIT_DEV=0 tsup",
-    "dev": "tsup --watch",
+    "dev": "FRAMER_KIT_DEV=1 tsup --watch",
     "dev:framer": "pnpm run build:dev && node scripts/dev-framer.mjs",
+    "lint": "oxlint --react-plugin --deny-warnings .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "pnpm run typecheck && pnpm run test && pnpm run build",
+    "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm run worker:deploy",
@@ -48,7 +49,9 @@
     "worker:dev": "pnpm exec wrangler dev --config worker/wrangler.jsonc",
     "worker:deploy": "node scripts/check-prod-release.mjs && pnpm run check && pnpm run worker:prepare && pnpm exec wrangler deploy --config worker/wrangler.jsonc && pnpm run worker:verify",
     "worker:verify": "node scripts/verify-worker.mjs",
-    "build:dev": "FRAMER_KIT_DEV=1 tsup"
+    "build:dev": "FRAMER_KIT_DEV=1 tsup",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}\""
   },
   "engines": {
     "node": ">=20"
@@ -65,6 +68,8 @@
     "@types/node": "24.19.2",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
+    "oxlint": "1.77.0",
+    "prettier": "^3.9.10",
     "react": "18.3.1",
     "react-doctor": "0.9.12",
     "react-dom": "18.3.1",

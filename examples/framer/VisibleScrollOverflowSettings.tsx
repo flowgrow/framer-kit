@@ -2,10 +2,12 @@ import { addPropertyControls } from "framer"
 import {
   VisibleScrollOverflowSettings as KitComponent,
   visibleScrollOverflowSettingsPropertyControls,
-// @ts-ignore Framer resolves remote HTTPS modules without TypeScript declarations.
+  // @ts-ignore Framer resolves remote HTTPS modules without TypeScript declarations.
 } from "https://framer-kit-dev.kniff.at/scroll-snap.js?dev"
 
-interface Props { [key: string]: unknown }
+interface Props {
+  [key: string]: unknown
+}
 
 /**
  * @framerIntrinsicWidth 200

@@ -1,12 +1,23 @@
 import { describe, expect, it, vi } from "vitest"
 import worker from "../worker/index"
 
-const request = (path: string, method = "GET") => new Request(`https://framer-kit.kniff.at${path}`, { method })
-const env = { ASSETS: { fetch: vi.fn(async (_request: Request) => new Response('import React from "react";', { headers: { ETag: '"asset"' } })) } }
+const request = (path: string, method = "GET") =>
+  new Request(`https://framer-kit.kniff.at${path}`, { method })
+const env = {
+  ASSETS: {
+    fetch: vi.fn(
+      async (_request: Request) =>
+        new Response('import React from "react";', { headers: { ETag: '"asset"' } }),
+    ),
+  },
+}
 
 describe("production module Worker", () => {
   it("resolves esm.sh-style entry URLs to one immutable module graph", async () => {
-    const response = await worker.fetch(request("/@kniff/framer-kit@0.5.1/ramka?external=react,react-dom,framer&target=es2022"), env)
+    const response = await worker.fetch(
+      request("/@kniff/framer-kit@0.5.1/ramka?external=react,react-dom,framer&target=es2022"),
+      env,
+    )
     expect(await response.text()).toBe('export * from "/0.5.1/ramka.js";\n')
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*")
     expect(response.headers.get("X-TypeScript-Types")).toBe("/0.5.1/ramka.d.ts")
@@ -19,7 +30,8 @@ describe("production module Worker", () => {
     expect(response.headers.get("Content-Type")).toContain("javascript")
   })
   it("rejects unsupported transformations and unknown versions", async () => {
-    for (const path of ["/ramka.js?bundle", "/ramka.js?external=lodash", "/ramka.js?target=es5"]) expect((await worker.fetch(request(path), env)).status).toBe(400)
+    for (const path of ["/ramka.js?bundle", "/ramka.js?external=lodash", "/ramka.js?target=es5"])
+      expect((await worker.fetch(request(path), env)).status).toBe(400)
     expect((await worker.fetch(request("/@kniff/framer-kit@9.9.9"), env)).status).toBe(404)
     expect((await worker.fetch(request("/package.json"), env)).status).toBe(404)
   })

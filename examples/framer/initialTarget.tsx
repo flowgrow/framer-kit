@@ -2,7 +2,9 @@ import type { CSSProperties } from "react"
 // @ts-ignore Framer resolves remote HTTPS modules without TypeScript declarations.
 import { InitialTarget as KitComponent } from "https://framer-kit-dev.kniff.at/scroll-snap.js?dev"
 
-interface Props { style?: CSSProperties }
+interface Props {
+  style?: CSSProperties
+}
 
 /**
  * @framerIntrinsicWidth 1

@@ -2,10 +2,12 @@ import { addPropertyControls } from "framer"
 import {
   VisibleScrollOverflowSettings as KitComponent,
   visibleScrollOverflowSettingsPropertyControls,
-// @ts-ignore Framer resolves remote HTTPS modules without TypeScript declarations.
+  // @ts-ignore Framer resolves remote HTTPS modules without TypeScript declarations.
 } from "https://framer-kit.kniff.at/0.5.2/index.js?external=react,react-dom,framer&target=es2022"
 
-interface Props { [key: string]: unknown }
+interface Props {
+  [key: string]: unknown
+}
 
 /**
  * @framerIntrinsicWidth 1

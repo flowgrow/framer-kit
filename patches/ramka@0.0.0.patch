@@ -1,0 +1,318 @@
+diff --git a/dist/lightbox-morph-runtime-2AFPCVPV.js b/dist/lightbox-morph-runtime-2AFPCVPV.js
+index 5bd26d6969b4355b7e1ff1394568907c5a790195..dabbcf5b5dba53d161de61b58d191da40e83ff08 100644
+--- a/dist/lightbox-morph-runtime-2AFPCVPV.js
++++ b/dist/lightbox-morph-runtime-2AFPCVPV.js
+@@ -264,16 +264,31 @@ function parsePx(value) {
+   return Number.isFinite(n) && n > 0 ? n : null;
+ }
+ var fmt2 = (n) => Number(n.toFixed(4));
+-function maybeUpgradeToCompositedMorph(transition) {
++const percentPair = /^(-?[\d.]+)%\s+(-?[\d.]+)%$/;
++function triggerCropPosition(target) {
++  if (!target) return "50% 50%";
++  const style = getComputedStyle(target);
++  return target.tagName === "IMG" || target.tagName === "VIDEO"
++    ? style.objectPosition
++    : style.backgroundImage !== "none" ? style.backgroundPosition : "50% 50%";
++}
++
++function maybeUpgradeToCompositedMorph(transition, position) {
++  // Computed keywords serialize as percentages. Delegate lengths and calc()
++  // to the native snapshot's CSS position resolver.
++  const match = percentPair.exec(position);
++  if (!match) return;
++  const focalX = Number(match[1]) / 100;
++  const focalY = Number(match[2]) / 100;
+   if (!isCompositedMorphEnabled()) return;
+   if (!transition.ready) {
+     debugLog("bail: transition.ready unavailable");
+     return;
+   }
+-  transition.ready.then(() => upgrade(transition)).catch(() => {
++  transition.ready.then(() => upgrade(transition, focalX, focalY)).catch(() => {
+   });
+ }
+-function upgrade(transition) {
++function upgrade(transition, focalX, focalY) {
+   const docEl = document.documentElement;
+   const isCrossfade = docEl.hasAttribute("data-ramka-crossfade" /* crossfade */);
+   if (typeof document.getAnimations !== "function") {
+@@ -373,6 +388,7 @@ function upgrade(transition) {
+   const oldFrames = [];
+   const newFrames = [];
+   const lerp2 = (a, b, q) => a + (b - a) * q;
++  const opening = docEl.getAttribute("data-ramka-view-transition") === "opening";
+   const sampleAt = (q) => {
+     const w = lerp2(w0, w1, q);
+     const h = lerp2(h0, h1, q);
+@@ -388,17 +404,17 @@ function upgrade(transition) {
+     if (hasRadius) {
+       radius = compensatedMorphRadiusAt(rFrom, rTo, q, { w0, h0, w, h, w1, h1 });
+     }
+-    const counter = (wi, hi) => {
++    const counter = (wi, hi, x, y) => {
+       const k = Math.max(w / wi, h / hi);
+-      const dx = (w - k * wi) / 2 * w1 / w;
+-      const dy = (h - k * hi) / 2 * h1 / h;
++      const dx = (w - k * wi) * x * w1 / w;
++      const dy = (h - k * hi) * y * h1 / h;
+       return `translate(${fmt2(dx)}px, ${fmt2(dy)}px) scale(${fmt2(k * w1 / w)}, ${fmt2(k * h1 / h)})`;
+     };
+     return {
+       group: `translate(${fmt2(left)}px, ${fmt2(top)}px) scale(${fmt2(renderedW / w1)}, ${fmt2(renderedH / h1)})`,
+       radius,
+-      old: counter(w0, h0),
+-      new: counter(w1, h1)
++      old: counter(w0, h0, opening ? 0.5 : focalX, opening ? 0.5 : focalY),
++      new: counter(w1, h1, opening ? focalX : 0.5, opening ? focalY : 0.5)
+     };
+   };
+   for (let i = 0; i <= steps; i++) {
+@@ -746,6 +762,8 @@ function applyFirefoxFullBleedCaptureInset(morphTarget) {
+ }
+ var morphStateOwner = 0;
+ function applyMorphState(docEl, phase, opts) {
++  docEl.style.setProperty("--ramka-trigger-position", opts.position);
++  docEl.toggleAttribute("data-ramka-length-position", !opts.useCrossfade && !percentPair.test(opts.position));
+   docEl.setAttribute("data-ramka-view-transition" /* viewTransition */, phase);
+   promoteVtMotionTokens(docEl, opts.preset);
+   if (opts.useCrossfade) {
+@@ -773,6 +791,8 @@ function clearMorphName(el) {
+ }
+ function clearMorphState(docEl, owner) {
+   if (owner !== morphStateOwner) return;
++  docEl.style.removeProperty("--ramka-trigger-position");
++  docEl.removeAttribute("data-ramka-length-position");
+   docEl.removeAttribute("data-ramka-view-transition" /* viewTransition */);
+   docEl.removeAttribute("data-ramka-crossfade" /* crossfade */);
+   docEl.removeAttribute("data-ramka-vt-preset" /* viewTransitionPreset */);
+@@ -884,10 +904,12 @@ function createViewTransitionMorph(getConfig) {
+       warnCollapsedMediaMorph(itemTargetPrep);
+     }
+     const toRadius = canMorph ? resolveMorphBorderRadius(itemTargetPrep) : null;
++    const position = triggerCropPosition(triggerTarget);
+     const morphStateToken = applyMorphState(docEl, "opening", {
+       useCrossfade: canMorph ? useCrossfade : true,
+       fromRadius: canMorph ? fromRadius : null,
+       toRadius,
++      position,
+       preset: getConfig().transitionPreset
+     });
+     if (canMorph) {
+@@ -917,7 +939,7 @@ function createViewTransitionMorph(getConfig) {
+     });
+     maybeTraceViewTransition(transition, "opening");
+     if (canMorph) {
+-      maybeUpgradeToCompositedMorph(transition);
++      maybeUpgradeToCompositedMorph(transition, position);
+     }
+     transition.finished.finally(() => {
+       releaseTouchGuard();
+@@ -986,10 +1008,12 @@ function createViewTransitionMorph(getConfig) {
+     const useCrossfade = canMorph ? shouldUseCrossfade(triggerEl?.dataset.crossfade, "closing") : true;
+     const fromRadius = canMorph ? resolveMorphBorderRadius(itemTarget) : null;
+     const toRadius = canMorph ? resolveMorphBorderRadius(triggerTarget) : null;
++    const position = triggerCropPosition(triggerTarget);
+     const morphStateToken = applyMorphState(docEl, "closing", {
+       useCrossfade,
+       fromRadius,
+       toRadius,
++      position,
+       preset: getConfig().transitionPreset
+     });
+     if (isFirefox()) {
+@@ -1020,7 +1044,7 @@ function createViewTransitionMorph(getConfig) {
+     });
+     maybeTraceViewTransition(transition, "closing");
+     if (canMorph) {
+-      maybeUpgradeToCompositedMorph(transition);
++      maybeUpgradeToCompositedMorph(transition, position);
+     }
+     transition.finished.finally(() => {
+       releaseTouchGuard();
+@@ -1121,6 +1145,26 @@ function buildCss() {
+     mix-blend-mode: normal;
+   }
+ 
++  /* Only the full image snapshot needs the thumbnail crop. The trigger
++     snapshot already contains the authored crop. */
++  :root[${vt}="opening"]${newPseudo},
++  :root[${vt}="closing"]${oldPseudo} {
++    object-position: var(--ramka-trigger-position, center);
++  }
++
++  /* A length offset must reach zero once the entire photo fits. */
++  @keyframes ramka-release-crop-position {
++    from { object-position: var(--ramka-trigger-position); }
++    to { object-position: center; }
++  }
++  :root[data-ramka-length-position][${vt}="opening"]${newPseudo},
++  :root[data-ramka-length-position][${vt}="closing"]${oldPseudo} {
++    animation: ramka-release-crop-position ${duration} ${easing} both !important;
++  }
++  :root[data-ramka-length-position][${vt}="closing"]${oldPseudo} {
++    animation-direction: reverse !important;
++  }
++
+   ${oldPseudo} {
+     opacity: var(${vars.morphOldOpacity}, 1);
+   }
+diff --git a/dist/lightbox-morph-runtime-LPS5T6Q4.cjs b/dist/lightbox-morph-runtime-LPS5T6Q4.cjs
+index 7340010eae9f90fc5ce0d0c9f47f0f48f55c9516..9dc03fd384e58582d69034b13294d8407e2838b2 100644
+--- a/dist/lightbox-morph-runtime-LPS5T6Q4.cjs
++++ b/dist/lightbox-morph-runtime-LPS5T6Q4.cjs
+@@ -266,16 +266,31 @@ function parsePx(value) {
+   return Number.isFinite(n) && n > 0 ? n : null;
+ }
+ var fmt2 = (n) => Number(n.toFixed(4));
+-function maybeUpgradeToCompositedMorph(transition) {
++const percentPair = /^(-?[\d.]+)%\s+(-?[\d.]+)%$/;
++function triggerCropPosition(target) {
++  if (!target) return "50% 50%";
++  const style = getComputedStyle(target);
++  return target.tagName === "IMG" || target.tagName === "VIDEO"
++    ? style.objectPosition
++    : style.backgroundImage !== "none" ? style.backgroundPosition : "50% 50%";
++}
++
++function maybeUpgradeToCompositedMorph(transition, position) {
++  // Computed keywords serialize as percentages. Delegate lengths and calc()
++  // to the native snapshot's CSS position resolver.
++  const match = percentPair.exec(position);
++  if (!match) return;
++  const focalX = Number(match[1]) / 100;
++  const focalY = Number(match[2]) / 100;
+   if (!isCompositedMorphEnabled()) return;
+   if (!transition.ready) {
+     debugLog("bail: transition.ready unavailable");
+     return;
+   }
+-  transition.ready.then(() => upgrade(transition)).catch(() => {
++  transition.ready.then(() => upgrade(transition, focalX, focalY)).catch(() => {
+   });
+ }
+-function upgrade(transition) {
++function upgrade(transition, focalX, focalY) {
+   const docEl = document.documentElement;
+   const isCrossfade = docEl.hasAttribute("data-ramka-crossfade" /* crossfade */);
+   if (typeof document.getAnimations !== "function") {
+@@ -375,6 +390,7 @@ function upgrade(transition) {
+   const oldFrames = [];
+   const newFrames = [];
+   const lerp2 = (a, b, q) => a + (b - a) * q;
++  const opening = docEl.getAttribute("data-ramka-view-transition") === "opening";
+   const sampleAt = (q) => {
+     const w = lerp2(w0, w1, q);
+     const h = lerp2(h0, h1, q);
+@@ -390,17 +406,17 @@ function upgrade(transition) {
+     if (hasRadius) {
+       radius = compensatedMorphRadiusAt(rFrom, rTo, q, { w0, h0, w, h, w1, h1 });
+     }
+-    const counter = (wi, hi) => {
++    const counter = (wi, hi, x, y) => {
+       const k = Math.max(w / wi, h / hi);
+-      const dx = (w - k * wi) / 2 * w1 / w;
+-      const dy = (h - k * hi) / 2 * h1 / h;
++      const dx = (w - k * wi) * x * w1 / w;
++      const dy = (h - k * hi) * y * h1 / h;
+       return `translate(${fmt2(dx)}px, ${fmt2(dy)}px) scale(${fmt2(k * w1 / w)}, ${fmt2(k * h1 / h)})`;
+     };
+     return {
+       group: `translate(${fmt2(left)}px, ${fmt2(top)}px) scale(${fmt2(renderedW / w1)}, ${fmt2(renderedH / h1)})`,
+       radius,
+-      old: counter(w0, h0),
+-      new: counter(w1, h1)
++      old: counter(w0, h0, opening ? 0.5 : focalX, opening ? 0.5 : focalY),
++      new: counter(w1, h1, opening ? focalX : 0.5, opening ? focalY : 0.5)
+     };
+   };
+   for (let i = 0; i <= steps; i++) {
+@@ -748,6 +764,8 @@ function applyFirefoxFullBleedCaptureInset(morphTarget) {
+ }
+ var morphStateOwner = 0;
+ function applyMorphState(docEl, phase, opts) {
++  docEl.style.setProperty("--ramka-trigger-position", opts.position);
++  docEl.toggleAttribute("data-ramka-length-position", !opts.useCrossfade && !percentPair.test(opts.position));
+   docEl.setAttribute("data-ramka-view-transition" /* viewTransition */, phase);
+   promoteVtMotionTokens(docEl, opts.preset);
+   if (opts.useCrossfade) {
+@@ -775,6 +793,8 @@ function clearMorphName(el) {
+ }
+ function clearMorphState(docEl, owner) {
+   if (owner !== morphStateOwner) return;
++  docEl.style.removeProperty("--ramka-trigger-position");
++  docEl.removeAttribute("data-ramka-length-position");
+   docEl.removeAttribute("data-ramka-view-transition" /* viewTransition */);
+   docEl.removeAttribute("data-ramka-crossfade" /* crossfade */);
+   docEl.removeAttribute("data-ramka-vt-preset" /* viewTransitionPreset */);
+@@ -886,10 +906,12 @@ function createViewTransitionMorph(getConfig) {
+       warnCollapsedMediaMorph(itemTargetPrep);
+     }
+     const toRadius = canMorph ? resolveMorphBorderRadius(itemTargetPrep) : null;
++    const position = triggerCropPosition(triggerTarget);
+     const morphStateToken = applyMorphState(docEl, "opening", {
+       useCrossfade: canMorph ? useCrossfade : true,
+       fromRadius: canMorph ? fromRadius : null,
+       toRadius,
++      position,
+       preset: getConfig().transitionPreset
+     });
+     if (canMorph) {
+@@ -919,7 +941,7 @@ function createViewTransitionMorph(getConfig) {
+     });
+     maybeTraceViewTransition(transition, "opening");
+     if (canMorph) {
+-      maybeUpgradeToCompositedMorph(transition);
++      maybeUpgradeToCompositedMorph(transition, position);
+     }
+     transition.finished.finally(() => {
+       releaseTouchGuard();
+@@ -988,10 +1010,12 @@ function createViewTransitionMorph(getConfig) {
+     const useCrossfade = canMorph ? shouldUseCrossfade(triggerEl?.dataset.crossfade, "closing") : true;
+     const fromRadius = canMorph ? resolveMorphBorderRadius(itemTarget) : null;
+     const toRadius = canMorph ? resolveMorphBorderRadius(triggerTarget) : null;
++    const position = triggerCropPosition(triggerTarget);
+     const morphStateToken = applyMorphState(docEl, "closing", {
+       useCrossfade,
+       fromRadius,
+       toRadius,
++      position,
+       preset: getConfig().transitionPreset
+     });
+     if (chunkIDWOL2BQ_cjs.isFirefox()) {
+@@ -1022,7 +1046,7 @@ function createViewTransitionMorph(getConfig) {
+     });
+     maybeTraceViewTransition(transition, "closing");
+     if (canMorph) {
+-      maybeUpgradeToCompositedMorph(transition);
++      maybeUpgradeToCompositedMorph(transition, position);
+     }
+     transition.finished.finally(() => {
+       releaseTouchGuard();
+@@ -1123,6 +1147,26 @@ function buildCss() {
+     mix-blend-mode: normal;
+   }
+ 
++  /* Only the full image snapshot needs the thumbnail crop. The trigger
++     snapshot already contains the authored crop. */
++  :root[${vt}="opening"]${newPseudo},
++  :root[${vt}="closing"]${oldPseudo} {
++    object-position: var(--ramka-trigger-position, center);
++  }
++
++  /* A length offset must reach zero once the entire photo fits. */
++  @keyframes ramka-release-crop-position {
++    from { object-position: var(--ramka-trigger-position); }
++    to { object-position: center; }
++  }
++  :root[data-ramka-length-position][${vt}="opening"]${newPseudo},
++  :root[data-ramka-length-position][${vt}="closing"]${oldPseudo} {
++    animation: ramka-release-crop-position ${duration} ${easing} both !important;
++  }
++  :root[data-ramka-length-position][${vt}="closing"]${oldPseudo} {
++    animation-direction: reverse !important;
++  }
++
+   ${oldPseudo} {
+     opacity: var(${vars.morphOldOpacity}, 1);
+   }

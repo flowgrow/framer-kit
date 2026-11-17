@@ -2,7 +2,7 @@ import { addPropertyControls } from "framer"
 import {
   CSSScrollSnapButton as KitComponent,
   cssScrollSnapButtonPropertyControls,
-// @ts-ignore Framer resolves remote HTTPS modules without TypeScript declarations.
+  // @ts-ignore Framer resolves remote HTTPS modules without TypeScript declarations.
 } from "https://framer-kit-dev.kniff.at/scroll-snap.js?dev"
 
 /**

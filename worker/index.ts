@@ -1,6 +1,8 @@
 import manifest from "./manifest.json"
 
-interface Env { ASSETS: { fetch(request: Request): Promise<Response> } }
+interface Env {
+  ASSETS: { fetch(request: Request): Promise<Response> }
+}
 const externals = ["react", "react-dom", "framer"]
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -10,23 +12,67 @@ const headers = {
   "Cross-Origin-Resource-Policy": "cross-origin",
   "X-Content-Type-Options": "nosniff",
 }
-const entries: Record<string, string> = { "": "index.js", index: "index.js", "index.js": "index.js", ramka: "ramka.js", "ramka.js": "ramka.js", "scroll-snap": "scroll-snap.js", "scroll-snap.js": "scroll-snap.js" }
+const entries: Record<string, string> = {
+  "": "index.js",
+  index: "index.js",
+  "index.js": "index.js",
+  ramka: "ramka.js",
+  "ramka.js": "ramka.js",
+  "scroll-snap": "scroll-snap.js",
+  "scroll-snap.js": "scroll-snap.js",
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
-    const reply = (body: string, status = 200, extra: Record<string, string> = {}) => new Response(request.method === "HEAD" ? null : body, { status, headers: { ...headers, "Cache-Control": "no-store", ...extra } })
-    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...headers, "Access-Control-Max-Age": "86400" } })
-    if (!["GET", "HEAD"].includes(request.method)) return reply("Method not allowed", 405, { Allow: "GET, HEAD, OPTIONS" })
-    for (const key of url.searchParams.keys()) if (!["external", "target", "v", "dev"].includes(key)) return reply(`Unsupported query parameter: ${key}`, 400)
+    const reply = (body: string, status = 200, extra: Record<string, string> = {}) =>
+      new Response(request.method === "HEAD" ? null : body, {
+        status,
+        headers: { ...headers, "Cache-Control": "no-store", ...extra },
+      })
+    if (request.method === "OPTIONS")
+      return new Response(null, {
+        status: 204,
+        headers: { ...headers, "Access-Control-Max-Age": "86400" },
+      })
+    if (!["GET", "HEAD"].includes(request.method))
+      return reply("Method not allowed", 405, { Allow: "GET, HEAD, OPTIONS" })
+    for (const key of url.searchParams.keys())
+      if (!["external", "target", "v", "dev"].includes(key))
+        return reply(`Unsupported query parameter: ${key}`, 400)
     const external = url.searchParams.get("external")
-    if (external && external !== "*" && external.split(",").some(name => !externals.some(base => name === base || name.startsWith(base + "/")))) return reply("Only React, React DOM, and Framer externals are supported", 400)
-    if (url.searchParams.has("target") && url.searchParams.get("target") !== "es2022") return reply("This prebuilt package targets es2022", 400)
-    if (url.pathname === "/" || url.pathname === "/health") return reply(JSON.stringify({ ...manifest, externals, example: `/@kniff/framer-kit@${manifest.latest}?external=react,react-dom,framer&target=es2022` }), 200, { "Content-Type": "application/json; charset=utf-8" })
+    if (
+      external &&
+      external !== "*" &&
+      external
+        .split(",")
+        .some((name) => !externals.some((base) => name === base || name.startsWith(base + "/")))
+    )
+      return reply("Only React, React DOM, and Framer externals are supported", 400)
+    if (url.searchParams.has("target") && url.searchParams.get("target") !== "es2022")
+      return reply("This prebuilt package targets es2022", 400)
+    if (url.pathname === "/" || url.pathname === "/health")
+      return reply(
+        JSON.stringify({
+          ...manifest,
+          externals,
+          example: `/@kniff/framer-kit@${manifest.latest}?external=react,react-dom,framer&target=es2022`,
+        }),
+        200,
+        { "Content-Type": "application/json; charset=utf-8" },
+      )
 
     let pathname: string
-    try { pathname = decodeURIComponent(url.pathname) } catch { return reply("Invalid path", 400) }
-    if (pathname.includes("\\") || pathname.split("/").some(part => part === "." || part === "..")) return reply("Invalid path", 400)
+    try {
+      pathname = decodeURIComponent(url.pathname)
+    } catch {
+      return reply("Invalid path", 400)
+    }
+    if (
+      pathname.includes("\\") ||
+      pathname.split("/").some((part) => part === "." || part === "..")
+    )
+      return reply("Invalid path", 400)
     const npm = pathname.match(/^\/@kniff\/framer-kit@([^/]+)(?:\/(.*))?$/)
     const direct = pathname.match(/^\/(\d+\.\d+\.\d+)(?:\/(.*))?$/)
     let prefix = manifest.current
@@ -48,10 +94,15 @@ export default {
         const timeout = setTimeout(() => controller.abort(), 1500)
         try {
           const probe = await fetch(tunnelURL, {
-            method: "HEAD", redirect: "manual", signal: controller.signal,
+            method: "HEAD",
+            redirect: "manual",
+            signal: controller.signal,
             headers: { "Cache-Control": "no-cache" },
           })
-          if (probe.ok && /(?:javascript|ecmascript)/i.test(probe.headers.get("Content-Type") || "")) {
+          if (
+            probe.ok &&
+            /(?:javascript|ecmascript)/i.test(probe.headers.get("Content-Type") || "")
+          ) {
             return reply(`export * from ${JSON.stringify(tunnelURL.href)};\n`, 200, {
               "Content-Type": "application/javascript; charset=utf-8",
               "X-Kniff-Source": "development",
@@ -73,13 +124,16 @@ export default {
 
     // Aliases export canonical asset URLs so relative chunks always resolve in
     // the right version, even for esm.sh-compatible extensionless entry URLs.
-    if (entry && pathname !== `/${prefix}/${entry}`) return reply(`export * from ${JSON.stringify(`/${prefix}/${entry}`)};\n`, 200, {
-      "Content-Type": "application/javascript; charset=utf-8",
-      "Cache-Control": npm || direct ? "public, max-age=31536000, immutable" : "no-cache",
-      "X-TypeScript-Types": `/${prefix}/${entry.replace(/\.js$/, ".d.ts")}`,
-      "X-Kniff-Build": prefix,
-    })
-    const validPrefix = [...manifest.versions, ...Object.keys(manifest.builds)].some(prefix => pathname.startsWith(`/${prefix}/`))
+    if (entry && pathname !== `/${prefix}/${entry}`)
+      return reply(`export * from ${JSON.stringify(`/${prefix}/${entry}`)};\n`, 200, {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": npm || direct ? "public, max-age=31536000, immutable" : "no-cache",
+        "X-TypeScript-Types": `/${prefix}/${entry.replace(/\.js$/, ".d.ts")}`,
+        "X-Kniff-Build": prefix,
+      })
+    const validPrefix = [...manifest.versions, ...Object.keys(manifest.builds)].some((prefix) =>
+      pathname.startsWith(`/${prefix}/`),
+    )
     if (!validPrefix || !/\.(?:js|js\.map|d\.ts)$/.test(pathname)) return reply("Not found", 404)
     const assetURL = new URL(pathname, url.origin)
     const response = await env.ASSETS.fetch(new Request(assetURL, { method: request.method }))
@@ -87,8 +141,16 @@ export default {
     const result = new Response(request.method === "HEAD" ? null : response.body, response)
     for (const [key, value] of Object.entries(headers)) result.headers.set(key, value)
     result.headers.set("Cache-Control", "public, max-age=31536000, immutable")
-    result.headers.set("Content-Type", pathname.endsWith(".js") ? "application/javascript; charset=utf-8" : pathname.endsWith(".map") ? "application/json; charset=utf-8" : "text/plain; charset=utf-8")
-    if (pathname.endsWith(".js")) result.headers.set("X-TypeScript-Types", pathname.replace(/\.js$/, ".d.ts"))
+    result.headers.set(
+      "Content-Type",
+      pathname.endsWith(".js")
+        ? "application/javascript; charset=utf-8"
+        : pathname.endsWith(".map")
+          ? "application/json; charset=utf-8"
+          : "text/plain; charset=utf-8",
+    )
+    if (pathname.endsWith(".js"))
+      result.headers.set("X-TypeScript-Types", pathname.replace(/\.js$/, ".d.ts"))
     return result
   },
 }

@@ -8,9 +8,7 @@ import { fileURLToPath } from "node:url"
 const PORT = 4173
 const TUNNEL_NAME = "framer-kit-dev"
 const PUBLIC_URL = "https://framer-kit-dev.kniff.at"
-const DIST_DIRECTORY = resolve(
-  fileURLToPath(new URL("../dist", import.meta.url)),
-)
+const DIST_DIRECTORY = resolve(fileURLToPath(new URL("../dist", import.meta.url)))
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
@@ -105,9 +103,7 @@ function run(command, args, label) {
   child.on("exit", (code, signal) => {
     children.delete(child)
     if (!shuttingDown) {
-      console.error(
-        `[${label}] stopped (${signal ?? `exit code ${code ?? 1}`})`,
-      )
+      console.error(`[${label}] stopped (${signal ?? `exit code ${code ?? 1}`})`)
       shutdown(code && code !== 0 ? code : 1)
     }
   })
@@ -123,17 +119,7 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log(`[tunnel] Framer URL: ${PUBLIC_URL}/scroll-snap.js`)
   console.log(`[tunnel] Framer URL: ${PUBLIC_URL}/ramka.js`)
   run("pnpm", ["run", "dev"], "build")
-  run(
-    "cloudflared",
-    [
-      "tunnel",
-      "--url",
-      `http://localhost:${PORT}`,
-      "run",
-      TUNNEL_NAME,
-    ],
-    "tunnel",
-  )
+  run("cloudflared", ["tunnel", "--url", `http://localhost:${PORT}`, "run", TUNNEL_NAME], "tunnel")
 })
 
 process.on("SIGINT", () => shutdown())

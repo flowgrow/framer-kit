@@ -1,5 +1,9 @@
 # @kniff/framer-kit
 
+The code files in the Framer Kit Framer project are the source of truth. This
+GitHub repository is a local copy of those files for versioning; changes made
+in Framer are synced here and committed to Git.
+
 Native scroll-snap carousels and Kniff lightboxes for Framer. React, React DOM,
 and Framer are supplied by the host; implementations are safe to import during SSR.
 
@@ -33,12 +37,11 @@ normalizes the position after `scrollend`. Safari resets its scrolling layer at
 loop jumps to avoid missing slide paint. With Loop off, scrolling and snapping remain native CSS. Chromium uses CSS initial
 targeting; Safari and Firefox receive a one-time initial-position correction after
 hydration. Initialization cancels if the visitor interacts first.
-Canvas scopes each settings instance to its own boundary so breakpoint-specific
-alignment and Edge Space controls do not override neighbouring breakpoint frames.
-Keep the settings component inside its boundary. Canvas preserves visible overflow
-so every original slide remains editable. A
-CSS-only preview places the last slide before the first, preserving its own size
-and accounting for viewport padding. Edge Space is always enabled with Loop.
+On the Framer canvas the carousel displays the authored layers. For preview and published pages:
+
+1. Apply `withKniffCarouselBoundary` to the common parent of one carousel and its controls.
+2. Apply `withKniffCarousel` to its viewport. Place Carousel Settings inside the boundary. Its viewport and boundary name fields are only needed for older, unscoped layouts.
+3. Apply `withKniffCarouselPrevious` and `withKniffCarouselNext` directly to your button layers. Their nearest boundary supplies the viewport. Each boundary and viewport has a generated, CSS-addressable data attribute, so layer names can repeat.
 
 `InitialTarget` is an experimental CSS initial-position helper. Place it inside
 the chosen slide, make it absolute, and pin all four edges. It uses Roma
@@ -72,11 +75,10 @@ The lightbox includes neighboring images, zoom controls, and thumbnail previews.
 Lightbox looping is always off. Morph transitions and pull to close are always
 enabled, and closing morphs to the active image. Settings control Peek or Theater
 layout, preload (two neighbors on each side by default), zoom, thumbnail navigation,
-carousel synchronization, and backdrop color, including on
+and backdrop color, including on
 React loop copies.
-Opening an image always pauses carousel automove until the close morph finishes.
-`syncKniffCarousel` synchronizes subsequent lightbox navigation using the same
-alignment as carousel buttons; the initially clicked slide stays in place.
+Inside a registered carousel, opening an image pauses automove until the close morph finishes.
+Navigating in the lightbox automatically aligns the corresponding slide using the same snap position as the carousel buttons. Standalone lightboxes leave surrounding scroll containers alone.
 React loop copies each retain their own morph source.
 
 Examples are in `examples/framer`. There is no Embla dependency or entry point.
@@ -89,6 +91,10 @@ pnpm install --frozen-lockfile
 pnpm run check
 pnpm run dev:framer
 ```
+
+Run `pnpm run format` to format JavaScript, TypeScript, and React files with Prettier.
+Use `pnpm run format:check` to check formatting and `pnpm run lint` to run Oxlint.
+CI runs both checks as part of `pnpm run check`.
 
 The development server is available through the existing Cloudflare tunnel at
 `https://framer-kit-dev.kniff.at`. Native browser stress tests run on macOS with

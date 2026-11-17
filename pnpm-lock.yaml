@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  ramka@0.0.0:
+    hash: c33ae09e69e7c4b0049fd7c2b87aaaf7f0902c7859471bc312cecf7d7c95404d
+    path: patches/ramka@0.0.0.patch
+
 importers:
 
   .:
@@ -13,7 +18,7 @@ importers:
         version: 3.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       ramka:
         specifier: https://pkg.pr.new/arturbien/ramka@1d97a5a
-        version: https://pkg.pr.new/arturbien/ramka@1d97a5a(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: https://pkg.pr.new/arturbien/ramka@1d97a5a(patch_hash=c33ae09e69e7c4b0049fd7c2b87aaaf7f0902c7859471bc312cecf7d7c95404d)(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@changesets/changelog-github':
         specifier: 1.0.0
@@ -33,6 +38,12 @@ importers:
       '@types/react-dom':
         specifier: 18.3.7
         version: 18.3.7(@types/react@18.3.31)
+      oxlint:
+        specifier: 1.77.0
+        version: 1.77.0
+      prettier:
+        specifier: ^3.9.10
+        version: 3.9.10
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -2386,6 +2397,11 @@ packages:
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
+
+  prettier@3.9.10:
+    resolution: {integrity: sha512-skGHTH1Yb9QvaTC4hWnRTzEYtCpApF0UMBPz+t/0ZPzP8ihefo/btKd+QA7pUE0fEwA1SbS/NmhyEcstdXOIdA==}
+    engines: {node: '>=14'}
+    hasBin: true
 
   prompts@2.4.2:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
@@ -4750,6 +4766,8 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
+  prettier@3.9.10: {}
+
   prompts@2.4.2:
     dependencies:
       kleur: 3.0.3
@@ -4759,7 +4777,7 @@ snapshots:
 
   queue-microtask@1.2.3: {}
 
-  ramka@https://pkg.pr.new/arturbien/ramka@1d97a5a(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  ramka@https://pkg.pr.new/arturbien/ramka@1d97a5a(patch_hash=c33ae09e69e7c4b0049fd7c2b87aaaf7f0902c7859471bc312cecf7d7c95404d)(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@base-ui/react': 1.7.0(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
