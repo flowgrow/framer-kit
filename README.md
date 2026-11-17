@@ -3,6 +3,8 @@
 The code files in the Framer Kit Framer project are the source of truth. This
 GitHub repository is a local copy of those files for versioning; changes made
 in Framer are synced here and committed to Git.
+Framer's `Kit/` folder maps to this repository's `src/` folder. Framer's
+`Framer_Kit/` wrapper files are copied into `Framer_Kit/` here.
 
 Native scroll-snap carousels and Kniff lightboxes for Framer. React, React DOM,
 and Framer are supplied by the host; implementations are safe to import during SSR.
