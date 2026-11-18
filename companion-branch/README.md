@@ -16,7 +16,7 @@ Homepage settings instance replacements:
 | NgGvyUR5k | lDGxmgxY1 | Photo carousel settings  |
 | RSt_3XQtN | lms6kQNqz | Events carousel settings |
 
-The published runtime exposes `window.__COMPANION_KIT_BUILD__ = "companion-local-2026-11-18-v4"`. Update the marker when changing the copied implementation and assert it before profiling.
+The published runtime exposes `window.__COMPANION_KIT_BUILD__ = "companion-local-2026-11-18-v5"`. Update the marker when changing the copied implementation and assert it before profiling.
 
 Iteration: edit the branch code, mirror it here and commit, publish the branch, reload and verify the marker, then test opening and navigation. No Assets Update step is required for these homepage copies. Apply verified performance fixes back to the Kit source separately.
 
@@ -41,6 +41,17 @@ Final published deployment `79dcadf79` (160ms fade), one fresh-context run per b
 
 Deployment `f532faccb` disables `triggerActions` on hidden seasonal promo overlays JAYSObhH0, gD6wPUQdj, NNsmhOdhO in the branch layout template. The original node attributes are saved in disabled-promo-triggers.json. Hiding the Winter Promo did not disable its delayed opening trigger: Framer locked document scrolling after three seconds without showing its contents. Ramka subsequently restored that already-locked state. A wheel-input reproduction confirmed this before any lightbox interaction; disabling the trigger restored actual wheel scrolling in Chrome, Firefox and WebKit before opening and after four open/close cycles each.
 
-The persistent preset style also caused a server/client text mismatch after Framer processed its CSS. Under delayed module loading, WebKit logged React 425/422 followed by repeated 421 errors. Inserting the static stylesheet with dangerouslySetInnerHTML (as with our other static CSS) eliminated those errors in the same reproduction. This fixes the style source mismatch instead of suppressing React warnings.
+The persistent preset style also caused a server/client text mismatch after Framer processed its CSS. Under delayed module loading, WebKit logged React 425/422 followed by repeated 421 errors. Inserting the static stylesheet with dangerouslySetInnerHTML (as with our other static CSS) eliminated those errors in one WebKit reproduction; subsequent slower Chrome runs still exposed 421 errors from setup updates. This fixes the style source mismatch instead of suppressing React warnings.
 
 The browser check now waits beyond the promo delay, verifies actual wheel scrolling before and after lightbox use, and fails on recoverable React console errors as well as page errors. Run `SLOW_MODULES=700 pnpm exec node scripts/check-companion.mjs` to exercise hydration with delayed module delivery. The earlier checks did not catch console warnings and did not test scrolling before lightbox opening; their pass result was insufficient.
+
+Deployment `8e301e2c5` additionally wraps gallery item/config registration and carousel viewport/settings/loop setup updates in React.startTransition. These setup updates may otherwise interrupt still-hydrating Framer Suspense children. User-triggered lightbox opening and navigation remain urgent. The first delayed-module Chrome rerun passed with no recoverable React errors.
+
+
+## Restored morph and dismissal handoff
+
+Morph is again the default. Lightbox Settings exposes an explicit Transition control with Morph and Fade choices; the original morph duration is retained, and the opt-in fade uses 160ms. No production or Kit project files were changed.
+
+A real Chromium touch pull-to-dismiss followed by horizontal wheel input reproduced repeated opposing movement: the auto-scroll controller restored native snapping on each wheel delta. It now keeps snapping disabled during that wheel gesture and cancels any pending settle animation when fresh wheel input arrives. The same reproduction then showed no opposing movement. `PULL=1 NAV=9 GESTURE_DELAY=300 ENGINES=chrome pnpm exec node scripts/check-lightbox-carousel-handoff.mjs` asserts this using actual browser touch input and wheel events. `WHEEL=1` tests keyboard-close followed by wheel input in other engines; it does not claim to emulate native Safari touch dragging.
+
+Hydration fixes retain stable Framer layer elements across registration-only renders, defer non-interactive registration updates, and preserve original slide positions while adding loop copies. Lightbox indices now follow document order instead of whichever lazy override happened to hydrate first. The slow-module checks continue to fail on any recoverable React console error.

@@ -21,7 +21,7 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit").split(",")) 
     await page.goto(url, { waitUntil: "domcontentloaded" })
     await page.waitForFunction(() => window.__COMPANION_KIT_BUILD__, {}, { timeout: 60000 })
     result.build = await page.evaluate(() => window.__COMPANION_KIT_BUILD__)
-    if (result.build !== (process.env.EXPECTED_BUILD || "companion-local-2026-11-18-v4"))
+    if (result.build !== (process.env.EXPECTED_BUILD || "companion-local-2026-11-18-v5"))
       throw Error("Unexpected runtime " + result.build)
     await page.waitForFunction(() => document.querySelector('[data-framer-name="CarouselXYZ"]'))
     await page.evaluate(() =>

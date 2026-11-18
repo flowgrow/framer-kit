@@ -29,7 +29,7 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
       })
     await page.goto(url, { waitUntil: "domcontentloaded" })
     await page.waitForFunction(
-      () => window.__COMPANION_KIT_BUILD__ === "companion-local-2026-11-18-v4",
+      () => window.__COMPANION_KIT_BUILD__ === "companion-local-2026-11-18-v5",
     )
     await page.waitForFunction(() =>
       document.querySelector('[data-framer-name="CarouselXYZ"] [data-ramka-trigger]'),
@@ -56,22 +56,17 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
       return i?.complete && i.naturalWidth > 0
     })
     await page.waitForTimeout(400)
-    const point = await page.evaluate(() => {
-      const r = [...document.querySelectorAll("[data-ramka-trigger]")]
-        .find((e) => !e.closest('[aria-hidden="true"]'))
-        .getBoundingClientRect()
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
-    })
-    if (name === "mobile-webkit") await page.touchscreen.tap(point.x, point.y)
-    else await page.mouse.click(point.x, point.y)
+    const trigger = page.locator('[data-ramka-trigger]:not([aria-hidden="true"] *)').first()
+    if (name === "mobile-webkit") await trigger.tap()
+    else await trigger.click()
     const dialog = page.locator("[data-ramka-content][data-open]")
     await expect(dialog).toBeVisible()
-    result.fadeDuration = await dialog.evaluate((e) =>
+    result.transitionDuration = await dialog.evaluate((e) =>
       getComputedStyle(e).getPropertyValue("--lightbox-vt-duration").trim(),
     )
-    expect(result.fadeDuration).toBe("160ms")
+    expect(result.transitionDuration).toBe(process.env.TRANSITION === "fade" ? "160ms" : "360ms")
     const slides = dialog.locator("[data-ramka-slides]")
-    await expect(slides).toHaveAttribute("data-active-index", "0")
+    await expect(slides, "Initial clicked photo").toHaveAttribute("data-active-index", "0")
     result.preview = await dialog
       .locator("[data-ramka-item][data-active] [data-ramka-media]")
       .evaluate((e) => getComputedStyle(e).backgroundImage !== "none")
@@ -85,7 +80,10 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
       await page.waitForTimeout(550)
     }
     await page.keyboard.press("Home")
-    await expect(slides).toHaveAttribute("data-active-index", "0")
+    await expect(slides, "Home key returns to first photo").toHaveAttribute(
+      "data-active-index",
+      "0",
+    )
     await page.waitForTimeout(600)
     if (name !== "mobile-webkit") {
       await dialog.getByRole("tab").nth(2).click()
@@ -123,7 +121,15 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
   }
   await browser.close()
   results.push(result)
-  console.log(JSON.stringify(result))
+  console.log(
+    JSON.stringify({
+      ...result,
+      errors: result.errors.map(
+        (e) => e.match(/Minified React error #\d+/)?.[0] ?? e.slice(0, 180),
+      ),
+      failure: result.failure?.split("\n")[0],
+    }),
+  )
   await writeFile(output + "/results.json", JSON.stringify(results, null, 2))
 }
 if (results.some((r) => !r.pass)) process.exitCode = 1
