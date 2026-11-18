@@ -41,13 +41,25 @@ export function useSlideGroups(
     let endStop: HTMLSpanElement | undefined
     const saved = new Map<HTMLElement, string>()
     let frame = 0
+    const markedSlides = new Set<HTMLElement>()
     const observed = new Set<HTMLElement>()
     const write = (el: HTMLElement, property: string, value: string) => {
       if (el.style.getPropertyValue(property) !== value) el.style.setProperty(property, value)
     }
     const refresh = () => {
       frame = 0
-      const all = slideBoxes(viewport).filter(el => !el.hasAttribute("data-kniff"))
+      const all: HTMLElement[] = slideBoxes(viewport).filter(el => !el.hasAttribute("data-kniff"))
+      const currentSlides = new Set(all)
+      for (const slide of markedSlides) {
+        if (currentSlides.has(slide)) continue
+        slide.removeAttribute("data-kniff-carousel-slide")
+        markedSlides.delete(slide)
+      }
+      for (const slide of currentSlides) {
+        if (markedSlides.has(slide)) continue
+        slide.setAttribute("data-kniff-carousel-slide", "")
+        markedSlides.add(slide)
+      }
       const originals = all.filter((el) => !el.closest("[data-kniff-loop-copy]"))
       if (!originals.length) return
       const css = getComputedStyle(viewport)
@@ -143,6 +155,7 @@ export function useSlideGroups(
       cancelAnimationFrame(frame)
       resize.disconnect()
       mutations.disconnect()
+      for (const slide of markedSlides) slide.removeAttribute("data-kniff-carousel-slide")
       for (const [slide, style] of saved) {
         const original = document.createElement("div")
         original.setAttribute("style", style)
@@ -161,4 +174,3 @@ export function useSlideGroups(
     }
   }, [marker, selector, registered, by, align, loop, edgeSpace])
 }
-

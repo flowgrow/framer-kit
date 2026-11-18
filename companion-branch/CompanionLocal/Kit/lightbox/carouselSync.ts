@@ -27,11 +27,12 @@ export function freezeSnapViewport(viewport: HTMLElement): () => void {
 
 /** The same snap coordinate calculation used by the carousel arrows. */
 export function syncSnapToElement(viewport: HTMLElement, element: HTMLElement): void {
-  const slide = slideBoxes(viewport).find(
-    (slide: HTMLElement) => slide === element || slide.contains(element),
-  )
+  const marked = element.closest<HTMLElement>("[data-kniff-carousel-slide]")
+  const slide = marked && viewport.contains(marked)
+    ? marked
+    : slideBoxes(viewport).find((slide: HTMLElement) => slide.contains(element))
   if (!slide) return
+  const left = snapPosition(viewport, slide)
   cancelOverflowMove(viewport)
-  viewport.scrollTo({ left: snapPosition(viewport, slide), behavior: "instant" })
+  viewport.scrollTo({ left, behavior: "instant" })
 }
-

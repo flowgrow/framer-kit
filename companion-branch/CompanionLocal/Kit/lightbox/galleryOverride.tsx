@@ -170,11 +170,13 @@ function createGalleryOverride<P extends object>(
     }, [])
     const releaseRef = useRef<(() => void) | null>(null)
     const activeRef = useRef(false)
+    const originIndexRef = useRef<number | null>(null)
     const valueRef = useRef<number | null>(null)
     const release = useCallback(() => {
       releaseRef.current?.()
       releaseRef.current = null
       activeRef.current = false
+      originIndexRef.current = null
       valueRef.current = null
       restoreMorphCrop()
     }, [restoreMorphCrop])
@@ -184,6 +186,7 @@ function createGalleryOverride<P extends object>(
         release()
         if (viewport) releaseRef.current = freezeSnapViewport(viewport)
         activeRef.current = true
+        originIndexRef.current = index
         valueRef.current = index
         applyMorphCrop(index)
       },
@@ -200,12 +203,8 @@ function createGalleryOverride<P extends object>(
         }
         if (!activeRef.current || index === valueRef.current) return
         valueRef.current = index
-        applyMorphCrop(index)
-        const item = items.find((item) => item.index === index)
-        if (config.viewTransition && item?.carouselViewport)
-          syncSnapToElement(item.carouselViewport, item.element)
       },
-      [items, applyMorphCrop, config.viewTransition],
+      [applyMorphCrop],
     )
 
     const context = useMemo<RamkaGalleryContextValue>(
@@ -236,14 +235,18 @@ function createGalleryOverride<P extends object>(
           morphTo={config.morphTo}
           scrollTriggerIntoView={null}
           onValueChange={handleValueChange}
+          onBeforeClose={() => {
+            const index = config.viewTransition && config.morphTo === "origin"
+              ? originIndexRef.current
+              : valueRef.current
+            if (index === null) return
+            applyMorphCrop(index)
+            const item = items.find((item) => item.index === index)
+            if (item?.carouselViewport)
+              syncSnapToElement(item.carouselViewport, item.element)
+          }}
           onOpenChange={(nextOpen: boolean) => {
-            if (!nextOpen) {
-              // The hidden page need not scroll/repaint on every lightbox navigation.
-              const item = items.find((item) => item.index === valueRef.current)
-              if (!config.viewTransition && item?.carouselViewport)
-                syncSnapToElement(item.carouselViewport, item.element)
-              activeRef.current = false
-            }
+            if (!nextOpen) activeRef.current = false
           }}
           onOpenChangeComplete={(nextOpen: boolean) => {
             if (!nextOpen) release()
