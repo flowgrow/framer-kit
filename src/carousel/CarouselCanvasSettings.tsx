@@ -124,8 +124,9 @@ function observeCanvasSlides(viewport: HTMLElement, start: number | undefined, l
 
 export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
     const marker = useRef<HTMLStyleElement>(null)
-    const name = (props.containerID ?? "Percentage Sized Carousel").trim()
+    const name = (props.canvasPreview?.viewport ?? props.containerID ?? "Percentage Sized Carousel").trim()
     const align = props.align ?? "center"
+    const scroll = Math.max(0, Math.min(1000, props.canvasPreview?.scroll ?? 0))
 
     const loop = props.loop !== false
     const transforms = props.slideTransforms?.preview === false ? undefined : props.slideTransforms
@@ -165,13 +166,14 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             detach = undefined
             activeViewport = viewport ?? undefined
             if (!viewport) return
-            const overflow = ["overflow-x", "overflow-y", "position"].map(property => ({
+            const overflow = ["overflow-x", "overflow-y", "position", "transform"].map(property => ({
                 property,
                 value: viewport.style.getPropertyValue(property),
                 priority: viewport.style.getPropertyPriority(property),
             }))
             if (loop && getComputedStyle(viewport).position === "static") viewport.style.position = "relative"
             viewport.style.setProperty("overflow", props.fullBleed !== false ? "visible" : "hidden", "important")
+            if (scroll) viewport.style.setProperty("transform", `translateX(-${scroll}%)`, "important")
             const start = align === "start" ? 0 : align === "end" ? 1 : 0.5
             edges = observeCanvasSlides(viewport, loop || props.edgeSpace !== false ? start : undefined,
                 loop, previousFrame, currentFrame, nextFrame)
@@ -191,7 +193,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
             node.ownerDocument.removeEventListener("kniff-canvas-slides", changed)
             detach?.()
         }
-    }, [name, align, loop, previous, previousOpacity, props.edgeSpace, props.fullBleed, current, next, currentOpacity, nextOpacity])
+    }, [name, align, scroll, loop, previous, previousOpacity, props.edgeSpace, props.fullBleed, current, next, currentOpacity, nextOpacity])
     return (
         <>
             <style ref={marker} data-kniff="" data-kniff-canvas-settings="">{`[data-kniff-canvas-current] { z-index: 1 !important; }
@@ -203,7 +205,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
     width: var(--kniff-loop-width) !important;
     height: var(--kniff-loop-height) !important;
 }`}</style>
-            {props.showInstructions !== false && (
+            {(props.canvasPreview?.instructions ?? props.showInstructions) !== false && (
                 <CanvasInstructions
                     data-kniff=""
                     data-kniff-carousel-settings=""

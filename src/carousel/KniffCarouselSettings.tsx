@@ -91,6 +91,7 @@ const previousTransformControls = {
 }
 
 export interface KniffCarouselSettingsProps {
+  canvasPreview?: { viewport?: string; instructions?: boolean; scroll?: number }
   showInstructions?: boolean
   style?: CSSProperties
   containerID?: string
@@ -149,15 +150,18 @@ export function KniffCarouselSettings(props: KniffCarouselSettingsProps) {
   }, [setSnapshot, snapshot])
   if (RenderTarget.current() === RenderTarget.canvas) return <CarouselCanvasSettings {...props} />
   if (gallery?.isLoopCopy) return null
-  return <CarouselPreviewSettings {...props} />
+  return <CarouselPreviewSettings {...props} containerID={props.canvasPreview?.viewport ?? props.containerID} />
 }
 
 export const kniffCarouselSettingsPropertyControls = {
-  containerID: {
-    title: "Viewport",
-    type: ControlType.String,
-    defaultValue: "Percentage Sized Carousel",
-    description: "This is needed for Canvas Preview.",
+  canvasPreview: {
+    title: "Canvas Preview",
+    type: ControlType.Object,
+    controls: {
+      viewport: { title: "Viewport", type: ControlType.String, defaultValue: "Percentage Sized Carousel" },
+      instructions: { title: "Instructions", type: ControlType.Boolean, defaultValue: true },
+      scroll: { title: "Scroll", type: ControlType.Number, defaultValue: 0, min: 0, max: 1000, step: 1, unit: "%", displayStepper: false },
+    },
   },
   loop: {
     title: "Loop",
@@ -309,11 +313,6 @@ export const kniffCarouselSettingsPropertyControls = {
     defaultValue: true,
     hidden: (props) => props.loop !== false,
     description: "Makes sure, first and last slide also have enough space for snap alignment",
-  },
-  showInstructions: {
-    type: ControlType.Boolean,
-    title: "Instructions",
-    defaultValue: true,
   },
 } satisfies PropertyControls<KniffCarouselSettingsProps>
 
