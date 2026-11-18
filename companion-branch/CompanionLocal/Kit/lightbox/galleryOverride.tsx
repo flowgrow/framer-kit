@@ -6,6 +6,8 @@ type NavigationSource = "trigger" | "keyboard" | "thumbnail" | "button" | "scrol
 import { freezeSnapViewport, syncSnapToElement } from "./carouselSync.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { RamkaPortal } from "./RamkaPortal.tsx"
+// @ts-ignore Framer code-file import.
+import { ramkaPresetCSS } from "./presetStyles.ts"
 import * as React from "react"
 import {
   forwardRef,
@@ -27,6 +29,18 @@ import { defaultRamkaGalleryConfig } from "./defaults.ts"
 import { extractRamkaMedia, isSameRamkaMedia, sortRamkaMedia } from "./media.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import type { RamkaGalleryConfig, RamkaGalleryContextValue, RamkaMediaItem } from "./types.ts"
+
+// Keep one document stylesheet stable across gallery opens and loop scopes.
+function morphCropRule(): CSSStyleRule | null {
+  let style = document.querySelector<HTMLStyleElement>("style[data-kniff-morph-crop]")
+  if (!style) {
+    style = document.createElement("style")
+    style.setAttribute("data-kniff-morph-crop", "")
+    style.textContent = ':root[data-ramka-view-transition="opening"]::view-transition-new(lightbox-morph), :root[data-ramka-view-transition="closing"]::view-transition-old(lightbox-morph) { object-position: 50% 50% !important; }'
+    document.head.append(style)
+  }
+  return (style.sheet?.cssRules[0] as CSSStyleRule) ?? null
+}
 
 function triggerCropPosition(target: HTMLElement | null): string {
   if (!target) return "50% 50%"
@@ -116,22 +130,15 @@ function createGalleryOverride<P extends object>(
       [refreshTrigger],
     )
 
-    const cropStyleRef = useRef<HTMLStyleElement | null>(null)
+    useEffect(() => { morphCropRule() }, [])
     const originalComposited = useRef<boolean | undefined | null>(null)
     const applyMorphCrop = useCallback(
       (index: number) => {
         const item = items.find((entry) => entry.index === index)
         const position = triggerCropPosition(item?.morphElement ?? null)
-        const sheet = cropStyleRef.current?.sheet
-        if (sheet) {
-          if (!sheet.cssRules.length)
-            sheet.insertRule(
-              ':root[data-ramka-view-transition="opening"]::view-transition-new(lightbox-morph), :root[data-ramka-view-transition="closing"]::view-transition-old(lightbox-morph) {}',
-            )
-          const rule = sheet.cssRules[0] as CSSStyleRule
-          if (rule.style.objectPosition !== position)
-            rule.style.setProperty("object-position", position, "important")
-        }
+        const rule = morphCropRule()
+        if (rule && rule.style.objectPosition !== position)
+          rule.style.setProperty("object-position", position, "important")
         if (isOffCenterPosition(position)) {
           const global = window as typeof window & { __RAMKA_VT_COMPOSITED__?: boolean }
           if (originalComposited.current === null)
@@ -142,8 +149,6 @@ function createGalleryOverride<P extends object>(
       [items],
     )
     const restoreMorphCrop = useCallback(() => {
-      const sheet = cropStyleRef.current?.sheet
-      if (sheet?.cssRules.length) sheet.deleteRule(0)
       if (originalComposited.current !== null) {
         const global = window as typeof window & { __RAMKA_VT_COMPOSITED__?: boolean }
         if (originalComposited.current === undefined) delete global.__RAMKA_VT_COMPOSITED__
@@ -225,7 +230,7 @@ function createGalleryOverride<P extends object>(
           {renderComponent(Component, props as unknown as P, mergedRootRef)}
           <RamkaPortal items={items} config={config} />
         </Lightbox.Root>
-        <style ref={cropStyleRef} />
+        {!inheritConfig && <style>{ramkaPresetCSS}</style>}
       </RamkaGalleryContext.Provider>
     )
   })
@@ -243,4 +248,3 @@ const LoopScopeFrame = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpan
 export const RamkaLoopScope = createGalleryOverride(LoopScopeFrame, true)
 
 export const galleryOverrideFactory = { createGalleryOverride }
-

@@ -9,8 +9,6 @@ import * as React from "react"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { IconX, IconZoomIn, IconZoomOut } from "./presetIcons.tsx"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { ramkaPresetCSS } from "./presetStyles.ts"
-// @ts-ignore Framer cannot resolve local code-file imports.
 import type { RamkaGalleryConfig, RamkaMediaItem } from "./types.ts"
 
 const classes = (...names: (string | false)[]) =>
@@ -114,7 +112,6 @@ function RamkaPortalImpl({
       className={`${classes("lb-portal")}${backdropIsDark(config.backdropColor) ? " dark" : ""}`}
       style={{ position: "fixed", inset: 0, zIndex: 2147483647 }}
     >
-      <style>{ramkaPresetCSS}</style>
       <Lightbox.Backdrop
         className={classes("lb-backdrop")}
         style={{ backgroundColor: config.backdropColor }}
@@ -194,4 +191,3 @@ function RamkaPortalImpl({
 }
 
 export const RamkaPortal = RamkaPortalImpl
-
