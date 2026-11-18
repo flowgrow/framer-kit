@@ -3,6 +3,7 @@
   const events = (window.__renderTrace = [])
   let activeUntil = 0
   let start = 0
+  let interaction = ""
   const active = () => performance.now() < activeUntil
   const label = (e) =>
     e?.tagName
@@ -10,7 +11,7 @@
       : String(e?.nodeName || e)
   const push = (kind, data = {}) => {
     if (active() && events.length < 12000)
-      events.push({ at: performance.now() - start, kind, ...data })
+      events.push({ interaction, at: performance.now() - start, kind, ...data })
   }
   const observer = new MutationObserver((records) => {
     if (!active()) return
@@ -28,6 +29,7 @@
     "click",
     () => {
       if (start) return
+      interaction = "open"
       start = performance.now()
       activeUntil = start + 1800
       push("click", {
@@ -37,6 +39,23 @@
     },
     true,
   )
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Escape"].includes(event.key)) return
+      interaction = event.key
+      start = performance.now()
+      activeUntil = start + 2200
+      push("keydown")
+    },
+    true,
+  )
+  const scrollTo = Element.prototype.scrollTo
+  Element.prototype.scrollTo = function (...args) {
+    if (active() && this.matches("[data-kniff-lightbox-open], [data-ramka-slides]"))
+      push("scrollTo", { target: label(this), args, stack: new Error().stack })
+    return scrollTo.apply(this, args)
+  }
   function read(kind, e, fn) {
     if (!active()) return fn()
     const t = performance.now()

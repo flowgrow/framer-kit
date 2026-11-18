@@ -63,6 +63,22 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit").split(",")) 
         await route.fulfill({ response, body })
       })
     }
+    if (process.env.EXPERIMENT === "tiny-main-images") {
+      result.substitutedImages = []
+      await page.route(
+        (url) =>
+          url.hostname === "framerusercontent.com" &&
+          url.pathname.startsWith("/images/") &&
+          Number(url.searchParams.get("scale-down-to")) >= 1024,
+        async (route) => {
+          result.substitutedImages.push(route.request().url())
+          await route.fulfill({
+            contentType: "image/svg+xml",
+            body: '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><rect width="4" height="3" fill="#888"/></svg>',
+          })
+        },
+      )
+    }
     await page.goto(url, { waitUntil: "domcontentloaded" })
     await page.waitForFunction(() => window.__COMPANION_KIT_BUILD__, {}, { timeout: 60000 })
     result.build = await page.evaluate(() => window.__COMPANION_KIT_BUILD__)
