@@ -216,7 +216,7 @@ function createGalleryOverride<P extends object>(
       <RamkaGalleryContext.Provider value={context}>
         <Lightbox.Root
           loop={config.loop}
-          viewTransition={config.viewTransition}
+          viewTransition={false}
           morphTo={config.morphTo}
           scrollTriggerIntoView={null}
           onValueChange={handleValueChange}
