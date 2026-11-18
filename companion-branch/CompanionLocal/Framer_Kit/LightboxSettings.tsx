@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import { addPropertyControls } from "framer"
 import type { ComponentProps } from "react"
 import {

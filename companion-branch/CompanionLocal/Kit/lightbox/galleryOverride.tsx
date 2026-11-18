@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.
 import * as Lightbox from "https://esm.sh/@ramka/react@0.0.2/lightbox?external=react,react-dom&target=es2022"
 type NavigationSource = "trigger" | "keyboard" | "thumbnail" | "button" | "scroll" | "imperative"

@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { CarouselContext } from "../carousel/carouselContext.tsx"
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.

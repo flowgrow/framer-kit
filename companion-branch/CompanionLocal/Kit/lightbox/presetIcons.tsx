@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 // Inline icons from Ramka’s default CSS preset.
 
 function IconXImpl() {

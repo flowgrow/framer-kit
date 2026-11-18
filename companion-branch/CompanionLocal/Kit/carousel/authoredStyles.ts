@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import * as Framer from "framer"
 import type { CSSProperties } from "react"
 

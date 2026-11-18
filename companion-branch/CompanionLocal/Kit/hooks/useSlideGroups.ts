@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import { useLayoutEffect, type RefObject } from "react"
 // @ts-ignore Framer code-file import.
 import { slideBoxes, slideRect } from "../carousel/snapGeometry.ts"

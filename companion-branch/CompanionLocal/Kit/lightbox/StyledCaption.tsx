@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import * as React from "react"
 
 // Copy typography from each Framer rich-text run, leaving positioning and

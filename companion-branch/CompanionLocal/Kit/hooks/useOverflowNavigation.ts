@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import { useEffect, useRef, useState, type RefObject } from "react"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { overflowSnapPoints, slideBoxes } from "../carousel/snapGeometry.ts"

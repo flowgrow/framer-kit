@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 // Adapted from Ramka’s default CSS preset: https://ramka-docs.vercel.app/presets/default
 export const ramkaPresetCSS = `
 .kniff-ramka-lb-portal {

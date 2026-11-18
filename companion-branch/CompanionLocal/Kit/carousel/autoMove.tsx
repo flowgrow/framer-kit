@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 // @ts-ignore Framer resolves sibling code files at runtime; the repo build checks this path.
 import { installTouchIntent } from "./touchIntent.tsx"
 

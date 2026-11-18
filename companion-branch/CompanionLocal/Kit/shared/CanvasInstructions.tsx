@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import type { CSSProperties, ReactNode } from "react"
 
 function CanvasInstructionsImpl({

@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import { useEffect, useId, useState } from "react"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { authoredVariableCSS, readAuthoredCSS } from "../carousel/authoredStyles.ts"

@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import { createContext } from "react"
 
 // @ts-ignore Framer cannot resolve local code-file imports.

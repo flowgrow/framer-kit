@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 // @ts-ignore Framer cannot resolve local code-file imports.
 import type { RamkaGalleryConfig } from "./types.ts"
 

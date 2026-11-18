@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { atTerminalSlide, dotSlides, isOriginalSlide, snapPosition, overflowSnapPoints } from "./snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.

@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import * as React from "react"
 import { RenderTarget } from "framer"
 // @ts-ignore Framer cannot resolve local code-file imports.

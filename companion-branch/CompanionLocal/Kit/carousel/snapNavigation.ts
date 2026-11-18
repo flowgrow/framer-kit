@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import { animate, type Transition } from "framer-motion"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { dotSlides, isOriginalSlide, overflowSnapPoints, snapPosition } from "./snapGeometry.ts"

@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 interface TouchIntentOptions {
   start: () => void
   end: () => void

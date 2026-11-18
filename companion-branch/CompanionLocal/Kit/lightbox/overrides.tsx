@@ -1,3 +1,4 @@
+// Branch-local copy: dependencies resolved within CompanionLocal.
 import { RenderTarget } from "framer"
 import { createElement, forwardRef, useCallback, useRef, type ComponentType } from "react"
 
