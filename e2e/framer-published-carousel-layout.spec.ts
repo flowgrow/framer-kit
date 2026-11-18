@@ -56,10 +56,12 @@ for (const route of ["default", "edge-space-off", "loop-off"]) {
                 .getBoundingClientRect()
               const left = parseFloat(css.scrollPaddingLeft) || 0
               const right = parseFloat(css.scrollPaddingRight) || 0
+              const align = css.getPropertyValue("--kniff-initial-align").trim()
+              const factor = align === "start" ? 0 : align === "end" ? 1 : 0.5
               return Math.abs(
                 first.left +
-                  first.width / 2 -
-                  (box.left + left + (element.clientWidth - left - right) / 2),
+                  first.width * factor -
+                  (box.left + left + (element.clientWidth - left - right) * factor),
               )
             }),
           )
@@ -68,7 +70,7 @@ for (const route of ["default", "edge-space-off", "loop-off"]) {
       const before = await viewport.evaluate((element) => element.scrollLeft)
       await page.getByRole("button", { name: "Next slide", exact: true }).click()
       await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).not.toBe(before)
-      // These pages use center alignment: the next photo must settle in the snapport center.
+      // The next photo must settle at the configured snap alignment.
       await expect
         .poll(() =>
           viewport.evaluate((element) => {
@@ -79,10 +81,12 @@ for (const route of ["default", "edge-space-off", "loop-off"]) {
               .getBoundingClientRect()
             const left = parseFloat(style.scrollPaddingLeft) || 0
             const right = parseFloat(style.scrollPaddingRight) || 0
+            const align = style.getPropertyValue("--kniff-initial-align").trim()
+            const factor = align === "start" ? 0 : align === "end" ? 1 : 0.5
             return Math.abs(
               second.left +
-                second.width / 2 -
-                (box.left + left + (element.clientWidth - left - right) / 2),
+                second.width * factor -
+                (box.left + left + (element.clientWidth - left - right) * factor),
             )
           }),
         )
