@@ -133,6 +133,8 @@ export function useReactLoop(
         restoreFrame = requestAnimationFrame(() => {
           scroller.style.scrollSnapType = previousSnap
           scroller.style.scrollBehavior = previousBehavior
+          // Reassert the destination after restoring snapping: WebKit can restore its old snap target.
+          scroller.scrollTo({ left: position, behavior: "instant" })
 
           restoreFrame = requestAnimationFrame(() => {
             jumping = false
