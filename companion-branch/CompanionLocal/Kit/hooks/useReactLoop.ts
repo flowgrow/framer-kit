@@ -20,6 +20,7 @@ export function useReactLoop(
     let retry = 0
     let cancelled = false
     let clearStartup: (() => void) | undefined
+    let hydrationObserver: MutationObserver | undefined
     const install = () => {
       const scroller =
         registeredViewport ??
@@ -34,6 +35,22 @@ export function useReactLoop(
         ":scope > [data-kniff-loop-original]",
       )
       if (!originalCycle) return false
+      // Framer removes its responsive SSR wrappers only after hydrating them.
+      // Inserting copies before that replacement interrupts the original boundaries.
+      if (originalCycle.querySelector(".ssr-variant")) {
+        if (!hydrationObserver) {
+          hydrationObserver = new MutationObserver(() => {
+            if (originalCycle.querySelector(".ssr-variant")) return
+            hydrationObserver?.disconnect()
+            hydrationObserver = undefined
+            retry = 0
+            cancelAnimationFrame(frame)
+            attempt()
+          })
+          hydrationObserver.observe(originalCycle, { childList: true, subtree: true })
+        }
+        return false
+      }
       const slides = slideBoxes(originalCycle)
       const first = slides[0]
       if (!first || slides.length < 2) return false
@@ -252,6 +269,7 @@ export function useReactLoop(
       cancelled = true
       cancelAnimationFrame(frame)
       clearStartup?.()
+      hydrationObserver?.disconnect()
       dispose?.()
     }
   }, [selector, align, loop, registeredViewport, styleRef])
