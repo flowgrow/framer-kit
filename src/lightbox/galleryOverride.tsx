@@ -37,7 +37,12 @@ function triggerCropPosition(target: HTMLElement | null): string {
 
 function isOffCenterPosition(position: string): boolean {
   const normalized = position.trim().toLowerCase()
-  return normalized !== "50% 50%" && normalized !== "center center" && normalized !== "center" && normalized !== "50%"
+  return (
+    normalized !== "50% 50%" &&
+    normalized !== "center center" &&
+    normalized !== "center" &&
+    normalized !== "50%"
+  )
 }
 
 function assignRef(ref: React.ForwardedRef<unknown>, value: unknown): void {
@@ -110,20 +115,34 @@ function createGalleryOverride<P extends object>(
       [refreshTrigger],
     )
 
+    const cropStyleRef = useRef<HTMLStyleElement | null>(null)
     const originalComposited = useRef<boolean | undefined | null>(null)
-    const applyMorphCrop = useCallback((index: number) => {
-      const item = items.find((entry) => entry.index === index)
-      const position = triggerCropPosition(item?.morphElement ?? null)
-      document.documentElement.style.setProperty("--kniff-ramka-trigger-position", position)
-      if (isOffCenterPosition(position)) {
-        const global = window as typeof window & { __RAMKA_VT_COMPOSITED__?: boolean }
-        if (originalComposited.current === null)
-          originalComposited.current = global.__RAMKA_VT_COMPOSITED__
-        global.__RAMKA_VT_COMPOSITED__ = false
-      }
-    }, [items])
+    const applyMorphCrop = useCallback(
+      (index: number) => {
+        const item = items.find((entry) => entry.index === index)
+        const position = triggerCropPosition(item?.morphElement ?? null)
+        const sheet = cropStyleRef.current?.sheet
+        if (sheet) {
+          if (!sheet.cssRules.length)
+            sheet.insertRule(
+              ':root[data-ramka-view-transition="opening"]::view-transition-new(lightbox-morph), :root[data-ramka-view-transition="closing"]::view-transition-old(lightbox-morph) {}',
+            )
+          const rule = sheet.cssRules[0] as CSSStyleRule
+          if (rule.style.objectPosition !== position)
+            rule.style.setProperty("object-position", position, "important")
+        }
+        if (isOffCenterPosition(position)) {
+          const global = window as typeof window & { __RAMKA_VT_COMPOSITED__?: boolean }
+          if (originalComposited.current === null)
+            originalComposited.current = global.__RAMKA_VT_COMPOSITED__
+          global.__RAMKA_VT_COMPOSITED__ = false
+        }
+      },
+      [items],
+    )
     const restoreMorphCrop = useCallback(() => {
-      document.documentElement.style.removeProperty("--kniff-ramka-trigger-position")
+      const sheet = cropStyleRef.current?.sheet
+      if (sheet?.cssRules.length) sheet.deleteRule(0)
       if (originalComposited.current !== null) {
         const global = window as typeof window & { __RAMKA_VT_COMPOSITED__?: boolean }
         if (originalComposited.current === undefined) delete global.__RAMKA_VT_COMPOSITED__
@@ -205,8 +224,7 @@ function createGalleryOverride<P extends object>(
           {renderComponent(Component, props as unknown as P, mergedRootRef)}
           <RamkaPortal items={items} config={config} />
         </Lightbox.Root>
-        <style>{`:root[data-ramka-view-transition="opening"]::view-transition-new(lightbox-morph),
-:root[data-ramka-view-transition="closing"]::view-transition-old(lightbox-morph) { object-position: var(--kniff-ramka-trigger-position, center) !important; }`}</style>
+        <style ref={cropStyleRef} />
       </RamkaGalleryContext.Provider>
     )
   })
