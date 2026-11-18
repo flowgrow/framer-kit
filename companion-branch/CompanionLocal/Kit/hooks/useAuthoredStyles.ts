@@ -1,5 +1,5 @@
 // Branch-local copy: dependencies resolved within CompanionLocal.
-import { useEffect, useId, useState } from "react"
+import { startTransition, useEffect, useId, useState } from "react"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { authoredVariableCSS, readAuthoredCSS } from "../carousel/authoredStyles.ts"
 
@@ -15,7 +15,7 @@ export function useAuthoredStyles(className: string) {
     // Preview/editor styles are inserted before passive effects. Also refresh
     // when a variant changes the received class. No resize/mutation observer.
     const next = authoredVariableCSS(readAuthoredCSS(), className)
-    if (next) setCSS(next)
+    if (next) startTransition(() => setCSS(next))
   }, [className])
   return { id, css }
 }

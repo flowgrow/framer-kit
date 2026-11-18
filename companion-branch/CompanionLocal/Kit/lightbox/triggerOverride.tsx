@@ -96,7 +96,7 @@ function createTriggerOverride<P extends object>(
     const mergedRef = useCallback(
       (node: unknown) => {
         const nextElement = node instanceof HTMLElement ? node : null
-        setElement(nextElement)
+        React.startTransition(() => setElement(nextElement))
         assignRef(forwardedRef, node)
       },
       [forwardedRef],
