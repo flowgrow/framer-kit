@@ -39,6 +39,10 @@ export function withKniffCarouselNextButton(Component: ComponentType<any>): Comp
   return carouselButtonOverrides.withKniffCarouselNextButton(Component)
 }
 
+export function withKniffCarouselHideNavigation(Component: ComponentType<any>): ComponentType<any> {
+  return carouselButtonOverrides.withKniffCarouselHideNavigation(Component)
+}
+
 export function withKniffCarouselPlayButton(Component: ComponentType<any>): ComponentType<any> {
   return carouselButtonOverrides.withKniffCarouselPlayButton(Component)
 }
@@ -47,7 +51,14 @@ export function withKniffCarouselProgress(Component: ComponentType<any>): Compon
   return carouselButtonOverrides.withKniffCarouselProgress(Component)
 }
 
-const ActiveDotContext = React.createContext<{ active: boolean; weight: number; index: number; viewport: HTMLElement; widths: number[]; measure: (widths: number[]) => void } | null>(null)
+const ActiveDotContext = React.createContext<{
+  active: boolean
+  weight: number
+  index: number
+  viewport: HTMLElement
+  widths: number[]
+  measure: (widths: number[]) => void
+} | null>(null)
 
 function observeDots(viewport: HTMLElement, update: (count: number, position: number) => void) {
   let count = 0
@@ -57,9 +68,9 @@ function observeDots(viewport: HTMLElement, update: (count: number, position: nu
   const observed = new Set<HTMLElement>()
   const measure = () => {
     const slides = dotSlides(viewport)
-    const originals = slides.filter(slide => isOriginalSlide(viewport, slide))
+    const originals = slides.filter((slide) => isOriginalSlide(viewport, slide))
     count = originals.length
-    points = slides.map(slide => snapPosition(viewport, slide))
+    points = slides.map((slide) => snapPosition(viewport, slide))
     const current = new Set(slides)
     for (const slide of observed) {
       if (!current.has(slide)) {
@@ -81,8 +92,11 @@ function observeDots(viewport: HTMLElement, update: (count: number, position: nu
       dirty = false
     }
     const position = viewport.scrollLeft
-    let right = points.findIndex(point => point >= position)
-    if (right < 0 || (position > 0 && position >= viewport.scrollWidth - viewport.clientWidth - 1)) {
+    let right = points.findIndex((point) => point >= position)
+    if (
+      right < 0 ||
+      (position > 0 && position >= viewport.scrollWidth - viewport.clientWidth - 1)
+    ) {
       right = points.length - 1
     }
     const left = Math.max(0, right - 1)
@@ -90,16 +104,27 @@ function observeDots(viewport: HTMLElement, update: (count: number, position: nu
     const fraction = span > 0 ? Math.max(0, Math.min(1, (position - points[left]!) / span)) : 1
     update(count, count ? (left + (right - left) * fraction) % count : 0)
   }
-  const schedule = () => { if (!frame) frame = requestAnimationFrame(refresh) }
-  const invalidate = () => { dirty = true; schedule() }
+  const schedule = () => {
+    if (!frame) frame = requestAnimationFrame(refresh)
+  }
+  const invalidate = () => {
+    dirty = true
+    schedule()
+  }
   const resize = new ResizeObserver(invalidate)
   const mutations = new MutationObserver(invalidate)
   resize.observe(viewport)
-  mutations.observe(viewport, { childList: true, subtree: true, attributes: true,
-    attributeFilter: ["style", "class", "hidden", "data-kniff", "data-kniff-loop-copy"] })
+  mutations.observe(viewport, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["style", "class", "hidden", "data-kniff", "data-kniff-loop-copy"],
+  })
+  viewport.addEventListener("kniff-groups-changed", invalidate)
   viewport.addEventListener("scroll", schedule, { passive: true })
   refresh()
   return () => {
+    viewport.removeEventListener("kniff-groups-changed", invalidate)
     viewport.removeEventListener("scroll", schedule)
     cancelAnimationFrame(frame)
     resize.disconnect()
@@ -109,26 +134,53 @@ function observeDots(viewport: HTMLElement, update: (count: number, position: nu
 
 export function withKniffCarouselDotsContainer(Component: ComponentType<any>): ComponentType<any> {
   return React.forwardRef<any, any>((props, ref) => {
-    const scope = React.useContext(CarouselContext) as unknown as { viewport: HTMLElement | null } | null
+    const scope = React.useContext(CarouselContext) as unknown as {
+      viewport: HTMLElement | null
+    } | null
     const viewport = scope?.viewport
     const [dots, setDots] = React.useState({ count: 0, position: 0 })
     const [widths, measure] = React.useState<number[]>([])
     React.useLayoutEffect(() => {
       if (!viewport) return
       return observeDots(viewport, (count, position) => {
-        setDots(previous => previous.count === count && previous.position === position ? previous : { count, position })
+        setDots((previous) =>
+          previous.count === count && previous.position === position
+            ? previous
+            : { count, position },
+        )
       })
     }, [viewport])
-    if (!scope || RenderTarget.current() === RenderTarget.canvas) return <Component {...props} ref={ref} />
+    if (!scope || RenderTarget.current() === RenderTarget.canvas)
+      return <Component {...props} ref={ref} />
     const template = React.Children.toArray(props.children).find(React.isValidElement)
-    return <Component {...props} ref={ref}>
-      {viewport && template && Array.from({ length: dots.count }, (_, index) =>
-        <ActiveDotContext.Provider key={index} value={{ index, active: index === Math.round(dots.position) % dots.count, viewport, widths, measure,
-          weight: Math.max(0, 1 - Math.min(Math.abs(index - dots.position), dots.count - Math.abs(index - dots.position))) }}>
-          {React.cloneElement(template)}
-        </ActiveDotContext.Provider>
-      )}
-    </Component>
+    return (
+      <Component {...props} ref={ref}>
+        {viewport &&
+          template &&
+          Array.from({ length: dots.count }, (_, index) => (
+            <ActiveDotContext.Provider
+              key={index}
+              value={{
+                index,
+                active: index === Math.round(dots.position) % dots.count,
+                viewport,
+                widths,
+                measure,
+                weight: Math.max(
+                  0,
+                  1 -
+                    Math.min(
+                      Math.abs(index - dots.position),
+                      dots.count - Math.abs(index - dots.position),
+                    ),
+                ),
+              }}
+            >
+              {React.cloneElement(template)}
+            </ActiveDotContext.Provider>
+          ))}
+      </Component>
+    )
   })
 }
 
@@ -142,9 +194,9 @@ export function withKniffCarouselDot(Component: ComponentType<any>): ComponentTy
       const pair = probes.current
       if (!pair || !measure) return
       const elements = Array.from(pair.children) as HTMLElement[]
-      const read = () => measure(elements.map(el => el.offsetWidth))
+      const read = () => measure(elements.map((el) => el.offsetWidth))
       const resize = new ResizeObserver(read)
-      elements.forEach(el => resize.observe(el))
+      elements.forEach((el) => resize.observe(el))
       read()
       return () => resize.disconnect()
     }, [measure])
@@ -155,25 +207,75 @@ export function withKniffCarouselDot(Component: ComponentType<any>): ComponentTy
     }
     const keyDown = (event: React.KeyboardEvent<HTMLElement>) => {
       props.onKeyDown?.(event)
-      if (event.defaultPrevented || event.target !== event.currentTarget ||
-          event.currentTarget.matches("button,input,a[href]")) return
+      if (
+        event.defaultPrevented ||
+        event.target !== event.currentTarget ||
+        event.currentTarget.matches("button,input,a[href]")
+      )
+        return
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault()
         if (!event.repeat) event.currentTarget.click()
       }
     }
     const [small, large] = dot.widths
-    const width = small !== undefined && large !== undefined ? small + (large - small) * dot.weight : undefined
-    return <MotionConfig reducedMotion="always">
-      {measure && <span ref={probes} aria-hidden="true" style={{ position: "absolute", visibility: "hidden", pointerEvents: "none", display: "flex", width: "max-content", overflow: "hidden", height: 0 }}>
-        {["Default", "Active"].map(variant => <Component {...props} key={variant} id={undefined} ref={undefined} tabIndex={-1}
-          layoutId={layoutId + variant} variant={variant} />)}
-      </span>}
-      <Component {...props} ref={ref} layoutId={layoutId} variant={dot.active ? "Active" : "Default"}
-      data-kniff-dot-index={dot.index}
-      style={{ ...props.style, ...(width === undefined ? {} : { width }), "--kniff-dot-activeness": dot.weight }}
-      onClick={click} onKeyDown={keyDown} role={props.role ?? "button"} tabIndex={props.tabIndex ?? 0}
-      aria-label={props["aria-label"] ?? `Go to slide ${dot.index + 1}`} aria-current={dot.active || undefined} />
-    </MotionConfig>
+    const width =
+      small !== undefined && large !== undefined ? small + (large - small) * dot.weight : undefined
+    return (
+      <MotionConfig reducedMotion="always">
+        {measure && (
+          <span
+            ref={probes}
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              visibility: "hidden",
+              pointerEvents: "none",
+              display: "flex",
+              width: "max-content",
+              overflow: "hidden",
+              height: 0,
+            }}
+          >
+            {["Default", "Active"].map((variant) => (
+              <Component
+                {...props}
+                key={variant}
+                id={undefined}
+                ref={undefined}
+                tabIndex={-1}
+                layoutId={layoutId + variant}
+                variant={variant}
+              />
+            ))}
+          </span>
+        )}
+        <Component
+          {...props}
+          ref={ref}
+          layoutId={layoutId}
+          variant={dot.active ? "Active" : "Default"}
+          data-kniff-dot-index={dot.index}
+          style={{
+            ...props.style,
+            ...(width === undefined ? {} : { width }),
+            "--kniff-dot-activeness": dot.weight,
+          }}
+          onClick={click}
+          onKeyDown={keyDown}
+          role={props.role ?? "button"}
+          tabIndex={props.tabIndex ?? 0}
+          aria-label={props["aria-label"] ?? `Go to slide ${dot.index + 1}`}
+          aria-current={dot.active || undefined}
+        />
+      </MotionConfig>
+    )
   })
+}
+
+/** Apply to CMS pagination indicators; keep them in layout but out of slide stops. */
+export function withKniffCarouselIgnoreSlide(Component: ComponentType<any>): ComponentType<any> {
+  return React.forwardRef<any, any>((props, ref) => (
+    <Component {...props} ref={ref} data-kniff-ignore-slide="" />
+  ))
 }

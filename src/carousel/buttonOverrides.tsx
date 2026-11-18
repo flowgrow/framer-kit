@@ -71,7 +71,7 @@ function navigationOverride<P extends object>(
       ref,
       ...(disabled ? { variant: "Disabled" } : {}),
       role: original.role ?? "button",
-      tabIndex: disabled ? -1 : original.tabIndex ?? 0,
+      tabIndex: disabled ? -1 : (original.tabIndex ?? 0),
       "aria-label": original["aria-label"] ?? (direction === 1 ? "Next slide" : "Previous slide"),
       "aria-disabled": disabled,
     } as P)
@@ -91,16 +91,48 @@ function withKniffCarouselNextButton<P extends object>(
   return navigationOverride(Component, 1)
 }
 
-function withKniffCarouselPlayButton(Component: React.ComponentType<any>): React.ComponentType<any> {
+function withKniffCarouselHideNavigation(
+  Component: React.ComponentType<any>,
+): React.ComponentType<any> {
+  return React.forwardRef<HTMLElement, any>((props, ref) => {
+    const scope = React.useContext(CarouselContext) as unknown as {
+      viewport: HTMLElement | null
+    } | null
+    const viewport = scope?.viewport
+    const [available, setAvailable] = React.useState(0)
+    React.useEffect(() => {
+      setAvailable(0)
+      if (viewport) return observeNavigation(viewport, setAvailable)
+    }, [viewport])
+    if (RenderTarget.current() === RenderTarget.canvas) return <Component {...props} ref={ref} />
+    return (
+      <Component
+        {...props}
+        ref={ref}
+        style={{
+          ...props.style,
+          ...(!viewport || available === 0 ? { display: "none" } : {}),
+        }}
+      />
+    )
+  })
+}
+
+function withKniffCarouselPlayButton(
+  Component: React.ComponentType<any>,
+): React.ComponentType<any> {
   return React.forwardRef<HTMLElement, any>((props, forwardedRef) => {
     const viewport = (React.useContext(CarouselContext) as any)?.viewport as HTMLElement | undefined
     const [button, setButton] = React.useState<HTMLElement | null>(null)
     const [variant, setVariant] = React.useState("Stopped")
-    const ref = React.useCallback((node: HTMLElement | null) => {
-      setButton(node)
-      if (typeof forwardedRef === "function") forwardedRef(node)
-      else if (forwardedRef) forwardedRef.current = node
-    }, [forwardedRef])
+    const ref = React.useCallback(
+      (node: HTMLElement | null) => {
+        setButton(node)
+        if (typeof forwardedRef === "function") forwardedRef(node)
+        else if (forwardedRef) forwardedRef.current = node
+      },
+      [forwardedRef],
+    )
     React.useLayoutEffect(() => {
       if (!viewport || !button) return
       const update = () => {
@@ -114,7 +146,12 @@ function withKniffCarouselPlayButton(Component: React.ComponentType<any>): React
       observer.observe(viewport, { attributes: true, attributeFilter: ["data-kniff-auto-move"] })
       const toggle = () => viewport.dispatchEvent(new Event("kniff-toggle-playback"))
       const keyDown = (event: KeyboardEvent) => {
-        if (button.matches("button,input,a[href]") || event.target !== button || event.defaultPrevented) return
+        if (
+          button.matches("button,input,a[href]") ||
+          event.target !== button ||
+          event.defaultPrevented
+        )
+          return
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault()
           if (!event.repeat) button.click()
@@ -128,10 +165,19 @@ function withKniffCarouselPlayButton(Component: React.ComponentType<any>): React
         button.removeEventListener("keydown", keyDown)
       }
     }, [button, viewport])
-    if (RenderTarget.current() === RenderTarget.canvas) return <Component {...props} ref={forwardedRef} />
-    return <Component {...props} ref={ref} variant={viewport ? variant : "Stopped"}
-      role={props.role ?? "button"} tabIndex={props.tabIndex ?? 0}
-      aria-label={props["aria-label"] ?? "Auto Move"} aria-pressed={Boolean(viewport && variant === "Playing")} />
+    if (RenderTarget.current() === RenderTarget.canvas)
+      return <Component {...props} ref={forwardedRef} />
+    return (
+      <Component
+        {...props}
+        ref={ref}
+        variant={viewport ? variant : "Stopped"}
+        role={props.role ?? "button"}
+        tabIndex={props.tabIndex ?? 0}
+        aria-label={props["aria-label"] ?? "Auto Move"}
+        aria-pressed={Boolean(viewport && variant === "Playing")}
+      />
+    )
   })
 }
 
@@ -139,11 +185,14 @@ function withKniffCarouselProgress(Component: React.ComponentType<any>): React.C
   return React.forwardRef<HTMLElement, any>((props, forwardedRef) => {
     const viewport = (React.useContext(CarouselContext) as any)?.viewport as HTMLElement | undefined
     const [bar, setBar] = React.useState<HTMLElement | null>(null)
-    const ref = React.useCallback((node: HTMLElement | null) => {
-      setBar(node)
-      if (typeof forwardedRef === "function") forwardedRef(node)
-      else if (forwardedRef) forwardedRef.current = node
-    }, [forwardedRef])
+    const ref = React.useCallback(
+      (node: HTMLElement | null) => {
+        setBar(node)
+        if (typeof forwardedRef === "function") forwardedRef(node)
+        else if (forwardedRef) forwardedRef.current = node
+      },
+      [forwardedRef],
+    )
     React.useLayoutEffect(() => {
       if (!viewport || !bar) return
       const authored = bar.style.width
@@ -151,9 +200,20 @@ function withKniffCarouselProgress(Component: React.ComponentType<any>): React.C
       const sync = () => {
         cancelAnimationFrame(frame)
         const clock = viewport.dataset.kniffStepClock
-        if (!clock) { bar.style.width = authored; return }
-        const [duration, remaining, deadline, currentSlide, direction, outgoing, leaving] = JSON.parse(clock) as
-          [number, number, number, number, "left" | "right", number | null, boolean]
+        if (!clock) {
+          bar.style.width = authored
+          return
+        }
+        const [duration, remaining, deadline, currentSlide, direction, outgoing, leaving] =
+          JSON.parse(clock) as [
+            number,
+            number,
+            number,
+            number,
+            "left" | "right",
+            number | null,
+            boolean,
+          ]
         const dot = bar.closest<HTMLElement>("[data-kniff-dot-index]")
         if (dot && currentSlide !== undefined) {
           const index = Number(dot.dataset.kniffDotIndex)
@@ -186,4 +246,10 @@ function withKniffCarouselProgress(Component: React.ComponentType<any>): React.C
   })
 }
 
-export const carouselButtonOverrides = { withKniffCarouselPreviousButton, withKniffCarouselNextButton, withKniffCarouselPlayButton, withKniffCarouselProgress }
+export const carouselButtonOverrides = {
+  withKniffCarouselPreviousButton,
+  withKniffCarouselNextButton,
+  withKniffCarouselHideNavigation,
+  withKniffCarouselPlayButton,
+  withKniffCarouselProgress,
+}

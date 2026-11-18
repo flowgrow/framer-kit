@@ -1,7 +1,7 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { CarouselContext } from "./carouselContext.tsx"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { useEdgeSlideWidths } from "../hooks/useEdgeSlideWidths.ts"
+import { useSlideGroups } from "../hooks/useSlideGroups.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { useReactLoop } from "../hooks/useReactLoop.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
@@ -20,6 +20,8 @@ export function CarouselPreviewSettings({
   containerID = "Percentage Sized Carousel",
   align = "center",
   fullBleed = false,
+  slideBy = 1,
+  slideByAuto = false,
   edgeSpace = true,
   loop = true,
   autoMove = "none",
@@ -40,11 +42,14 @@ export function CarouselPreviewSettings({
   const boundary = scope?.boundarySelector ?? "body"
   const registeredViewport = scope?.viewport ?? null
   const includeEdgeSpace = loop || edgeSpace
-  useEdgeSlideWidths(
+  useSlideGroups(
     styleRef,
     viewportSelector,
-    boundary,
-    edgeSpace && !loop && Boolean(viewportSelector),
+    registeredViewport,
+    slideByAuto ? "auto" : slideBy,
+    align,
+    loop,
+    edgeSpace,
   )
   useReactLoop(styleRef, viewportSelector, align, loop, registeredViewport)
   useAutoMove({
@@ -196,7 +201,7 @@ export function CarouselPreviewSettings({
   > ${cycle} > :where(:not(.ssr-variant)),
   > ${cycle} > :where(.ssr-variant) > *`
   const content =
-    ":not(style, script, [data-kniff-ramka-settings], :has([data-kniff-ramka-settings]))"
+    ":not(style, script, [data-kniff-ramka-settings], :has([data-kniff-ramka-settings]), [data-kniff-ignore-slide], :has([data-kniff-ignore-slide]))"
   const edgeSlide = (which: "first" | "last") => {
     const item = `:nth-${which === "first" ? "" : "last-"}child(1 of ${content}:not([data-kniff-loop-original], [data-kniff-loop-copy]))`
     return `
@@ -217,11 +222,11 @@ ${boundary} ${viewport} {
     : ""
   const firstSlideMargin =
     includeEdgeSpace && !loop && align !== "start"
-      ? `calc((100% - var(--kniff-first-slide-width, 0px)) * ${align === "end" ? 1 : 0.5})`
+      ? `max(0px, calc((100% - var(--kniff-first-slide-width, 0px)) * ${align === "end" ? 1 : 0.5}))`
       : "0px"
   const lastSlideMargin =
     includeEdgeSpace && !loop && align !== "end"
-      ? `calc((100% - var(--kniff-last-slide-width, 0px)) * ${align === "start" ? 1 : 0.5})`
+      ? `max(0px, calc((100% - var(--kniff-last-slide-width, 0px)) * ${align === "start" ? 1 : 0.5}))`
       : "0px"
   const css = `
 div[data-framer-name]:has(> style[data-kniff-preview-settings]) {
@@ -268,6 +273,7 @@ ${viewport} {
     &[data-kniff-slide-position="current"] { z-index: 1 !important; }
     scroll-snap-align: ${align};
     scroll-snap-stop: always;
+    &[data-kniff-ignore-slide], &:has([data-kniff-ignore-slide]) { scroll-snap-align: none !important; }
   }
   ${firstSlide} {
     margin-inline-start: ${firstSlideMargin};

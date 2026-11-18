@@ -113,6 +113,8 @@ export interface KniffCarouselSettingsProps {
   autoMoveDirection?: "left" | "right"
   autoMoveStopOnInteraction?: boolean
   autoMoveStopOnLastSlide?: boolean
+  slideBy?: number | "auto"
+  slideByAuto?: boolean
   fullBleed?: boolean
   edgeSpace?: boolean
 }
@@ -279,6 +281,22 @@ export const kniffCarouselSettingsPropertyControls = {
     defaultValue: "center",
   } as PropertyControls<KniffCarouselSettingsProps>["align"] & {
     optionIcons: string[]
+  },
+  slideByAuto: {
+    title: "Slide By",
+    type: ControlType.Boolean,
+    defaultValue: false,
+    enabledTitle: "Auto",
+    disabledTitle: "Fixed",
+  },
+  slideBy: {
+    title: "Slides",
+    type: ControlType.Number,
+    defaultValue: 1,
+    min: 1,
+    step: 1,
+    displayStepper: true,
+    hidden: (props: KniffCarouselSettingsProps) => props.slideByAuto === true,
   },
   fullBleed: {
     title: "Full Bleed",

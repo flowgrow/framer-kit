@@ -2,11 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from "react"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { overflowSnapPoints, slideBoxes } from "../carousel/snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
-import {
-  cancelOverflowMove,
-  getPendingOverflowDestination,
-  moveOverflowViewport,
-} from "../carousel/snapNavigation.ts"
+import { cancelOverflowMove, getPendingOverflowDestination, moveOverflowViewport } from "../carousel/snapNavigation.ts"
 
 function selectorFor(id: string) {
   const value = JSON.stringify(id).replace(/</g, "\\3c ")
@@ -117,9 +113,11 @@ export function observeNavigation(viewport: HTMLElement, setAvailable: (value: n
     mutation.observe(activeSizing, { attributes: true, attributeFilter: ["style", "class"] })
   for (const event of ["scroll", "scrollend", "kniff-scroll-navigation"])
     viewport.addEventListener(event, scheduleUpdate, { passive: true })
+  viewport.addEventListener("kniff-groups-changed", invalidate)
   update()
   return () => {
     win.cancelAnimationFrame(updateFrame)
+    viewport.removeEventListener("kniff-groups-changed", invalidate)
     resize.disconnect()
     mutation.disconnect()
     for (const event of ["scroll", "scrollend", "kniff-scroll-navigation"])

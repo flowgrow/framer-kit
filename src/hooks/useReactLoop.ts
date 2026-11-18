@@ -1,5 +1,5 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { slideRect } from "../carousel/snapGeometry.ts"
+import { slideRect, snapPosition } from "../carousel/snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { getPendingOverflowDestination } from "../carousel/snapNavigation.ts"
 import { useLayoutEffect, type RefObject } from "react"
@@ -48,7 +48,11 @@ export function useReactLoop(
       const slides = slideBoxes(originalCycle)
       const first = slides[0]
       if (!first || slides.length < 2) return false
-      if (align !== "start" && !clearStartup && !scroller.querySelector(":scope > [data-kniff-loop-copy]")) {
+      if (
+        align !== "start" &&
+        !clearStartup &&
+        !scroller.querySelector(":scope > [data-kniff-loop-copy]")
+      ) {
         // Complete the handoff in the DOM commit that inserts the leading copies.
         const observer = new MutationObserver(() => {
           if (scroller.querySelector(":scope > [data-kniff-loop-copy]")) {
@@ -93,8 +97,7 @@ export function useReactLoop(
         const right = parseFloat(css.scrollPaddingRight) || 0
         const factor = align === "end" ? 1 : align === "center" ? 0.5 : 0
         const origin = scroller.scrollLeft + firstBox.left - box.left - scroller.clientLeft
-        const start =
-          origin - left - (scroller.clientWidth - left - right - firstBox.width) * factor
+        const start = snapPosition(scroller, first)
         return { cycle, start }
       }
       const initial = geometry()
