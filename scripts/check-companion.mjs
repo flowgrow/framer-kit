@@ -29,19 +29,13 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
       })
     await page.goto(url, { waitUntil: "domcontentloaded" })
     await page.waitForFunction(
-      () => window.__COMPANION_KIT_BUILD__ === "companion-local-2026-11-18-v5",
+      () => window.__COMPANION_KIT_BUILD__ === "companion-local-2026-11-18-v6",
     )
     await page.waitForFunction(() =>
       document.querySelector('[data-framer-name="CarouselXYZ"] [data-ramka-trigger]'),
     )
     // Hidden Framer overlays can still fire delayed triggers and lock the page.
     await page.waitForTimeout(5000)
-    const photoViewport = page
-      .locator('[data-framer-name="CarouselXYZ"][data-kniff-viewport]')
-      .first()
-    await expect(photoViewport).toHaveAttribute("data-kniff-loop-ready", "")
-    await expect(photoViewport.locator(":scope > [data-kniff-loop-copy]")).toHaveCount(6)
-    result.loopReady = true
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe(
       "hidden",
     )
@@ -62,6 +56,12 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
       return i?.complete && i.naturalWidth > 0
     })
     await page.waitForTimeout(400)
+    const photoViewport = page
+      .locator('[data-framer-name="CarouselXYZ"][data-kniff-viewport]')
+      .first()
+    await expect(photoViewport).toHaveAttribute("data-kniff-loop-ready", "")
+    await expect(photoViewport.locator(":scope > [data-kniff-loop-copy]")).toHaveCount(6)
+    result.loopReady = true
     const trigger = page.locator('[data-ramka-trigger]:not([aria-hidden="true"] *)').first()
     // Auto Move intentionally changes the box every frame; click its current centre.
     const triggerBox = await trigger.boundingBox()

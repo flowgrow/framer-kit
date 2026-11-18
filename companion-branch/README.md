@@ -4,6 +4,8 @@ Framer project: https://framer.com/projects/The-Companion--s8t6yE6lekXltgaL4N73-
 
 Published branch: https://philosophical-portion-666222--new-carousel-y0f6w208o.framer.app
 
+Current behavior: Morph is the default, with an explicit Morph/Fade control in Lightbox Settings. Hidden promo triggers no longer lock page scrolling. The immediate-scroll-after-dismissal handoff keeps wheel input from fighting native snapping. The delayed-load mobile WebKit run still reports React 421, so hydration is not considered fully resolved. The performance notes below include historical experiments; fade is no longer forced.
+
 `CompanionLocal/` mirrors the branch's code files. The 34 files were copied from the live Framer Kit project, retaining its relative dependency graph. The carousel touch-intent import now resolves locally. Ramka remains the existing external @ramka/react 0.0.2 dependency.
 
 The homepage uses local Overrides.tsx exports and local settings components. Existing slide layers, button components, images, and settings values are preserved. Other pages retain their existing references.
@@ -16,7 +18,7 @@ Homepage settings instance replacements:
 | NgGvyUR5k | lDGxmgxY1 | Photo carousel settings  |
 | RSt_3XQtN | lms6kQNqz | Events carousel settings |
 
-The published runtime exposes `window.__COMPANION_KIT_BUILD__ = "companion-local-2026-11-18-v5"`. Update the marker when changing the copied implementation and assert it before profiling.
+The published runtime exposes `window.__COMPANION_KIT_BUILD__ = "companion-local-2026-11-18-v6"`. Update the marker when changing the copied implementation and assert it before profiling.
 
 Iteration: edit the branch code, mirror it here and commit, publish the branch, reload and verify the marker, then test opening and navigation. No Assets Update step is required for these homepage copies. Apply verified performance fixes back to the Kit source separately.
 
@@ -61,3 +63,5 @@ The final loop-start guard observes Framer's `.ssr-variant` wrappers and starts 
 Gesture validation: actual Chromium pull-to-dismiss followed by wheel input at 150ms and 300ms passed; WebKit and Firefox keyboard-close followed by wheel input also passed the no-opposing-movement assertion. Ordinary snapping after the user stops input is allowed.
 
 The loop readiness check is independent of gallery registration counts: it observes the current original subtree even when Framer replaces it, then waits for that hydration commit before setup. Tests now explicitly require the ready marker and all six loop copies, rather than accepting a carousel that opens the lightbox but never finishes loop setup.
+
+The final readiness signal uses our own `data-kniff-trigger-ready` DOM refs. The earlier `.ssr-variant` guard was replaced because Firefox retains responsive wrappers after hydration. Empty display:contents placeholders preserve original sibling positions before loop copies are activated. Desktop WebKit on deployment `15048ff9b` passed the delayed-module behavior check including loop readiness; mobile WebKit passed the interactions but failed the recoverable-error assertion with React 421. That failure remains open.
