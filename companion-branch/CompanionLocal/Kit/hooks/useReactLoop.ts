@@ -21,6 +21,7 @@ export function useReactLoop(
     let cancelled = false
     let clearStartup: (() => void) | undefined
     let hydrationObserver: MutationObserver | undefined
+    let hydrationCommitted = false
     const install = () => {
       const scroller =
         registeredViewport ??
@@ -45,10 +46,14 @@ export function useReactLoop(
             hydrationObserver = undefined
             retry = 0
             cancelAnimationFrame(frame)
-            attempt()
+            frame = requestAnimationFrame(attempt)
           })
           hydrationObserver.observe(originalCycle, { childList: true, subtree: true })
         }
+        return false
+      }
+      if (!hydrationCommitted) {
+        hydrationCommitted = true
         return false
       }
       const slides = slideBoxes(originalCycle)
