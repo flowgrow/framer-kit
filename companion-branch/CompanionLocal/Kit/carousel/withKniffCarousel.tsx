@@ -44,14 +44,14 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
     const [loop, setLoop] = useState(false)
     const ref = useCallback(
       (node: unknown) => {
-        setViewport(node instanceof HTMLElement ? node : null)
+        React.startTransition(() => setViewport(node instanceof HTMLElement ? node : null))
         if (typeof forwardedRef === "function") forwardedRef(node)
         else if (forwardedRef) forwardedRef.current = node
       },
       [forwardedRef],
     )
     const probe = useCallback((node: HTMLSpanElement | null) => {
-      if (node?.parentElement) { const parent = node.parentElement; setViewport(parent) }
+      if (node?.parentElement) { const parent = node.parentElement; React.startTransition(() => setViewport(parent)) }
     }, [])
     useEffect(() => {
       if (!viewport || !register) return
@@ -61,7 +61,7 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
     }, [viewport, register])
     useEffect(() => {
       if (!viewport) return
-      const configure = (event: Event) => setLoop((event as CustomEvent<boolean>).detail)
+      const configure = (event: Event) => React.startTransition(() => setLoop((event as CustomEvent<boolean>).detail))
       const marked = viewport.hasAttribute("data-kniff-react-loop")
       viewport.setAttribute("data-kniff-react-loop", "")
       viewport.addEventListener("kniff-loop-render", configure)

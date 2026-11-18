@@ -45,6 +45,7 @@ export function installAutoMove(
   let writtenPosition = viewport.scrollLeft
   let awaitingScroll = false
   let nativeHandoff = false
+  let wheelGesture = false
   let inView = false,
     suspended = true,
     resumeMoving = true
@@ -155,12 +156,14 @@ export function installAutoMove(
     writtenPosition = position
     awaitingScroll = false
     nativeHandoff = false
+    wheelGesture = false
     viewport.style.scrollSnapType = "none"
     viewport.style.scrollBehavior = "auto"
     state("running")
     frame = win.requestAnimationFrame(tick)
   }
   const wait = () => {
+    wheelGesture = false
     stop()
     awaitingScroll = false
     restore()
@@ -254,7 +257,9 @@ export function installAutoMove(
     }
     if ((awaitingScroll || (!hasTouch && phase === "running")) && userScrolled) {
       awaitingScroll = false
-      interrupt(true)
+      // Keep snapping disabled throughout a wheel burst; restoring it here
+      // pulls each delta back toward the old snap target.
+      interrupt(!wheelGesture)
     }
     // Our own instant loop normalization emits an asynchronous scroll event.
     // It must not reset the resume timer after we have already settled.
@@ -274,6 +279,9 @@ export function installAutoMove(
       return
     }
     verticalWheelUntil = 0
+    wheelGesture = Boolean(event)
+    // Cancel a close/settle animation before the browser applies new wheel input.
+    if (event && !externallyPaused()) viewport.scrollTo({ left: viewport.scrollLeft, behavior: "instant" })
     if (stopOnInteraction) { pause("held"); return }
     gesture.reset()
     awaitingScroll = true
@@ -305,6 +313,7 @@ export function installAutoMove(
   }
   const gesture = installTouchIntent(viewport, {
     start: () => {
+      wheelGesture = false
       awaitingScroll = false
       interrupt()
     },
