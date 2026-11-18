@@ -1,0 +1,332 @@
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { RamkaGalleryContext } from "../lightbox/context.ts"
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { CarouselCanvasSettings } from "./CarouselCanvasSettings.tsx"
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { CarouselPreviewSettings } from "./CarouselPreviewSettings.tsx"
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { SetCarouselSettingsSnapshot } from "./carouselContext.tsx"
+import { useEffect, useContext, type CSSProperties } from "react"
+import { addPropertyControls, ControlType, RenderTarget, type PropertyControls } from "framer"
+
+import type { Transition } from "framer-motion"
+
+export interface SlideTransform {
+  opacity?: number
+  scale?: number
+  x?: number
+  y?: number
+  z?: number
+  rotateX?: number
+  rotateY?: number
+  rotateZ?: number
+}
+
+const axis = (title: string, unit: string) => ({
+  type: ControlType.Number as const,
+  title,
+  unit,
+  defaultValue: 0,
+  displayStepper: true,
+})
+const hideTransformSettings = (props: {
+  enabled?: boolean
+  slideTransforms?: { enabled?: boolean }
+}) => !(props.slideTransforms?.enabled ?? props.enabled)
+
+const transformControls = {
+  opacity: {
+    type: ControlType.Number as const,
+    title: "Opacity",
+    min: 0,
+    max: 1,
+    defaultValue: 1,
+    step: 0.01,
+  },
+  scale: {
+    type: ControlType.Number as const,
+    title: "Scale",
+    min: 0,
+    defaultValue: 1,
+    step: 0.05,
+    displayStepper: true,
+  },
+  x: axis("Translate X", "px"),
+  y: axis("Translate Y", "px"),
+  z: axis("Translate Z", "px"),
+  rotateX: axis("Rotate X", "°"),
+  rotateY: axis("Rotate Y", "°"),
+  rotateZ: axis("Rotate Z", "°"),
+}
+
+interface PreviousSlideTransform extends SlideTransform {
+  copyNext?: boolean
+  invert?: boolean
+}
+
+type PreviousControlProps = PreviousSlideTransform & {
+  slideTransforms?: { previous?: PreviousSlideTransform }
+}
+const copiesNext = (props: PreviousControlProps) =>
+  props.slideTransforms?.previous?.copyNext ?? props.copyNext ?? false
+
+const previousTransformControls = {
+  copyNext: {
+    type: ControlType.Boolean as const,
+    title: "Copy Next",
+    defaultValue: false,
+  },
+  invert: {
+    type: ControlType.Boolean as const,
+    title: "Invert",
+    defaultValue: false,
+    hidden: (props: PreviousControlProps) => !copiesNext(props),
+  },
+  ...Object.fromEntries(
+    Object.entries(transformControls).map(([key, control]) => [
+      key,
+      { ...control, hidden: copiesNext },
+    ]),
+  ),
+}
+
+export interface KniffCarouselSettingsProps {
+  canvasPreview?: { enabled?: boolean; viewport?: string; instructions?: boolean; scroll?: number }
+  showInstructions?: boolean
+  style?: CSSProperties
+  containerID?: string
+  align?: "start" | "center" | "end"
+  loop?: boolean
+  autoMove?: "none" | "perSlide" | "scroll"
+  slideTransforms?: {
+    enabled?: boolean
+    preview?: boolean
+    perspective?: number
+    previous?: PreviousSlideTransform
+    current?: SlideTransform
+    next?: SlideTransform
+  }
+  customTransition?: boolean
+  slideTransition?: Transition
+  autoMoveDelay?: number
+  autoMoveStartDelay?: number
+  autoMoveSpeed?: number
+  autoMoveDirection?: "left" | "right"
+  autoMoveStopOnInteraction?: boolean
+  autoMoveStopOnLastSlide?: boolean
+  slideBy?: number | "auto"
+  slideByAuto?: boolean
+  fullBleed?: boolean
+  edgeSpace?: boolean
+}
+
+/**
+ * @framerIntrinsicWidth 200
+ * @framerIntrinsicHeight 80
+ * @framerSupportedLayoutWidth any-prefer-fixed
+ * @framerSupportedLayoutHeight any-prefer-fixed
+ */
+export function KniffCarouselSettings(props: KniffCarouselSettingsProps) {
+  const gallery = useContext(RamkaGalleryContext) as any
+  const setSnapshot = useContext(SetCarouselSettingsSnapshot) as unknown as React.Dispatch<
+    React.SetStateAction<string | null>
+  > | null
+  const snapshot =
+    setSnapshot && !gallery?.isLoopCopy
+      ? JSON.stringify(
+          Object.fromEntries(
+            Object.entries(kniffCarouselSettingsPropertyControls).map(([key, control]) => [
+              key,
+              props[key as keyof KniffCarouselSettingsProps] ??
+                ("defaultValue" in control ? control.defaultValue : undefined),
+            ]),
+          ),
+        )
+      : null
+  useEffect(() => {
+    if (!setSnapshot || !snapshot) return
+    setSnapshot(snapshot)
+    return () => setSnapshot((current) => (current === snapshot ? null : current))
+  }, [setSnapshot, snapshot])
+  if (RenderTarget.current() === RenderTarget.canvas)
+    return props.canvasPreview?.enabled === false ? null : <CarouselCanvasSettings {...props} />
+  if (gallery?.isLoopCopy) return <style data-kniff-preview-settings="" />
+  return <CarouselPreviewSettings {...props} containerID={props.canvasPreview?.viewport ?? props.containerID} />
+}
+
+export const kniffCarouselSettingsPropertyControls = {
+  canvasPreview: {
+    title: "Canvas Preview",
+    type: ControlType.Object,
+    controls: {
+      enabled: { title: "Show Canvas Preview", type: ControlType.Boolean, defaultValue: true },
+      viewport: { title: "Viewport", type: ControlType.String, defaultValue: "Percentage Sized Carousel", hidden: (props) => props.enabled === false },
+      instructions: { title: "Instructions", type: ControlType.Boolean, defaultValue: true, hidden: (props) => props.enabled === false },
+      scroll: { title: "Scroll", type: ControlType.Number, defaultValue: 0, min: 0, max: 1000, step: 1, unit: "%", displayStepper: false, hidden: (props) => props.enabled === false },
+    },
+  },
+  loop: {
+    title: "Loop",
+    type: ControlType.Boolean,
+    defaultValue: true,
+  },
+  autoMove: {
+    title: "Auto Move",
+    type: ControlType.Enum,
+    options: ["none", "perSlide", "scroll"],
+    optionTitles: ["Off", "Per Slide", "Scroll"],
+    defaultValue: "none",
+  },
+  autoMoveDelay: {
+    title: "Pause per Slide",
+    type: ControlType.Number,
+    defaultValue: 8,
+    min: 0.1,
+    max: 100,
+    unit: "s",
+    displayStepper: true,
+    step: 0.1,
+    hidden: (props) => props.autoMove !== "perSlide",
+  },
+  autoMoveStartDelay: {
+    title: "Start Delay",
+    type: ControlType.Number,
+    defaultValue: 0,
+    min: 0,
+    step: 0.1,
+    unit: "s",
+    hidden: (props) => props.autoMove !== "scroll",
+  },
+  autoMoveSpeed: {
+    title: "Speed",
+    type: ControlType.Number,
+    defaultValue: 30,
+    min: 1,
+    max: 500,
+    unit: "px/s",
+    hidden: (props) => props.autoMove !== "scroll",
+  },
+  autoMoveDirection: {
+    title: "Direction",
+    type: ControlType.Enum,
+    options: ["left", "right"],
+    optionTitles: ["Left", "Right"],
+    defaultValue: "left",
+    displaySegmentedControl: true,
+    hidden: (props) => props.autoMove === "none",
+  },
+  autoMoveStopOnInteraction: {
+    title: "Pause on Interaction",
+    type: ControlType.Boolean,
+    defaultValue: false,
+    hidden: (props) => !props.autoMove || props.autoMove === "none",
+  },
+  autoMoveStopOnLastSlide: {
+    title: "Stop on Last Slide",
+    type: ControlType.Boolean,
+    defaultValue: false,
+    hidden: (props) => !props.autoMove || props.autoMove === "none",
+  },
+  slideTransforms: {
+    type: ControlType.Object,
+    title: "Effects",
+    controls: {
+      enabled: {
+        type: ControlType.Boolean,
+        title: "Enable Effects",
+        defaultValue: false,
+      },
+      preview: {
+        type: ControlType.Boolean,
+        title: "Canvas Preview",
+        defaultValue: true,
+        hidden: hideTransformSettings,
+      },
+      previous: {
+        type: ControlType.Object,
+        title: "Previous Slides",
+        controls: previousTransformControls,
+        hidden: hideTransformSettings,
+      },
+      current: {
+        type: ControlType.Object,
+        title: "Current Slide",
+        controls: transformControls,
+        hidden: hideTransformSettings,
+      },
+      next: {
+        type: ControlType.Object,
+        title: "Next Slides",
+        controls: transformControls,
+        hidden: hideTransformSettings,
+      },
+      perspective: {
+        ...axis("Perspective", "px"),
+        min: 0,
+        hidden: hideTransformSettings,
+      },
+    },
+  },
+  customTransition: {
+    title: "Custom Transition",
+    type: ControlType.Boolean,
+    defaultValue: false,
+  },
+  slideTransition: {
+    hidden: (props) => !props.customTransition,
+    title: "Transition",
+    type: ControlType.Transition,
+    defaultValue: { type: "tween", duration: 0.4, ease: "easeInOut" },
+  },
+  align: {
+    title: "Snap Align",
+    type: ControlType.Enum,
+    options: ["start", "center", "end"],
+    optionIcons: ["align-left", "align-center", "align-right"],
+    displaySegmentedControl: true,
+    defaultValue: "center",
+  } as PropertyControls<KniffCarouselSettingsProps>["align"] & {
+    optionIcons: string[]
+  },
+  slideByAuto: {
+    title: "Slide By",
+    type: ControlType.Boolean,
+    defaultValue: false,
+    enabledTitle: "Auto",
+    disabledTitle: "Fixed",
+  },
+  slideBy: {
+    title: "Slides",
+    type: ControlType.Number,
+    defaultValue: 1,
+    min: 1,
+    step: 1,
+    displayStepper: true,
+    hidden: (props: KniffCarouselSettingsProps) => props.slideByAuto === true,
+  },
+  fullBleed: {
+    title: "Full Bleed",
+    type: ControlType.Boolean,
+    defaultValue: true,
+  },
+  edgeSpace: {
+    title: "Edge Space",
+    type: ControlType.Boolean,
+    defaultValue: true,
+    hidden: (props) => props.loop !== false,
+    description: "Makes sure, first and last slide also have enough space for snap alignment",
+  },
+} satisfies PropertyControls<KniffCarouselSettingsProps>
+
+let propertyControlsRegistered = false
+
+export function registerKniffCarouselSettingsPropertyControls(): void {
+  if (propertyControlsRegistered) return
+  addPropertyControls(KniffCarouselSettings, kniffCarouselSettingsPropertyControls)
+  propertyControlsRegistered = true
+}
+
+registerKniffCarouselSettingsPropertyControls()
+
+KniffCarouselSettings.displayName = "Kniff Carousel Settings"
+
