@@ -172,14 +172,20 @@ function createGalleryOverride<P extends object>(
     const activeRef = useRef(false)
     const originIndexRef = useRef<number | null>(null)
     const valueRef = useRef<number | null>(null)
+    const cancelSyncRef = useRef<(() => void) | null>(null)
+    const cancelSync = useCallback(() => {
+      cancelSyncRef.current?.()
+      cancelSyncRef.current = null
+    }, [])
     const release = useCallback(() => {
+      cancelSync()
       releaseRef.current?.()
       releaseRef.current = null
       activeRef.current = false
       originIndexRef.current = null
       valueRef.current = null
       restoreMorphCrop()
-    }, [restoreMorphCrop])
+    }, [cancelSync, restoreMorphCrop])
     const prepareOpen = useCallback(
       (index: number, viewport: HTMLElement | null) => {
         ensurePresetStyle()
@@ -203,8 +209,29 @@ function createGalleryOverride<P extends object>(
         }
         if (!activeRef.current || index === valueRef.current) return
         valueRef.current = index
+        cancelSync()
+        if (config.viewTransition && config.morphTo === "origin") return
+        const item = items.find((item) => item.index === index)
+        const viewport = item?.carouselViewport
+        if (!item || !viewport) return
+
+        const sync = () => {
+          cancelSyncRef.current = null
+          if (activeRef.current && valueRef.current === index && viewport.contains(item.element))
+            syncSnapToElement(viewport, item.element)
+        }
+        // Let the foreground slide settle before allowing background layout work.
+        const timer = window.setTimeout(() => {
+          if (typeof window.requestIdleCallback !== "function") {
+            sync()
+            return
+          }
+          const idle = window.requestIdleCallback(sync)
+          cancelSyncRef.current = () => window.cancelIdleCallback(idle)
+        }, 450)
+        cancelSyncRef.current = () => window.clearTimeout(timer)
       },
-      [applyMorphCrop],
+      [applyMorphCrop, cancelSync, config.morphTo, config.viewTransition, items],
     )
 
     const context = useMemo<RamkaGalleryContextValue>(
@@ -236,14 +263,12 @@ function createGalleryOverride<P extends object>(
           scrollTriggerIntoView={null}
           onValueChange={handleValueChange}
           onBeforeClose={() => {
+            cancelSync()
             const index = config.viewTransition && config.morphTo === "origin"
               ? originIndexRef.current
               : valueRef.current
             if (index === null) return
             applyMorphCrop(index)
-            const item = items.find((item) => item.index === index)
-            if (item?.carouselViewport)
-              syncSnapToElement(item.carouselViewport, item.element)
           }}
           onOpenChange={(nextOpen: boolean) => {
             if (!nextOpen) activeRef.current = false
