@@ -41,14 +41,15 @@ export function useReactLoop(
       if (originalCycle.querySelector(".ssr-variant")) {
         if (!hydrationObserver) {
           hydrationObserver = new MutationObserver(() => {
-            if (originalCycle.querySelector(".ssr-variant")) return
+            const currentOriginal = scroller.querySelector("[data-kniff-loop-original]")
+            if (!currentOriginal || currentOriginal.querySelector(".ssr-variant")) return
             hydrationObserver?.disconnect()
             hydrationObserver = undefined
             retry = 0
             cancelAnimationFrame(frame)
             frame = requestAnimationFrame(attempt)
           })
-          hydrationObserver.observe(originalCycle, { childList: true, subtree: true })
+          hydrationObserver.observe(scroller, { childList: true, subtree: true })
         }
         return false
       }
