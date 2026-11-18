@@ -39,17 +39,37 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
     const register = scope?.register
     const [viewport, setViewport] = useState<HTMLElement | null>(null)
     const [loop, setLoop] = useState(false)
+    const pendingViewport = React.useRef<HTMLElement | null>(null)
+    const pendingObserver = React.useRef<MutationObserver | null>(null)
+    const pendingFrame = React.useRef(0)
+    const hydrateViewport = useCallback((node: HTMLElement | null) => {
+      pendingObserver.current?.disconnect()
+      cancelAnimationFrame(pendingFrame.current)
+      pendingViewport.current = node
+      if (!node) { React.startTransition(() => setViewport(null)); return }
+      const commit = () => {
+        if (node.querySelector("[data-kniff-loop-original] .ssr-variant")) return
+        pendingObserver.current?.disconnect()
+        pendingFrame.current = requestAnimationFrame(() => {
+          if (pendingViewport.current === node) React.startTransition(() => setViewport(node))
+        })
+      }
+      pendingObserver.current = new MutationObserver(commit)
+      pendingObserver.current.observe(node, { childList: true, subtree: true })
+      commit()
+    }, [])
+    useEffect(() => () => { pendingObserver.current?.disconnect(); cancelAnimationFrame(pendingFrame.current) }, [])
     const ref = useCallback(
       (node: unknown) => {
-        React.startTransition(() => setViewport(node instanceof HTMLElement ? node : null))
+        hydrateViewport(node instanceof HTMLElement ? node : null)
         if (typeof forwardedRef === "function") forwardedRef(node)
         else if (forwardedRef) forwardedRef.current = node
       },
-      [forwardedRef],
+      [forwardedRef, hydrateViewport],
     )
     const probe = useCallback((node: HTMLSpanElement | null) => {
-      if (node?.parentElement) { const parent = node.parentElement; React.startTransition(() => setViewport(parent)) }
-    }, [])
+      if (node?.parentElement) hydrateViewport(node.parentElement)
+    }, [hydrateViewport])
     useEffect(() => {
       if (!viewport || !register) return
       register(viewport)
