@@ -29,7 +29,8 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
       })
     await page.goto(url, { waitUntil: "domcontentloaded" })
     await page.waitForFunction(
-      () => window.__COMPANION_KIT_BUILD__ === "companion-local-2026-11-18-v6",
+      (expected) => window.__COMPANION_KIT_BUILD__ === expected,
+      process.env.EXPECTED_BUILD || "companion-local-2026-11-19-v8",
     )
     await page.waitForFunction(() =>
       document.querySelector('[data-framer-name="CarouselXYZ"] [data-ramka-trigger]'),

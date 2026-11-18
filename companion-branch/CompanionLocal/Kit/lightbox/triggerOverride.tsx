@@ -2,7 +2,7 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { CarouselContext } from "../carousel/carouselContext.tsx"
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.
-import * as Lightbox from "https://cdn.jsdelivr.net/gh/flowgrow/ramka@bbdb76a60889eaa839c0cf47607e33bf4d252a48/companion-dist/lightbox.mjs"
+import * as Lightbox from "https://cdn.jsdelivr.net/gh/flowgrow/ramka@1fc1f3f47fec00aff45e721f7627a20b1efdfccd/companion-dist/lightbox.mjs"
 import * as React from "react"
 import {
   forwardRef,

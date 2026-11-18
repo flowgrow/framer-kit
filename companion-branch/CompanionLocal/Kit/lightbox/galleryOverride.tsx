@@ -1,6 +1,6 @@
 // Branch-local copy: dependencies resolved within CompanionLocal.
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.
-import * as Lightbox from "https://cdn.jsdelivr.net/gh/flowgrow/ramka@bbdb76a60889eaa839c0cf47607e33bf4d252a48/companion-dist/lightbox.mjs"
+import * as Lightbox from "https://cdn.jsdelivr.net/gh/flowgrow/ramka@1fc1f3f47fec00aff45e721f7627a20b1efdfccd/companion-dist/lightbox.mjs"
 type NavigationSource = "trigger" | "keyboard" | "thumbnail" | "button" | "scroll" | "imperative"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { freezeSnapViewport, syncSnapToElement } from "./carouselSync.ts"
