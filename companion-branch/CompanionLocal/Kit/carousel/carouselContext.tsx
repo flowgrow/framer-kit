@@ -35,13 +35,14 @@ function withKniffContextBoundary<P extends object>(
       }),
       [id, viewport],
     )
+    const renderedLayer = React.useMemo(() => React.createElement(Component, { ...props, ref, "data-kniff-boundary": id } as P), [props, ref, id])
     if (RenderTarget.current() === RenderTarget.canvas)
       return React.createElement(Component, { ...props, ref } as P)
     return (
       <CarouselContext.Provider value={scope}>
         <SetCarouselSettingsSnapshot.Provider value={setSettings}>
           <CarouselSettingsSnapshot.Provider value={settings}>
-            {React.createElement(Component, { ...props, ref, "data-kniff-boundary": id } as P)}
+            {renderedLayer}
           </CarouselSettingsSnapshot.Provider>
         </SetCarouselSettingsSnapshot.Provider>
       </CarouselContext.Provider>

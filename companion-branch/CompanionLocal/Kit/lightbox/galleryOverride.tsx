@@ -217,6 +217,8 @@ function createGalleryOverride<P extends object>(
       [forwardedRef],
     )
 
+    const renderedLayer = useMemo(() => renderComponent(Component, props as unknown as P, mergedRootRef), [props, mergedRootRef])
+
     return (
       <RamkaGalleryContext.Provider value={context}>
         <Lightbox.Root
@@ -238,7 +240,7 @@ function createGalleryOverride<P extends object>(
             if (!nextOpen) release()
           }}
         >
-          {renderComponent(Component, props as unknown as P, mergedRootRef)}
+          {renderedLayer}
           <RamkaPortal items={items} config={config} />
         </Lightbox.Root>
         {!inheritConfig && <style dangerouslySetInnerHTML={{ __html: ramkaPresetCSS }} />}

@@ -120,9 +120,10 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
           })
     }, [(props as P & LayerProps).children])
     const contextValue = React.useMemo(() => ({ id, boundarySelector: scope?.boundarySelector ?? "body", viewportSelector: `[data-kniff-viewport="${id}"]`, viewport }), [id, scope?.boundarySelector, viewport])
+    const renderedLayer = React.useMemo(() => React.createElement(Component, { ...styledProps, "data-kniff-react-loop": "" } as P, cycleElements.map((element, index) => loopReady || index === 3 ? element : null)), [props, ref, id, loopReady, cycleElements])
     return (
       <CarouselContext.Provider value={contextValue}>
-        {React.createElement(Component, { ...styledProps, "data-kniff-react-loop": "" } as P, cycleElements.map((element, index) => loopReady || index === 3 ? element : null))}
+        {renderedLayer}
         {authoredStyle}
       </CarouselContext.Provider>
     )
