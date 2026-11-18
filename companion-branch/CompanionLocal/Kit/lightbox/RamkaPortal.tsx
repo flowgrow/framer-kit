@@ -59,18 +59,26 @@ function GallerySlide({
   )
   // Reuse decoded carousel pixels while the full-size responsive image loads.
   const triggerImage = item.morphElement
-  const preview = typeof HTMLImageElement !== "undefined" &&
-    triggerImage instanceof HTMLImageElement && triggerImage.complete &&
-    triggerImage.naturalWidth > 0 ? triggerImage.currentSrc : undefined
+  const preview =
+    typeof HTMLImageElement !== "undefined" &&
+    triggerImage instanceof HTMLImageElement &&
+    triggerImage.complete &&
+    triggerImage.naturalWidth > 0
+      ? triggerImage.currentSrc
+      : undefined
   const media = (
     <Lightbox.Media
       className={classes("lb-media")}
-      style={preview ? {
-        backgroundImage: `url(${JSON.stringify(preview)})`,
-        backgroundSize: "contain",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      } : undefined}
+      style={
+        preview
+          ? {
+              backgroundImage: `url(${JSON.stringify(preview)})`,
+              backgroundSize: "contain",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }
+          : undefined
+      }
       {...(item.width ? { width: item.width } : {})}
       {...(item.height ? { height: item.height } : {})}
     >
@@ -122,7 +130,14 @@ function RamkaPortalImpl({
     <Lightbox.Portal
       data-kniff-ramka-portal=""
       className={`${classes("lb-portal")}${backdropIsDark(config.backdropColor) ? " dark" : ""}`}
-      style={{ position: "fixed", inset: 0, zIndex: 2147483647 }}
+      style={
+        {
+          position: "fixed",
+          inset: 0,
+          zIndex: 2147483647,
+          "--lightbox-vt-duration": "160ms",
+        } as React.CSSProperties
+      }
     >
       <Lightbox.Backdrop
         className={classes("lb-backdrop")}
