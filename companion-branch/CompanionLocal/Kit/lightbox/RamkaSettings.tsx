@@ -43,7 +43,7 @@ function RenderedSettings(props: RamkaSettingsProps) {
         ...ramkaSettingsDefaults,
         ...props,
         loop: false,
-        viewTransition: false,
+        viewTransition: (props.transition ?? ramkaSettingsDefaults.transition) === "morph",
         morphTo: "active" as const,
         pullToClose: true,
     }
@@ -111,6 +111,14 @@ function RenderedSettings(props: RamkaSettingsProps) {
 
 RamkaSettings.displayName = "Kniff Lightbox Settings"
 export const ramkaSettingsPropertyControls = {
+    transition: {
+        type: ControlType.Enum,
+        title: "Transition",
+        options: ["morph", "fade"],
+        optionTitles: ["Morph", "Fade"],
+        defaultValue: "morph",
+        displaySegmentedControl: true,
+    },
     layout: {
         type: ControlType.Enum,
         title: "Layout",

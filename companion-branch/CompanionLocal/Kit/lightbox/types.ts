@@ -21,6 +21,7 @@ export interface RamkaSettingsProps extends Omit<
   RamkaGalleryConfig,
   "loop" | "viewTransition" | "morphTo" | "pullToClose" | "showCaptions"
 > {
+  transition?: "morph" | "fade"
   showCaptions?: boolean
   showInstructions: boolean
   style?: CSSProperties

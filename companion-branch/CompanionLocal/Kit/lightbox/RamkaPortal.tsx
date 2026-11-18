@@ -135,7 +135,7 @@ function RamkaPortalImpl({
           position: "fixed",
           inset: 0,
           zIndex: 2147483647,
-          "--lightbox-vt-duration": "160ms",
+          "--lightbox-vt-duration": config.viewTransition ? "360ms" : "160ms",
         } as React.CSSProperties
       }
     >

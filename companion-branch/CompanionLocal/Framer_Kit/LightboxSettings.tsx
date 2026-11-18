@@ -7,6 +7,7 @@ import {
   // @ts-ignore Framer resolves this local code file at runtime.
 } from "../Kit/lightbox/RamkaSettings.tsx"
 
+// Transition is explicitly selectable; Morph remains the default.
 type Props = ComponentProps<typeof KitComponent>
 
 /**

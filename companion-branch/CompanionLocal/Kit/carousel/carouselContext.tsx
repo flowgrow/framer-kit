@@ -21,10 +21,8 @@ function withKniffContextBoundary<P extends object>(
 ): React.ComponentType<P> {
   const Override = React.forwardRef<unknown, P>((props, ref) => {
     const id = React.useId()
-    const [viewport, updateViewport] = React.useState<HTMLElement | null>(null)
-    const register = React.useCallback((next: React.SetStateAction<HTMLElement | null>) => React.startTransition(() => updateViewport(next)), [])
-    const [settings, updateSettings] = React.useState<string | null>(null)
-    const setSettings = React.useCallback((next: React.SetStateAction<string | null>) => React.startTransition(() => updateSettings(next)), [])
+    const [viewport, register] = React.useState<HTMLElement | null>(null)
+    const [settings, setSettings] = React.useState<string | null>(null)
     const scope = React.useMemo(
       () => ({
         boundarySelector: `[data-kniff-boundary="${id}"]`,
