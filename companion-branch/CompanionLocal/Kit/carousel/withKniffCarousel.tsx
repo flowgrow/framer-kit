@@ -17,6 +17,8 @@ import {
 } from "react"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { RamkaLoopScope } from "../lightbox/galleryOverride.tsx"
+// @ts-ignore Framer code-file import.
+import { RamkaGalleryContext } from "../lightbox/context.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { inlineAuthoredVariables } from "./authoredStyles.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
@@ -34,6 +36,7 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
     const layer = props as P & LayerProps
     const authored = useAuthoredStyles(layer.className ?? "")
     const scope = React.useContext(CarouselContext) as any
+    const gallery = React.useContext(RamkaGalleryContext) as any
     const localId = React.useId()
     const id = scope?.id ?? localId
     const register = scope?.register
@@ -81,6 +84,9 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
         dangerouslySetInnerHTML={{ __html: authored.css }}
       />
     )
+    // Do not move or duplicate server-rendered slides before their overrides hydrate.
+    const expectedTriggers = viewport?.querySelector("[data-kniff-loop-original]")?.querySelectorAll("[data-ramka-trigger]").length ?? 0
+    const loopReady = loop && (expectedTriggers === 0 || (gallery?.items.length ?? 0) >= expectedTriggers)
     const cycleElements = React.useMemo(() => {
       const children = Children.toArray((props as P & LayerProps).children)
       return [-3, -2, -1, 0, 1, 2, 3].map((cycle) => {
@@ -116,7 +122,7 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
     const contextValue = React.useMemo(() => ({ id, boundarySelector: scope?.boundarySelector ?? "body", viewportSelector: `[data-kniff-viewport="${id}"]`, viewport }), [id, scope?.boundarySelector, viewport])
     return (
       <CarouselContext.Provider value={contextValue}>
-        {React.createElement(Component, { ...styledProps, "data-kniff-react-loop": "" } as P, loop ? cycleElements : cycleElements[3])}
+        {React.createElement(Component, { ...styledProps, "data-kniff-react-loop": "" } as P, cycleElements.map((element, index) => loopReady || index === 3 ? element : null))}
         {authoredStyle}
       </CarouselContext.Provider>
     )
