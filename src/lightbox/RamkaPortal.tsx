@@ -171,7 +171,15 @@ function RamkaPortalImpl({
               <Lightbox.ThumbnailStripTrack aria-label="Photo thumbnails">
                 {items.map((item, index) => (
                   <Lightbox.Thumbnail key={item.id} index={index}>
-                    <img src={item.src} alt={item.alt} draggable={false} loading="lazy" />
+                    <img
+                      src={item.src}
+                      srcSet={item.srcSet}
+                      sizes="72px"
+                      alt={item.alt}
+                      draggable={false}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </Lightbox.Thumbnail>
                 ))}
               </Lightbox.ThumbnailStripTrack>
