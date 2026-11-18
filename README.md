@@ -86,6 +86,37 @@ React loop copies each retain their own morph source.
 Examples are in `examples/framer`. There is no Embla dependency or entry point.
 The old `syncEmbla`, `stopAutomove`, and lightbox navigation-button props are removed.
 
+## Grouped carousel navigation (Framer project)
+
+Carousel Settings → Slide By selects Fixed or Auto. Fixed uses the Slides count
+(default 1). Groups stay anchored to the first slide: with 3, the stops are
+slides 1–3, 4–6, and so on, including an incomplete final group. Start, center,
+and end alignment apply to the whole group. Auto packs consecutive slides and
+gaps into the viewport width minus scroll-padding, with at least one slide per
+group. Resize and CMS insertions recalculate groups.
+
+Arrows, dots, per-slide automove, and native snap areas share the same stops.
+Dots count reachable stops, merging clamped duplicates when Loop is off. A final
+stop is added only when needed to expose the tail or CMS loader. Apply
+`withKniffCarouselIgnoreSlide` to a CMS loader so it does not count as a slide.
+Appending CMS items does not add scroll-position restoration logic.
+
+These changes are in the Framer project's code files and mirrored in `src`;
+they have not been released to the versioned Worker CDN.
+
+Published integration tests run against the actual Framer project:
+
+```sh
+pnpm exec vitest run tests/slideGroups.test.ts
+pnpm test:framer
+```
+
+The WebKit projects cover desktop and iPhone emulation, not the installed Safari
+app or the Framer editor canvas. CMS examples are at
+`https://adaptable-squash-368743.framer.app/cms/default?slide-by=1`; use `2`, `3`,
+or `0` (Auto). Each has start, center, and end alignment. The loop regression
+page is `/carousel/group-loop-test`.
+
 ## Development
 
 ```sh

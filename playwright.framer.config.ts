@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test"
 // Integration tests use the actual published Framer project. No local server or mocks.
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: "framer-published-carousel-layout.spec.ts",
+  testMatch: ["framer-published-carousel-layout.spec.ts", "framer-slide-groups.spec.ts"],
   timeout: 60_000,
   expect: { timeout: 15_000 },
   workers: 2,
