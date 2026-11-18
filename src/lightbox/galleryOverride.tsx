@@ -189,8 +189,6 @@ function createGalleryOverride<P extends object>(
 
     return (
       <RamkaGalleryContext.Provider value={context}>
-        <style>{`:root[data-ramka-view-transition="opening"]::view-transition-new(lightbox-morph),
-:root[data-ramka-view-transition="closing"]::view-transition-old(lightbox-morph) { object-position: var(--kniff-ramka-trigger-position, center) !important; }`}</style>
         <Lightbox.Root
           loop={config.loop}
           viewTransition={config.viewTransition}
@@ -207,6 +205,8 @@ function createGalleryOverride<P extends object>(
           {renderComponent(Component, props as unknown as P, mergedRootRef)}
           <RamkaPortal items={items} config={config} />
         </Lightbox.Root>
+        <style>{`:root[data-ramka-view-transition="opening"]::view-transition-new(lightbox-morph),
+:root[data-ramka-view-transition="closing"]::view-transition-old(lightbox-morph) { object-position: var(--kniff-ramka-trigger-position, center) !important; }`}</style>
       </RamkaGalleryContext.Provider>
     )
   })
