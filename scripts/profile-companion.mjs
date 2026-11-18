@@ -16,8 +16,53 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit").split(",")) 
   const page = await context.newPage()
   const errors = []
   page.on("pageerror", (e) => errors.push(e.message))
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text())
+  })
   const result = { engine: name, version: browser.version(), runs: [], errors }
   try {
+    if (process.env.EXPERIMENT === "append-adopted-sheets") {
+      await page.addInitScript(() => {
+        const proto = Document.prototype
+        const d = Object.getOwnPropertyDescriptor(proto, "adoptedStyleSheets")
+        Object.defineProperty(proto, "adoptedStyleSheets", {
+          ...d,
+          set(next) {
+            const current = d.get.call(this)
+            if (next.length > current.length && current.every((sheet, i) => sheet === next[i])) {
+              current.push(...next.slice(current.length))
+            } else d.set.call(this, next)
+          },
+        })
+      })
+    }
+    if (
+      ["ignore-css-wide-names", "warm-morph-styles", "warm-styles-only"].includes(
+        process.env.EXPERIMENT,
+      )
+    ) {
+      await page.route("**/lightbox-morph-runtime.*.mjs", async (route) => {
+        const response = await route.fetch()
+        const source = await response.text()
+        const before = "return t!==``&&t.toLowerCase()!==`none`"
+        if (!source.includes(before))
+          throw Error("Morph name detector changed; refusing experiment")
+        let body = source.replace(
+          before,
+          "return t!==``&&![" +
+            ["none", "unset", "initial", "inherit", "revert", "revert-layer"]
+              .map((v) => JSON.stringify(v))
+              .join(",") +
+            "].includes(t.toLowerCase())",
+        )
+        if (process.env.EXPERIMENT === "warm-styles-only") body = source
+        if (["warm-morph-styles", "warm-styles-only"].includes(process.env.EXPERIMENT)) {
+          body +=
+            '\nexport function __profileWarm() { Je(); pe(); oe(); l("data-ramka-media-fill", () => "[data-ramka-media]:not(#_) > img:not([data-ramka-media-poster]),[data-ramka-media]:not(#_) > video,[data-ramka-media]:not(#_) > canvas{width:100%;height:100%;min-width:0;min-height:0;}"); }'
+        }
+        await route.fulfill({ response, body })
+      })
+    }
     await page.goto(url, { waitUntil: "domcontentloaded" })
     await page.waitForFunction(() => window.__COMPANION_KIT_BUILD__, {}, { timeout: 60000 })
     result.build = await page.evaluate(() => window.__COMPANION_KIT_BUILD__)
@@ -32,6 +77,36 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit").split(",")) 
     await page.waitForTimeout(1800)
     if (await page.locator('[data-framer-name="Popup"]:visible').count())
       throw Error("Popup must be dismissed before measurement")
+    if (["warm-morph-styles", "warm-styles-only"].includes(process.env.EXPERIMENT)) {
+      await page.evaluate(async () => {
+        const runtime = performance
+          .getEntriesByType("resource")
+          .find((e) => /lightbox-morph-runtime\..*\.mjs/.test(e.name))
+        if (!runtime) throw Error("Morph runtime not found")
+        const module = await import(runtime.name)
+        module.__profileWarm()
+      })
+      await page.waitForTimeout(500)
+    }
+    if (process.env.RENDER_TRACE === "1")
+      result.transitionNames = await page.evaluate(() => ({
+        elements: [...document.querySelectorAll("*")]
+          .map((e) => ({
+            tag: e.tagName,
+            name: e.getAttribute("data-framer-name"),
+            transition: getComputedStyle(e).viewTransitionName,
+          }))
+          .filter((e) => e.transition && e.transition !== "none"),
+        sheets: [...document.styleSheets, ...document.adoptedStyleSheets].flatMap((s) => {
+          try {
+            return [...s.cssRules]
+              .map((r) => r.cssText)
+              .filter((t) => t.includes("view-transition-name"))
+          } catch {
+            return []
+          }
+        }),
+      }))
     if (process.env.EXPERIMENT === "no-root-snapshot")
       await page.addStyleTag({ content: ":root {view-transition-name:none!important}" })
     if (process.env.EXPERIMENT === "no-page-styles")
@@ -39,6 +114,8 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit").split(",")) 
         for (const s of document.querySelectorAll("style"))
           if (s.textContent.includes(".framer-")) s.disabled = true
       })
+    if (process.env.RENDER_TRACE === "1")
+      await page.addScriptTag({ path: "scripts/trace-render-work.js" })
     if (process.env.INSTRUMENT === "1")
       await page.evaluate(() => {
         window.__slow = []
@@ -91,7 +168,7 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit").split(",")) 
       cdp = await context.newCDPSession(page)
       await cdp.send("Tracing.start", {
         categories:
-          "devtools.timeline,v8.execute,disabled-by-default-devtools.timeline,disabled-by-default-v8.cpu_profiler",
+          "devtools.timeline,v8.execute,disabled-by-default-devtools.timeline,disabled-by-default-v8.cpu_profiler,disabled-by-default-devtools.timeline.invalidationTracking",
         transferMode: "ReturnAsStream",
       })
     }
@@ -203,6 +280,15 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit").split(",")) 
       await writeFile(out + "/chromium-trace.json", text)
     }
     if (process.env.INSTRUMENT === "1") result.slow = await page.evaluate(() => window.__slow)
+    if (process.env.RENDER_TRACE === "1")
+      result.renderTrace = await page.evaluate(() => window.__renderTrace)
+    if (process.env.RENDER_TRACE === "1")
+      result.adoptedSheets = await page.evaluate(() => ({
+        markers: [...(document[Symbol.for("ramka.vt.adoptedMarkers")] || [])],
+        sheets: document.adoptedStyleSheets.map((s) =>
+          [...s.cssRules].map((r) => r.cssText).join("\n"),
+        ),
+      }))
     result.images = await page.evaluate(() =>
       [...document.querySelectorAll("[data-ramka-trigger] img")]
         .slice(0, 10)
