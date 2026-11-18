@@ -55,17 +55,18 @@ export function useSlideGroups(
         (parseFloat(css.scrollPaddingLeft) || 0) -
         (parseFloat(css.scrollPaddingRight) || 0)
       const gap = parseFloat(css.columnGap) || 0
-      const groups = groupSlideRanges(
+      const single = by === 1
+      const groups = single ? [] : groupSlideRanges(
         originals.map((el) => slideRect(viewport, el).width),
         gap,
         available,
         by,
       )
-      const starts = new Map(groups.map((g, index) => [g.start, { ...g, index }]))
+      const starts = single ? null : new Map(groups.map((g, index) => [g.start, { ...g, index }]))
       const factor = align === "start" ? 0 : align === "end" ? 1 : 0.5
-      for (const [index, slide] of all.entries()) {
+      for (const [index, slide] of (single ? [] : all).entries()) {
         if (!saved.has(slide)) saved.set(slide, slide.getAttribute("style") ?? "")
-        const group = starts.get(index % originals.length)
+        const group = starts!.get(index % originals.length)
         const extra = group && group.end - group.start > 1 ? Math.max(0, group.width - slideRect(viewport, slide).width) : 0
         write(slide, "scroll-snap-align", group ? align : "none")
         if (extra > 0) write(slide, "scroll-margin-right", `${extra}px`)
@@ -73,14 +74,17 @@ export function useSlideGroups(
         if (group) slide.setAttribute("data-kniff-group", String(group.index))
         else slide.removeAttribute("data-kniff-group")
       }
+      if (!loop && edgeSpace) {
       // Existing edge-space CSS consumes the widths of the first/last GROUP.
-      write(viewport, "--kniff-first-slide-width", `${groups[0]!.width}px`)
-      write(viewport, "--kniff-last-slide-width", `${groups[groups.length - 1]!.width}px`)
+      write(viewport, "--kniff-first-slide-width", `${single ? slideRect(viewport, originals[0]!).width : groups[0]!.width}px`)
+      write(viewport, "--kniff-last-slide-width", `${single ? slideRect(viewport, originals[originals.length - 1]!).width : groups[groups.length - 1]!.width}px`)
+      }
+      if (!loop) {
       // A separate terminal snap area exposes an oversized tail or a CMS loader.
       // It is a stop, not a slide, and disappears once it duplicates a group stop.
-      const lastGroup = groups[groups.length - 1]!
+      const lastGroup = groups[groups.length - 1]
       const last = originals[originals.length - 1]!
-      const firstOfLast = originals[lastGroup.start]!
+      const firstOfLast = single ? last : originals[lastGroup!.start]!
       const box = viewport.getBoundingClientRect()
       const left = parseFloat(css.scrollPaddingLeft) || 0
       const right = parseFloat(css.scrollPaddingRight) || 0
@@ -88,7 +92,7 @@ export function useSlideGroups(
       const lastRight = Math.max(slideRect(viewport, last).left + slideRect(viewport, last).width, loader?.getBoundingClientRect().right ?? -Infinity)
       const end = lastRight - box.left - viewport.clientLeft + viewport.scrollLeft
       const max = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
-      const anchor = slideRect(viewport, firstOfLast).left - box.left - viewport.clientLeft + viewport.scrollLeft - left - (available - lastGroup.width) * factor
+      const anchor = slideRect(viewport, firstOfLast).left - box.left - viewport.clientLeft + viewport.scrollLeft - left - (available - (single ? slideRect(viewport, last).width : lastGroup!.width)) * factor
       const tail = Math.max(0, Math.min(max, end - viewport.clientWidth + right))
       if (!loop && tail > Math.max(0, Math.min(max, anchor)) + 1) {
         if (!endStop) {
@@ -100,18 +104,20 @@ export function useSlideGroups(
           viewport.append(endStop)
         }
         write(endStop, "left", `${end - 1}px`)
-        endStop.setAttribute("data-kniff-group", String(groups.length))
+        endStop.setAttribute("data-kniff-group", String(single ? originals.length : groups.length))
       } else {
         endStop?.remove()
         endStop = undefined
       }
+      }
       viewport.setAttribute("data-kniff-slide-by", String(by))
+      const measured = single ? (loop ? [] : [originals[0]!, originals[originals.length - 1]!]) : originals
       for (const el of observed)
-        if (!originals.includes(el)) {
+        if (!measured.includes(el)) {
           resize.unobserve(el)
           observed.delete(el)
         }
-      for (const el of originals)
+      for (const el of measured)
         if (!observed.has(el)) {
           resize.observe(el)
           observed.add(el)

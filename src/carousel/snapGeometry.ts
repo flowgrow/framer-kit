@@ -111,7 +111,7 @@ export function atTerminalSlide(viewport: HTMLElement, forward: boolean, positio
 }
 
 export function dotSlides(viewport: HTMLElement): HTMLElement[] {
-  const grouped = viewport.hasAttribute("data-kniff-slide-by")
+  const grouped = viewport.hasAttribute("data-kniff-slide-by") && viewport.getAttribute("data-kniff-slide-by") !== "1"
   const slides = slideBoxes(viewport).filter(
     (slide) =>
       (!slide.hasAttribute("data-kniff") || slide.hasAttribute("data-kniff-end-stop")) && (!grouped || slide.hasAttribute("data-kniff-group")),

@@ -32,8 +32,12 @@ for (const by of [1, 2, 3, 0]) {
             ] as HTMLElement[]
             const slides = children.filter((n) => !n.querySelector("[data-kniff-ignore-slide]"))
             const size = Number(el.getAttribute("data-kniff-slide-by"))
-            return slides.every(
-              (s, i) => !size || i % size !== 0 || s.hasAttribute("data-kniff-group"),
+            return slides.every((s, i) =>
+              size === 1
+                ? !s.hasAttribute("data-kniff-group") &&
+                  !s.style.scrollMarginRight &&
+                  !s.style.scrollSnapAlign
+                : !size || i % size !== 0 || s.hasAttribute("data-kniff-group"),
             )
           }),
         )
@@ -45,7 +49,13 @@ for (const by of [1, 2, 3, 0]) {
               css = getComputedStyle(el)
             const left = parseFloat(css.scrollPaddingLeft) || 0,
               right = parseFloat(css.scrollPaddingRight) || 0
-            const values = [...el.querySelectorAll("[data-kniff-group]")].map((s) => {
+            const stops =
+              el.getAttribute("data-kniff-slide-by") === "1"
+                ? [...el.querySelector("[data-kniff-loop-original]")!.children]
+                    .filter((s) => !s.querySelector("[data-kniff-ignore-slide]"))
+                    .concat([...el.querySelectorAll("[data-kniff-end-stop]")])
+                : [...el.querySelectorAll("[data-kniff-group]")]
+            const values = stops.map((s) => {
               const r = s.getBoundingClientRect(),
                 c = getComputedStyle(s),
                 width = r.width + (parseFloat(c.scrollMarginRight) || 0)
