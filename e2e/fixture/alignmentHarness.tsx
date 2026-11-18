@@ -76,19 +76,20 @@ export function mountAlignment(
   return root
 }
 
-export function mountIntrinsicFill(mount: HTMLElement) {
+export function mountIntrinsicFill(mount: HTMLElement, extraCSS = "") {
   RenderTarget.current = () => "preview"
   const style = document.createElement("style")
   style.setAttribute("data-framer-css-ssr", "")
   style.textContent =
     ".intrinsic-track{position:relative;display:flex;flex:1 0 0;width:1px;height:400px;gap:24px;padding:0;box-sizing:border-box}.intrinsic-slide{display:flex;flex-direction:column;flex:none;width:min-content;height:100%;padding-bottom:30px;box-sizing:border-box}.intrinsic-image{flex:none;width:auto;height:100%;aspect-ratio:1.5;background:steelblue}"
+  style.textContent += extraCSS
   document.head.append(style)
   const root = createRoot(mount)
   root.render(
     <div aria-label="Intrinsic boundary" style={{ width: "100%", display: "flex" }}>
       <Viewport aria-label="Intrinsic viewport" id="intrinsic-viewport" className="intrinsic-track">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="intrinsic-slide" data-slide={i}>
+          <div key={i} className="intrinsic-slide mobile-slide" data-slide={i}>
             <div className="intrinsic-image" />
             <span>Caption</span>
           </div>

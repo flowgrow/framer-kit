@@ -36,7 +36,8 @@ describe("authored carousel styles", () => {
       "--kniff-authored-padding-left:0px",
     )
     expect(css).toContain("--kniff-authored-padding-left:32px")
-    expect(css).toContain("--kniff-authored-row-gap:12px;--kniff-authored-column-gap:24px")
+    expect(css).not.toContain("--kniff-authored-row-gap")
+    expect(css).not.toContain("--kniff-authored-column-gap")
     expect(css).toContain(
       "@media (max-width:809.98px){.page .viewport{--kniff-authored-padding-right:50px;",
     )
@@ -51,16 +52,13 @@ describe("authored carousel styles", () => {
     )
     expect(css).toContain("{width:auto;}")
     expect(css).toContain("{width:240px;}")
-    expect(css).toContain(".page .slide:where(:is(.viewport) > *")
+    expect(css).toContain(":where(:is(.viewport) > *")
+    expect(css).toContain("&:is(.page .slide)")
   })
-  it("mirrors inline padding and gap with React's unit conversion", () => {
+  it("mirrors only consumed inline padding with React's unit conversion", () => {
     expect(inlineAuthoredVariables({ padding: "20px 30px", paddingLeft: 12, gap: 16 })).toEqual({
-      "--kniff-authored-padding-top": "20px",
       "--kniff-authored-padding-right": "30px",
-      "--kniff-authored-padding-bottom": "20px",
       "--kniff-authored-padding-left": "12px",
-      "--kniff-authored-row-gap": "16px",
-      "--kniff-authored-column-gap": "16px",
     })
   })
   it("resolves authored percentage max-width against the sizing frame", () => {
@@ -74,5 +72,34 @@ describe("authored carousel styles", () => {
     expect(authoredVariableCSS(".viewport{max-width:none}", "viewport")).toContain(
       "--kniff-authored-max-width:100cqw",
     )
+  })
+})
+
+describe("compact collector output", () => {
+  it("omits the width workaround when no intrinsic width needs correction", () => {
+    const css = authoredVariableCSS(
+      ".viewport{padding:12px;width:100%}.other{width:240px}",
+      "viewport",
+    )
+    expect(css).not.toContain(":where")
+    expect(css).not.toContain(".other")
+    expect(css).toContain("--kniff-authored-padding-left:12px")
+  })
+  it("emits one slide scope and preserves distinct selector specificity and conditional overrides", () => {
+    const css = authoredVariableCSS(
+      `
+      .slide{width:min-content}
+      #strong,.alternate{width:280px}
+      @media(max-width:600px){.mobile{width:240px !important}}
+      @supports(display:grid){.variant{width:300px}}
+      .slide::before{width:min-content}
+    `,
+      "viewport",
+    )
+    expect(css.match(/:where\(/g)).toHaveLength(1)
+    expect(css).toContain("&:is(#strong),&:is(.alternate){width:280px;}")
+    expect(css).toContain("@media(max-width:600px){&:is(.mobile){width:240px !important;}}")
+    expect(css).toContain("@supports(display:grid){&:is(.variant){width:300px;}}")
+    expect(css).not.toContain("::before")
   })
 })

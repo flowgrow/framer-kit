@@ -14,7 +14,7 @@ test("SSR padding variables survive an empty client collector, hydration and bre
         right: parseFloat(s.paddingRight),
         snapLeft: parseFloat(s.scrollPaddingLeft),
         snapRight: parseFloat(s.scrollPaddingRight),
-        gap: s.getPropertyValue("--kniff-authored-column-gap").trim(),
+        gap: s.columnGap,
         inline: (el as HTMLElement).style.scrollPaddingLeft,
       }
     })

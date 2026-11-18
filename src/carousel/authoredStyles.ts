@@ -66,18 +66,10 @@ function variables(property: string, raw: string): string {
   const emit = (name: string, token: string) =>
     `${variable(name)}:${token === "0" ? "0px" : token}${important};`
   if (property === "padding" && values.length <= 4) {
-    const [top = "0px", right = top, bottom = top, left = right] = values
-    return (
-      emit("padding-top", top) +
-      emit("padding-right", right) +
-      emit("padding-bottom", bottom) +
-      emit("padding-left", left)
-    )
+    const [top = "0px", right = top, , left = right] = values
+    return emit("padding-right", right) + emit("padding-left", left)
   }
-  if (/^padding-(top|right|bottom|left)$/.test(property)) return emit(property, value)
-  if (property === "gap" && values.length <= 2)
-    return emit("row-gap", values[0] ?? "0px") + emit("column-gap", values[1] ?? values[0] ?? "0px")
-  if (property === "row-gap" || property === "column-gap") return emit(property, value)
+  if (/^padding-(right|left)$/.test(property)) return emit(property, value)
   // Authored sizing is relative to the viewport's parent content box, not the
   // expanded scrollport. Settings establishes that parent's sizing container.
   if (property === "width" || property === "max-width") {
@@ -126,7 +118,8 @@ export function authoredVariableCSS(source: string, className: string): string {
   const root = `:is(${[...classes].map((name) => `.${name}`).join(",")})`
   const cycles = ":is([data-kniff-loop-original],[data-kniff-loop-copy])"
   const slideSubjects = `${root} > *,${root} > .ssr-variant > *,${root} > ${cycles} > *,${root} > ${cycles} > .ssr-variant > *`
-  function visit(input: string): string {
+  let needsWidthFix = false
+  function visit(input: string, widths: boolean): string {
     let output = "",
       cursor = 0
     while (cursor < input.length) {
@@ -157,7 +150,7 @@ export function authoredVariableCSS(source: string, className: string): string {
       const body = input.slice(opening + 1, end - 1)
       cursor = end
       if (/^@(media|supports|container|layer)\b/.test(header)) {
-        const nested = visit(body)
+        const nested = visit(body, widths)
         if (nested) output += `${header}{${nested}}`
         continue
       }
@@ -184,16 +177,22 @@ export function authoredVariableCSS(source: string, className: string): string {
           : []
       })
       const values = Object.fromEntries(properties)
-      // WebKit can size a min-content flex slide to its caption instead of its
-      // percentage-height image. Auto width retains the intrinsic image width.
-      // Mirror other width declarations too, so breakpoint overrides keep their
-      // original order and specificity. Only direct carousel slides can match.
-      if (values.width) {
-        const width = values.width.replace(/^min-content(?=\s*!important|$)/, "auto")
-        const scoped = allSelectors
-          .filter((selector) => !selector.includes("::"))
-          .map((selector) => `${selector}:where(${slideSubjects})`)
-        if (scoped.length) output += `${scoped.join(",")}{width:${width};}`
+      // Keep the original cascade, including differently named breakpoint/variant
+      // classes. Nest under one zero-specificity slide scope instead of repeating
+      // that long scope for every selector. Each :is() contains ONE selector so
+      // grouped selectors retain their individual specificity.
+      if (widths) {
+        if (values.width) {
+          const width = values.width.replace(/^min-content(?=\s*!important|$)/, "auto")
+          const scoped = allSelectors
+            .filter((selector) => !selector.includes("::"))
+            .map((selector) => `&:is(${selector})`)
+          if (scoped.length) {
+            needsWidthFix ||= width !== values.width
+            output += `${scoped.join(",")}{width:${width};}`
+          }
+        }
+        continue
       }
       if (!selectors.length) continue
       for (const [property, value] of properties) {
@@ -208,5 +207,10 @@ export function authoredVariableCSS(source: string, className: string): string {
     }
     return output
   }
-  return visit(text).replace(/</g, "\\3c ")
+  const widthCSS = visit(text, true)
+  const authoredCSS = visit(text, false)
+  return ((needsWidthFix ? `:where(${slideSubjects}){${widthCSS}}` : "") + authoredCSS).replace(
+    /</g,
+    "\\3c ",
+  )
 }

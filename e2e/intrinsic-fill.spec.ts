@@ -35,3 +35,45 @@ test("Framer Fill track and intrinsic image slides stay full-sized through loop 
     }
   }
 })
+
+test("compact width rules preserve breakpoint overrides and leave non-slides alone", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1000, height: 800 })
+  await page.goto("/")
+  await page.evaluate(async () => {
+    const { mountIntrinsicFill } = await import(String("/e2e/fixture/alignmentHarness.tsx"))
+    mountIntrinsicFill(
+      document.querySelector("#mount"),
+      `
+      @media(max-width:600px){.mobile-slide{width:240px}}
+    `,
+    )
+    const outside = document.createElement("div")
+    outside.className = "intrinsic-slide"
+    outside.id = "outside"
+    outside.textContent = "Caption"
+    document.body.append(outside)
+  })
+  const track = page.locator("#intrinsic-viewport")
+  await expect(track).toHaveAttribute("data-kniff-loop", "")
+  const slides = track.locator("[data-slide]")
+  await expect
+    .poll(() => slides.first().evaluate((el) => el.getBoundingClientRect().width))
+    .toBeGreaterThan(500)
+  await page.setViewportSize({ width: 390, height: 800 })
+  await expect
+    .poll(() =>
+      slides.evaluateAll((nodes) =>
+        nodes.every((el) => Math.abs(el.getBoundingClientRect().width - 240) < 1),
+      ),
+    )
+    .toBe(true)
+  await page.setViewportSize({ width: 1000, height: 800 })
+  await expect
+    .poll(() => slides.first().evaluate((el) => el.getBoundingClientRect().width))
+    .toBeGreaterThan(500)
+  await expect
+    .poll(() => page.locator("#outside").evaluate((el) => el.getBoundingClientRect().width))
+    .toBeLessThan(100)
+})
