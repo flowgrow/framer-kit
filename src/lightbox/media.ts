@@ -37,8 +37,16 @@ export function extractRamkaMedia(
   if (image) {
     const src = image.currentSrc || image.src
     if (!src) return undefined
-    const width = positiveNumber(image.naturalWidth || image.width)
-    const height = positiveNumber(image.naturalHeight || image.height)
+    const intrinsicWidth = positiveNumber(Number(image.getAttribute("width")))
+    const intrinsicHeight = positiveNumber(Number(image.getAttribute("height")))
+    const width =
+      intrinsicWidth && intrinsicHeight
+        ? intrinsicWidth
+        : positiveNumber(image.naturalWidth || image.width)
+    const height =
+      intrinsicWidth && intrinsicHeight
+        ? intrinsicHeight
+        : positiveNumber(image.naturalHeight || image.height)
 
     return {
       id,
