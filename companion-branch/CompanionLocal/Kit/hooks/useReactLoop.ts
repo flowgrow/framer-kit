@@ -36,20 +36,19 @@ export function useReactLoop(
         ":scope > [data-kniff-loop-original]",
       )
       if (!originalCycle) return false
-      // Framer removes its responsive SSR wrappers only after hydrating them.
-      // Inserting copies before that replacement interrupts the original boundaries.
-      if (originalCycle.querySelector(".ssr-variant")) {
+      // Wait for visible trigger refs, not Framer wrapper classes (which Firefox retains).
+      const waitingForTriggers = () => Array.from(scroller.querySelectorAll<HTMLElement>("[data-kniff-loop-original] [data-ramka-trigger]")).some(element => element.getClientRects().length > 0 && !element.hasAttribute("data-kniff-trigger-ready"))
+      if (waitingForTriggers()) {
         if (!hydrationObserver) {
           hydrationObserver = new MutationObserver(() => {
-            const currentOriginal = scroller.querySelector("[data-kniff-loop-original]")
-            if (!currentOriginal || currentOriginal.querySelector(".ssr-variant")) return
+            if (waitingForTriggers()) return
             hydrationObserver?.disconnect()
             hydrationObserver = undefined
             retry = 0
             cancelAnimationFrame(frame)
             frame = requestAnimationFrame(attempt)
           })
-          hydrationObserver.observe(scroller, { childList: true, subtree: true })
+          hydrationObserver.observe(scroller, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-kniff-trigger-ready", "class"] })
         }
         return false
       }

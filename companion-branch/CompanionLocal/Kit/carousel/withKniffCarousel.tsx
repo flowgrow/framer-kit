@@ -48,14 +48,15 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
       pendingViewport.current = node
       if (!node) { React.startTransition(() => setViewport(null)); return }
       const commit = () => {
-        if (node.querySelector("[data-kniff-loop-original] .ssr-variant")) return
+        const triggers = Array.from(node.querySelectorAll<HTMLElement>("[data-kniff-loop-original] [data-ramka-trigger]")).filter(element => element.getClientRects().length > 0)
+        if (triggers.some(element => !element.hasAttribute("data-kniff-trigger-ready"))) return
         pendingObserver.current?.disconnect()
         pendingFrame.current = requestAnimationFrame(() => {
           if (pendingViewport.current === node) React.startTransition(() => setViewport(node))
         })
       }
       pendingObserver.current = new MutationObserver(commit)
-      pendingObserver.current.observe(node, { childList: true, subtree: true })
+      pendingObserver.current.observe(node, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-kniff-trigger-ready", "class"] })
       commit()
     }, [])
     useEffect(() => () => { pendingObserver.current?.disconnect(); cancelAnimationFrame(pendingFrame.current) }, [])
