@@ -19,8 +19,6 @@ import {
 } from "react"
 
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { useHydrated } from "../hooks/useHydrated.ts"
-// @ts-ignore Framer cannot resolve local code-file imports.
 import { RamkaGalleryContext } from "./context.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { defaultRamkaGalleryConfig } from "./defaults.ts"
@@ -77,7 +75,6 @@ function createGalleryOverride<P extends object>(
 
   const Override = forwardRef<unknown, P>((props, forwardedRef) => {
     const parentGallery = useContext(RamkaGalleryContext) as any
-    const hydrated = useHydrated()
     const [items, setItems] = useState<RamkaMediaItem[]>([])
     const triggerIndicesRef = useRef(new Map<string, number>())
     const nextTriggerIndexRef = useRef(0)
@@ -189,10 +186,6 @@ function createGalleryOverride<P extends object>(
       (node: unknown) => assignRef(forwardedRef, node),
       [forwardedRef],
     )
-
-    if (!hydrated) {
-      return renderComponent(Component, props as unknown as P, forwardedRef)
-    }
 
     return (
       <RamkaGalleryContext.Provider value={context}>

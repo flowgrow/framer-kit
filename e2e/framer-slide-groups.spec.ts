@@ -198,3 +198,33 @@ test("trackpad wheel bursts cross loop seams without mid-gesture repositioning",
     await expect.poll(() => page.evaluate(() => (window as any).loopJumps)).toBeGreaterThan(before)
   }
 })
+
+test("hydration retains the server-rendered carousel and images", async ({ page }) => {
+  await page.addInitScript(() => {
+    const observer = new MutationObserver(() => {
+      const original = document.querySelector("[data-kniff-loop-original]")
+      if (!original || !original.querySelector("img")) return
+      ;(window as any).ssrCarousel = { original, images: [...original.querySelectorAll("img")] }
+      observer.disconnect()
+    })
+    observer.observe(document, { childList: true, subtree: true })
+  })
+  await page.goto("/carousel/default")
+  const track = page.locator("[data-kniff-viewport]:visible").first()
+  await expect(track).toHaveAttribute("data-kniff-loop-ready", "")
+  expect(
+    await page.evaluate(() => {
+      const saved = (window as any).ssrCarousel
+      return (
+        !!saved &&
+        saved.original.isConnected &&
+        saved.images.every((img: HTMLImageElement) => img.isConnected)
+      )
+    }),
+  ).toBe(true)
+  const first = track.locator('[data-kniff-loop-original] > [data-framer-name="Photo1"]')
+  await first.click()
+  await expect(page.getByRole("dialog")).toBeVisible()
+  await page.keyboard.press("Escape")
+  await expect(page.getByRole("dialog")).toBeHidden()
+})

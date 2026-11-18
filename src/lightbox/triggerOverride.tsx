@@ -17,8 +17,6 @@ import {
 } from "react"
 
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { useHydrated } from "../hooks/useHydrated.ts"
-// @ts-ignore Framer cannot resolve local code-file imports.
 import { RamkaGalleryContext } from "./context.ts"
 
 interface FramerLayerProps {
@@ -74,7 +72,6 @@ function createTriggerOverride<P extends object>(
   const displayName = Component.displayName ?? Component.name ?? "Component"
 
   const Override = forwardRef<unknown, P>((props, forwardedRef) => {
-    const hydrated = useHydrated()
     const viewport = (useContext(CarouselContext) as any)?.viewport ?? null
     const gallery = useContext(RamkaGalleryContext) as any
     const claimTriggerIndex = gallery?.claimTriggerIndex
@@ -82,7 +79,6 @@ function createTriggerOverride<P extends object>(
     const refreshTrigger = gallery?.refreshTrigger
     const triggerId = useId()
     const [element, setElement] = useState<HTMLElement | null>(null)
-    const [triggerReady, setTriggerReady] = useState(false)
     const triggerStateRef = useRef<{
       imageRef: (node: HTMLImageElement | null) => void
       morphRef: (node: HTMLElement | null) => void
@@ -100,18 +96,10 @@ function createTriggerOverride<P extends object>(
       (node: unknown) => {
         const nextElement = node instanceof HTMLElement ? node : null
         setElement(nextElement)
-        if (nextElement) {
-          setTriggerReady(true)
-        }
         assignRef(forwardedRef, node)
       },
       [forwardedRef],
     )
-
-    const probeRef = useCallback((node: HTMLSpanElement | null) => {
-      if (!node) return
-      setTriggerReady(true)
-    }, [])
 
     useLayoutEffect(() => {
       if (!registerTrigger || !element) return
@@ -160,23 +148,8 @@ function createTriggerOverride<P extends object>(
       }
     }, [element, item])
 
-    if (!hydrated || !gallery) {
+    if (!gallery) {
       return renderComponent(Component, props as unknown as P, forwardedRef)
-    }
-
-    // Framer only exposes an override's DOM node after it mounts. Render the
-    // base component once without Ramka, then mount Lightbox.Trigger.
-    // This avoids index swaps inside Ramka's trigger registry entirely.
-    if (!triggerReady) {
-      return React.createElement(
-        "span",
-        { ref: probeRef, style: { display: "contents" } },
-        renderComponent(
-          Component,
-          withIntrinsicBackgroundSize(props as unknown as P),
-          forwardedRef,
-        ),
-      )
     }
 
     const imageProps = withIntrinsicBackgroundSize(props as unknown as P)
