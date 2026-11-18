@@ -35,3 +35,12 @@ Measured v4 before the final fade-duration correction: WebKit opening first/repe
 Behavior checks cover all ten images by keyboard, desktop thumbnail selection and zoom, opening by touch on mobile WebKit, closing, restored page scrolling, and no runtime errors. The final check also asserts the computed 160ms fade duration. No Assets Update step is needed for the branch-local copies.
 
 Final published deployment `79dcadf79` (160ms fade), one fresh-context run per browser: Chrome first opening 115ms, Firefox 209ms, WebKit 163ms; navigation index responses 6–23ms. Largest navigation frame gaps were Chrome 108ms, Firefox 47ms, WebKit 80ms. The next full-resolution image took 2.14s in WebKit and exceeded the 2.2s observation window in Chrome; preview pixels can appear sooner. This is still a loading/rendering limitation, not a claim of delay-free navigation. All four behavior targets passed the 160ms fade assertion; Firefox scroll unlock failed one fixed-wait check and passed a rerun with an explicit completion wait.
+
+
+## Scroll lock and hydration regression repair
+
+Deployment `f532faccb` disables `triggerActions` on hidden seasonal promo overlays JAYSObhH0, gD6wPUQdj, NNsmhOdhO in the branch layout template. The original node attributes are saved in disabled-promo-triggers.json. Hiding the Winter Promo did not disable its delayed opening trigger: Framer locked document scrolling after three seconds without showing its contents. Ramka subsequently restored that already-locked state. A wheel-input reproduction confirmed this before any lightbox interaction; disabling the trigger restored actual wheel scrolling in Chrome, Firefox and WebKit before opening and after four open/close cycles each.
+
+The persistent preset style also caused a server/client text mismatch after Framer processed its CSS. Under delayed module loading, WebKit logged React 425/422 followed by repeated 421 errors. Inserting the static stylesheet with dangerouslySetInnerHTML (as with our other static CSS) eliminated those errors in the same reproduction. This fixes the style source mismatch instead of suppressing React warnings.
+
+The browser check now waits beyond the promo delay, verifies actual wheel scrolling before and after lightbox use, and fails on recoverable React console errors as well as page errors. Run `SLOW_MODULES=700 pnpm exec node scripts/check-companion.mjs` to exercise hydration with delayed module delivery. The earlier checks did not catch console warnings and did not test scrolling before lightbox opening; their pass result was insufficient.

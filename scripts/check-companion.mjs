@@ -16,7 +16,17 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
   const page = await context.newPage()
   const result = { name, version: browser.version(), errors: [] }
   page.on("pageerror", (e) => result.errors.push(e.message))
+  page.on("console", (message) => {
+    if (/Minified React error|hydration|hydrating/i.test(message.text()))
+      result.errors.push(message.text())
+  })
   try {
+    const moduleDelay = Number(process.env.SLOW_MODULES || 0)
+    if (moduleDelay)
+      await page.route("**/*.mjs*", async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, moduleDelay))
+        await route.continue()
+      })
     await page.goto(url, { waitUntil: "domcontentloaded" })
     await page.waitForFunction(
       () => window.__COMPANION_KIT_BUILD__ === "companion-local-2026-11-18-v4",
@@ -24,6 +34,16 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
     await page.waitForFunction(() =>
       document.querySelector('[data-framer-name="CarouselXYZ"] [data-ramka-trigger]'),
     )
+    // Hidden Framer overlays can still fire delayed triggers and lock the page.
+    await page.waitForTimeout(5000)
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe(
+      "hidden",
+    )
+    if (name !== "mobile-webkit") {
+      await page.mouse.move(1000, 600)
+      await page.mouse.wheel(0, 400)
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100)
+    }
     await page.evaluate(() =>
       [...document.querySelectorAll("[data-ramka-trigger]")]
         .find((e) => !e.closest('[aria-hidden="true"]'))
@@ -88,6 +108,13 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
       () => getComputedStyle(document.documentElement).overflow !== "hidden",
     )
     if (!result.scrollUnlocked) throw Error("Scroll remains locked")
+    if (name !== "mobile-webkit") {
+      const before = await page.evaluate(() => window.scrollY)
+      await page.mouse.move(1000, 600)
+      await page.mouse.wheel(0, 300)
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before + 100)
+    }
+    expect(result.errors).toEqual([])
     result.pass = true
   } catch (e) {
     result.pass = false
