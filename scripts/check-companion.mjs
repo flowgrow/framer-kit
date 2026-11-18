@@ -36,6 +36,12 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
     )
     // Hidden Framer overlays can still fire delayed triggers and lock the page.
     await page.waitForTimeout(5000)
+    const photoViewport = page
+      .locator('[data-framer-name="CarouselXYZ"][data-kniff-viewport]')
+      .first()
+    await expect(photoViewport).toHaveAttribute("data-kniff-loop-ready", "")
+    await expect(photoViewport.locator(":scope > [data-kniff-loop-copy]")).toHaveCount(6)
+    result.loopReady = true
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe(
       "hidden",
     )
@@ -57,8 +63,14 @@ for (const name of (process.env.ENGINES || "chrome,firefox,webkit,mobile-webkit"
     })
     await page.waitForTimeout(400)
     const trigger = page.locator('[data-ramka-trigger]:not([aria-hidden="true"] *)').first()
-    if (name === "mobile-webkit") await trigger.tap()
-    else await trigger.click()
+    // Auto Move intentionally changes the box every frame; click its current centre.
+    const triggerBox = await trigger.boundingBox()
+    const point = {
+      x: triggerBox.x + triggerBox.width / 2,
+      y: triggerBox.y + triggerBox.height / 2,
+    }
+    if (name === "mobile-webkit") await page.touchscreen.tap(point.x, point.y)
+    else await page.mouse.click(point.x, point.y)
     const dialog = page.locator("[data-ramka-content][data-open]")
     await expect(dialog).toBeVisible()
     result.transitionDuration = await dialog.evaluate((e) =>
