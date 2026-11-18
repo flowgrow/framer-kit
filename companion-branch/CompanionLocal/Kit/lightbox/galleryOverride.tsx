@@ -238,7 +238,7 @@ function createGalleryOverride<P extends object>(
           {renderComponent(Component, props as unknown as P, mergedRootRef)}
           <RamkaPortal items={items} config={config} />
         </Lightbox.Root>
-        {!inheritConfig && <style>{ramkaPresetCSS}</style>}
+        {!inheritConfig && <style dangerouslySetInnerHTML={{ __html: ramkaPresetCSS }} />}
       </RamkaGalleryContext.Provider>
     )
   })
