@@ -91,8 +91,7 @@ const previousTransformControls = {
 }
 
 export interface KniffCarouselSettingsProps {
-  showCanvasPreview?: boolean
-  canvasPreview?: { viewport?: string; instructions?: boolean; scroll?: number }
+  canvasPreview?: { enabled?: boolean; viewport?: string; instructions?: boolean; scroll?: number }
   showInstructions?: boolean
   style?: CSSProperties
   containerID?: string
@@ -150,25 +149,20 @@ export function KniffCarouselSettings(props: KniffCarouselSettingsProps) {
     return () => setSnapshot((current) => (current === snapshot ? null : current))
   }, [setSnapshot, snapshot])
   if (RenderTarget.current() === RenderTarget.canvas)
-    return props.showCanvasPreview === false ? null : <CarouselCanvasSettings {...props} />
+    return props.canvasPreview?.enabled === false ? null : <CarouselCanvasSettings {...props} />
   if (gallery?.isLoopCopy) return null
   return <CarouselPreviewSettings {...props} containerID={props.canvasPreview?.viewport ?? props.containerID} />
 }
 
 export const kniffCarouselSettingsPropertyControls = {
-  showCanvasPreview: {
-    title: "Show Canvas Preview",
-    type: ControlType.Boolean,
-    defaultValue: true,
-  },
   canvasPreview: {
     title: "Canvas Preview",
     type: ControlType.Object,
-    hidden: (props) => props.showCanvasPreview === false,
     controls: {
-      viewport: { title: "Viewport", type: ControlType.String, defaultValue: "Percentage Sized Carousel" },
-      instructions: { title: "Instructions", type: ControlType.Boolean, defaultValue: true },
-      scroll: { title: "Scroll", type: ControlType.Number, defaultValue: 0, min: 0, max: 1000, step: 1, unit: "%", displayStepper: false },
+      enabled: { title: "Show Canvas Preview", type: ControlType.Boolean, defaultValue: true },
+      viewport: { title: "Viewport", type: ControlType.String, defaultValue: "Percentage Sized Carousel", hidden: (props) => props.enabled === false },
+      instructions: { title: "Instructions", type: ControlType.Boolean, defaultValue: true, hidden: (props) => props.enabled === false },
+      scroll: { title: "Scroll", type: ControlType.Number, defaultValue: 0, min: 0, max: 1000, step: 1, unit: "%", displayStepper: false, hidden: (props) => props.enabled === false },
     },
   },
   loop: {
