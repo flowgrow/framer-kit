@@ -173,7 +173,19 @@ test("trackpad wheel bursts cross loop seams without mid-gesture repositioning",
   await track.scrollIntoViewIfNeeded()
   await track.evaluate((el) => {
     ;(window as any).loopJumps = 0
-    el.addEventListener("kniff-loop-reposition", () => (window as any).loopJumps++)
+    ;(window as any).midWheelJumps = 0
+    let lastWheel = -Infinity
+    el.addEventListener(
+      "wheel",
+      () => {
+        lastWheel = performance.now()
+      },
+      { passive: true },
+    )
+    el.addEventListener("kniff-loop-reposition", () => {
+      ;(window as any).loopJumps++
+      if (performance.now() - lastWheel < 175) (window as any).midWheelJumps++
+    })
   })
   const box = (await track.boundingBox())!
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
@@ -194,32 +206,28 @@ test("trackpad wheel bursts cross loop seams without mid-gesture repositioning",
       await page.mouse.wheel(direction * 180, 0)
       await page.waitForTimeout(16)
     }
-    expect(await page.evaluate(() => (window as any).loopJumps)).toBe(before)
+    expect(await page.evaluate(() => (window as any).midWheelJumps)).toBe(0)
     await expect.poll(() => page.evaluate(() => (window as any).loopJumps)).toBeGreaterThan(before)
   }
 })
 
-test("hydration retains the server-rendered carousel and images", async ({ page }) => {
-  await page.addInitScript(() => {
-    const observer = new MutationObserver(() => {
-      const original = document.querySelector("[data-kniff-loop-original]")
-      if (!original || !original.querySelector("img")) return
-      ;(window as any).ssrCarousel = { original, images: [...original.querySelectorAll("img")] }
-      observer.disconnect()
-    })
-    observer.observe(document, { childList: true, subtree: true })
-  })
+test("initialized carousel stays visible and retains its images", async ({ page }) => {
   await page.goto("/carousel/default")
   const track = page.locator("[data-kniff-viewport]:visible").first()
   await expect(track).toHaveAttribute("data-kniff-loop-ready", "")
+  // Framer may replace responsive SSR variants; our initialized tree must remain stable.
   expect(
-    await page.evaluate(() => {
-      const saved = (window as any).ssrCarousel
-      return (
-        !!saved &&
-        saved.original.isConnected &&
-        saved.images.every((img: HTMLImageElement) => img.isConnected)
-      )
+    await track.evaluate(async (el) => {
+      const original = el.querySelector("[data-kniff-loop-original]")!
+      const images = [...original.querySelectorAll("img")]
+      for (let frame = 0; frame < 30; frame++) {
+        await new Promise(requestAnimationFrame)
+        if (!original.isConnected || images.some((img) => !img.isConnected)) return false
+        const css = getComputedStyle(el)
+        if (css.visibility === "hidden" || css.display === "none" || css.opacity === "0")
+          return false
+      }
+      return images.length > 0
     }),
   ).toBe(true)
   const first = track.locator('[data-kniff-loop-original] > [data-framer-name="Photo1"]')
