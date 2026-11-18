@@ -301,7 +301,7 @@ export const kniffCarouselSettingsPropertyControls = {
   fullBleed: {
     title: "Full Bleed",
     type: ControlType.Boolean,
-    defaultValue: false,
+    defaultValue: true,
   },
   edgeSpace: {
     title: "Edge Space",

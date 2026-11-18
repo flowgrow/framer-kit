@@ -19,7 +19,7 @@ function target(id: string) {
 export function CarouselPreviewSettings({
   containerID = "Percentage Sized Carousel",
   align = "center",
-  fullBleed = false,
+  fullBleed = true,
   slideBy = 1,
   slideByAuto = false,
   edgeSpace = true,

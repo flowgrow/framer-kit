@@ -171,7 +171,7 @@ export function CarouselCanvasSettings(props: KniffCarouselSettingsProps) {
                 priority: viewport.style.getPropertyPriority(property),
             }))
             if (loop && getComputedStyle(viewport).position === "static") viewport.style.position = "relative"
-            viewport.style.setProperty("overflow", props.fullBleed ? "visible" : "hidden", "important")
+            viewport.style.setProperty("overflow", props.fullBleed !== false ? "visible" : "hidden", "important")
             const start = align === "start" ? 0 : align === "end" ? 1 : 0.5
             edges = observeCanvasSlides(viewport, loop || props.edgeSpace !== false ? start : undefined,
                 loop, previousFrame, currentFrame, nextFrame)
