@@ -95,10 +95,12 @@ function createGalleryOverride<P extends object>(
 
   const Override = forwardRef<unknown, P>((props, forwardedRef) => {
     const parentGallery = useContext(RamkaGalleryContext) as any
-    const [items, setItems] = useState<RamkaMediaItem[]>([])
+    const [items, updateItems] = useState<RamkaMediaItem[]>([])
+    const setItems = useCallback((next: React.SetStateAction<RamkaMediaItem[]>) => React.startTransition(() => updateItems(next)), [])
     const triggerIndicesRef = useRef(new Map<string, number>())
     const nextTriggerIndexRef = useRef(0)
-    const [ownConfig, setConfig] = useState<RamkaGalleryConfig>(defaultRamkaGalleryConfig)
+    const [ownConfig, updateConfig] = useState<RamkaGalleryConfig>(defaultRamkaGalleryConfig)
+    const setConfig = useCallback((next: React.SetStateAction<RamkaGalleryConfig>) => React.startTransition(() => updateConfig(next)), [])
 
     const config = inheritConfig && parentGallery ? parentGallery.config : ownConfig
 
