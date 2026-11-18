@@ -18,6 +18,45 @@ const classes = (...names: (string | false)[]) =>
     .join(" ")
 const ratio = (item: RamkaMediaItem) => (item.width && item.height ? item.width / item.height : 1)
 
+const maxImageEdge = 2560
+
+function framerImageUrl(src: string): URL | undefined {
+  try {
+    const url = new URL(src)
+    if (url.hostname === "framerusercontent.com" && url.pathname.startsWith("/images/"))
+      return url
+  } catch {
+    // Non-absolute image URLs are left as authored.
+  }
+}
+
+function thumbnailSrc(item: RamkaMediaItem): string {
+  const url = framerImageUrl(item.src)
+  if (!url) return item.src
+  url.searchParams.set("scale-down-to", String(Math.ceil(72 * Math.max(1, ratio(item)))))
+  return url.href
+}
+
+function mainImageSources(item: RamkaMediaItem) {
+  const url = framerImageUrl(item.src)
+  if (!url) return { src: item.src, srcSet: item.srcSet }
+
+  url.searchParams.set("scale-down-to", String(maxImageEdge))
+  const src = url.href
+  const cappedWidth = Math.max(
+    1,
+    Math.floor(Math.min(item.width || maxImageEdge, maxImageEdge * Math.min(1, ratio(item)))),
+  )
+  const smaller = (item.srcSet ?? "").split(",").flatMap((candidate) => {
+    const match = candidate.trim().match(/^(\S+)\s+(\d+)w$/)
+    if (!match || Number(match[2]) >= cappedWidth) return []
+    const variant = framerImageUrl(match[1]!)
+    const edge = Number(variant?.searchParams.get("scale-down-to"))
+    return variant && edge > 0 && edge < maxImageEdge ? [candidate.trim()] : []
+  })
+  return { src, srcSet: [...smaller, `${src} ${cappedWidth}w`].join(", ") }
+}
+
 function backdropIsDark(color: string): boolean {
   const hex = color.match(/^#([\da-f]{3}|[\da-f]{6}|[\da-f]{8})$/i)?.[1]
   const channels = hex
@@ -83,8 +122,7 @@ function GallerySlide({
       {...(item.height ? { height: item.height } : {})}
     >
       <img
-        src={item.src}
-        srcSet={item.srcSet}
+        {...mainImageSources(item)}
         sizes="100vw"
         width={item.width}
         height={item.height}
@@ -197,9 +235,7 @@ function RamkaPortalImpl({
                 {items.map((item, index) => (
                   <Lightbox.Thumbnail key={item.id} index={index}>
                     <img
-                      src={item.src}
-                      srcSet={item.srcSet}
-                      sizes={`${72 * Math.max(1, ratio(item))}px`}
+                      src={thumbnailSrc(item)}
                       alt={item.alt}
                       draggable={false}
                       loading="lazy"
