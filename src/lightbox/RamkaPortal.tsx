@@ -174,7 +174,7 @@ function RamkaPortalImpl({
                     <img
                       src={item.src}
                       srcSet={item.srcSet}
-                      sizes="72px"
+                      sizes={`${72 * Math.max(1, ratio(item))}px`}
                       alt={item.alt}
                       draggable={false}
                       loading="lazy"
