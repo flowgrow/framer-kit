@@ -201,7 +201,7 @@ export function CarouselPreviewSettings({
   > ${cycle} > :where(:not(.ssr-variant)),
   > ${cycle} > :where(.ssr-variant) > *`
   const content =
-    ":not(style, script, [data-kniff-ramka-settings], :has([data-kniff-ramka-settings]), [data-kniff-ignore-slide], :has([data-kniff-ignore-slide]))"
+    ":not(style, script, [data-kniff], [data-kniff-ramka-settings], :has([data-kniff-ramka-settings]), [data-kniff-ignore-slide], :has([data-kniff-ignore-slide]))"
   const edgeSlide = (which: "first" | "last") => {
     const item = `:nth-${which === "first" ? "" : "last-"}child(1 of ${content}:not([data-kniff-loop-original], [data-kniff-loop-copy]))`
     return `

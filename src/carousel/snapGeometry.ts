@@ -114,7 +114,7 @@ export function dotSlides(viewport: HTMLElement): HTMLElement[] {
   const grouped = viewport.hasAttribute("data-kniff-slide-by")
   const slides = slideBoxes(viewport).filter(
     (slide) =>
-      !slide.hasAttribute("data-kniff") && (!grouped || slide.hasAttribute("data-kniff-group")),
+      (!slide.hasAttribute("data-kniff") || slide.hasAttribute("data-kniff-end-stop")) && (!grouped || slide.hasAttribute("data-kniff-group")),
   )
   if (viewport.hasAttribute("data-kniff-loop")) return slides
   return slides.filter(

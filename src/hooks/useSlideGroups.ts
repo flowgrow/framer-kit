@@ -33,9 +33,11 @@ export function useSlideGroups(
   edgeSpace: boolean,
 ) {
   useLayoutEffect(() => {
+    if (!selector) return
     const viewport =
       registered ?? marker.current?.ownerDocument.querySelector<HTMLElement>(selector)
     if (!viewport) return
+    let endStop: HTMLSpanElement | undefined
     const saved = new Map<HTMLElement, string>()
     let frame = 0
     const observed = new Set<HTMLElement>()
@@ -44,7 +46,7 @@ export function useSlideGroups(
     }
     const refresh = () => {
       frame = 0
-      const all = slideBoxes(viewport)
+      const all = slideBoxes(viewport).filter(el => !el.hasAttribute("data-kniff"))
       const originals = all.filter((el) => !el.closest("[data-kniff-loop-copy]"))
       if (!originals.length) return
       const css = getComputedStyle(viewport)
@@ -73,18 +75,34 @@ export function useSlideGroups(
       // Existing edge-space CSS consumes the widths of the first/last GROUP.
       write(viewport, "--kniff-first-slide-width", `${groups[0]!.width}px`)
       write(viewport, "--kniff-last-slide-width", `${groups[groups.length - 1]!.width}px`)
+      // A separate terminal snap area exposes an oversized tail or a CMS loader.
+      // It is a stop, not a slide, and disappears once it duplicates a group stop.
       const lastGroup = groups[groups.length - 1]!
       const last = originals[originals.length - 1]!
-      // An oversized final group may need a second stop to reveal its tail.
-      if (
-        !loop &&
-        lastGroup.width > available + 1 &&
-        factor < 1 &&
-        lastGroup.end - lastGroup.start > 1
-      ) {
-        write(last, "scroll-snap-align", "end")
-        write(last, "scroll-margin-right", "0px")
-        last.setAttribute("data-kniff-group", String(groups.length))
+      const firstOfLast = originals[lastGroup.start]!
+      const box = viewport.getBoundingClientRect()
+      const left = parseFloat(css.scrollPaddingLeft) || 0
+      const right = parseFloat(css.scrollPaddingRight) || 0
+      const loader = viewport.querySelector<HTMLElement>("[data-kniff-ignore-slide]")
+      const lastRight = Math.max(slideRect(viewport, last).left + slideRect(viewport, last).width, loader?.getBoundingClientRect().right ?? -Infinity)
+      const end = lastRight - box.left - viewport.clientLeft + viewport.scrollLeft
+      const max = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
+      const anchor = slideRect(viewport, firstOfLast).left - box.left - viewport.clientLeft + viewport.scrollLeft - left - (available - lastGroup.width) * factor
+      const tail = Math.max(0, Math.min(max, end - viewport.clientWidth + right))
+      if (!loop && tail > Math.max(0, Math.min(max, anchor)) + 1) {
+        if (!endStop) {
+          endStop = document.createElement("span")
+          endStop.setAttribute("data-kniff", "")
+          endStop.setAttribute("data-kniff-end-stop", "")
+          endStop.setAttribute("aria-hidden", "true")
+          endStop.style.cssText = "position:absolute;width:1px;height:1px;top:0;pointer-events:none;scroll-snap-align:end;"
+          viewport.append(endStop)
+        }
+        write(endStop, "left", `${end - 1}px`)
+        endStop.setAttribute("data-kniff-group", String(groups.length))
+      } else {
+        endStop?.remove()
+        endStop = undefined
       }
       viewport.setAttribute("data-kniff-slide-by", String(by))
       for (const el of observed)
@@ -128,6 +146,7 @@ export function useSlideGroups(
           )
         slide.removeAttribute("data-kniff-group")
       }
+      endStop?.remove()
       viewport.removeAttribute("data-kniff-slide-by")
       viewport.style.removeProperty("--kniff-first-slide-width")
       viewport.style.removeProperty("--kniff-last-slide-width")
