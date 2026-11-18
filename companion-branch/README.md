@@ -20,7 +20,7 @@ The initial audit found 95 local override references and 15 local settings insta
 
 Morph is the default. Lightbox Settings has an explicit Transition control offering Morph or Fade. Morph retains its original 360ms duration; opt-in Fade uses 160ms. Main images retain srcset and sizes=100vw; thumbnail sizes are 72 × max(1, width/height). Fast morph opening has not yet been established across browsers.
 
-The preset stylesheet remains installed between lightbox openings. It uses static HTML insertion to avoid a server/client style-text mismatch after Framer processes CSS. Inactive slide filters are limited to active gestures, and decoded carousel pixels provide a preview while larger images load.
+The preset stylesheet remains installed between lightbox openings. It is installed once in document.head, avoiding extra style siblings in Framer layer markup. Inactive slide filters are limited to active gestures, and decoded carousel pixels provide a preview while larger images load.
 
 Hidden seasonal promo overlays still had delayed opening triggers, causing Framer to set document overflow:hidden without displaying a popup. Their triggerActions were removed in this branch. Original node attributes are saved in disabled-promo-triggers.json.
 
@@ -32,7 +32,7 @@ Lightbox indices follow document order rather than lazy-component registration o
 
 Build marker: window.__COMPANION_KIT_BUILD__ = companion-local-2026-11-18-v6.
 
-Deployment after removing the unsuccessful startup experiments: 43778b1b7.
+Current deployment, including persistent CSS in document.head: 43a3fb975.
 
 A real Chromium touch pull-to-dismiss followed by immediate wheel input reproduced the repeated opposing movement. The updated gesture checks passed at 150ms and 300ms delays, including the final photo near the loop boundary. WebKit and Firefox keyboard-close followed by wheel input also passed the no-opposing-movement assertion. This is not a native Safari touch-drag test.
 
@@ -49,3 +49,5 @@ Edit branch code, mirror it here and commit, publish the branch, verify the mark
 - `pnpm exec node scripts/profile-companion.mjs`: headless profiling at 2560×1363, DPR 2. RUNS, ENGINES, PROFILE_DIR, EXPECTED_BUILD and TRACE=1 configure the run.
 
 Behavior artifacts are under /tmp/companion-checks; gesture traces are /tmp/companion-handoff-<engine>.json. Playwright WebKit is not installed Safari. The earlier checks missed recoverable console warnings and did not test page scrolling before lightbox opening; those pass reports were insufficient.
+
+Final delayed-module run on 43a3fb975: Chrome and Firefox passed the full check. Desktop and mobile WebKit passed loop readiness, morph duration, opening, navigation, previews and restored page scrolling, but failed the React 421 console-error assertion. These are failed test runs, not full passes. The wheel-handoff regression test also supports WHEEL_DELTA=-100 for the reverse direction.

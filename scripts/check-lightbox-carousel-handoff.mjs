@@ -1,5 +1,6 @@
 import { chromium, webkit, firefox, expect } from "@playwright/test"
 import { writeFile } from "node:fs/promises"
+const wheelDelta = Number(process.env.WHEEL_DELTA || 100)
 for (const name of (process.env.ENGINES || "webkit,chrome,firefox").split(",")) {
   const browser = await { chrome: chromium, webkit, firefox }[name].launch({
     headless: true,
@@ -78,7 +79,7 @@ for (const name of (process.env.ENGINES || "webkit,chrome,firefox").split(",")) 
       window.__wheelStart = performance.now() - window.__handoffStart
     })
     for (let j = 0; j < 8; j++) {
-      await page.mouse.wheel(100, 0)
+      await page.mouse.wheel(wheelDelta, 0)
       await page.waitForTimeout(30)
     }
     await page.evaluate(() => {
@@ -113,7 +114,9 @@ for (const name of (process.env.ENGINES || "webkit,chrome,firefox").split(",")) 
     }),
   )
   await writeFile("/tmp/companion-handoff-" + name + ".json", JSON.stringify(data))
-  const opposing = deltas.filter((d) => d.t >= data.wheelStart && d.t <= data.wheelEnd && d.d < -2)
+  const opposing = deltas.filter(
+    (d) => d.t >= data.wheelStart && d.t <= data.wheelEnd && d.d * Math.sign(wheelDelta) < -2,
+  )
   await browser.close()
   expect(opposing, "Carousel must not pull back against fresh wheel input").toEqual([])
 }
