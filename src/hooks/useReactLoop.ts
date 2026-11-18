@@ -80,6 +80,8 @@ export function useReactLoop(
       let pointerDown = false
       let touchDown = false
       let settleTimer = 0
+      let wheelTimer = 0
+      let wheelActive = false
       const needsScrollEndFallback = !Reflect.has(scroller, "onscrollend")
       const geometry = () => {
         const first = slideBoxes(originalCycle)[0]
@@ -145,6 +147,7 @@ export function useReactLoop(
       const normalize = () => {
         if (
           jumping ||
+          wheelActive ||
           getPendingOverflowDestination(scroller) !== undefined ||
           pointerDown ||
           touchDown ||
@@ -171,6 +174,21 @@ export function useReactLoop(
           if (!pointerDown && !touchDown) normalize()
         }, 180)
       }
+      // Trackpad wheel bursts can outlive an individual scrollend event.
+      // Leave the copies in place until both wheel input and scrolling are quiet.
+      const wheelSettled = () => {
+        window.clearTimeout(wheelTimer)
+        wheelTimer = window.setTimeout(() => {
+          wheelActive = false
+          normalize()
+        }, 180)
+      }
+      const wheel = (event: WheelEvent) => {
+        if (!event.deltaX || event.ctrlKey) return
+        wheelActive = true
+        wheelSettled()
+      }
+      const wheelScroll = () => { if (wheelActive) wheelSettled() }
       const touchStart = () => {
         touchDown = true
         window.clearTimeout(settleTimer)
@@ -195,6 +213,8 @@ export function useReactLoop(
       }
       scroller.addEventListener("kniff-scroll-navigation", navigationChanged)
       scroller.addEventListener("scrollend", normalize)
+      scroller.addEventListener("wheel", wheel, { passive: true })
+      scroller.addEventListener("scroll", wheelScroll, { passive: true })
       if (needsScrollEndFallback) {
         scroller.addEventListener("scroll", scheduleSettle, { passive: true })
         scroller.addEventListener("touchstart", touchStart, { passive: true })
@@ -210,6 +230,9 @@ export function useReactLoop(
         scroller.style.transform = previousTransform
         cancelAnimationFrame(restoreFrame)
         window.clearTimeout(settleTimer)
+        window.clearTimeout(wheelTimer)
+        scroller.removeEventListener("wheel", wheel)
+        scroller.removeEventListener("scroll", wheelScroll)
         scroller.removeEventListener("scroll", scheduleSettle)
         scroller.removeEventListener("touchstart", touchStart)
         window.removeEventListener("touchend", touchEnd)

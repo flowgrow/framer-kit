@@ -161,3 +161,40 @@ test("Auto repacks measured slides after viewport resize", async ({ page }) => {
     )
     .toBe(true)
 })
+
+test("trackpad wheel bursts cross loop seams without mid-gesture repositioning", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "Trackpad input is a desktop interaction")
+  await page.goto("/carousel/default")
+  const track = page.locator("[data-kniff-viewport]:visible").first()
+  await expect(track).toHaveAttribute("data-kniff-loop-ready", "")
+  await track.scrollIntoViewIfNeeded()
+  await track.evaluate((el) => {
+    ;(window as any).loopJumps = 0
+    el.addEventListener("kniff-loop-reposition", () => (window as any).loopJumps++)
+  })
+  const box = (await track.boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  for (const direction of [-1, 1]) {
+    if (direction === 1) {
+      const last = page.locator("[data-kniff-dot-index]").last()
+      await last.click()
+      await expect(last).toHaveAttribute("aria-current", "true")
+      await track.scrollIntoViewIfNeeded()
+      const currentBox = (await track.boundingBox())!
+      await page.mouse.move(
+        currentBox.x + currentBox.width / 2,
+        Math.min(currentBox.y + currentBox.height / 2, 500),
+      )
+    }
+    const before = await page.evaluate(() => (window as any).loopJumps)
+    for (let i = 0; i < 24; i++) {
+      await page.mouse.wheel(direction * 180, 0)
+      await page.waitForTimeout(16)
+    }
+    expect(await page.evaluate(() => (window as any).loopJumps)).toBe(before)
+    await expect.poll(() => page.evaluate(() => (window as any).loopJumps)).toBeGreaterThan(before)
+  }
+})
