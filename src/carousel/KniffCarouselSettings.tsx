@@ -91,6 +91,7 @@ const previousTransformControls = {
 }
 
 export interface KniffCarouselSettingsProps {
+  showCanvasPreview?: boolean
   canvasPreview?: { viewport?: string; instructions?: boolean; scroll?: number }
   showInstructions?: boolean
   style?: CSSProperties
@@ -148,15 +149,22 @@ export function KniffCarouselSettings(props: KniffCarouselSettingsProps) {
     setSnapshot(snapshot)
     return () => setSnapshot((current) => (current === snapshot ? null : current))
   }, [setSnapshot, snapshot])
-  if (RenderTarget.current() === RenderTarget.canvas) return <CarouselCanvasSettings {...props} />
+  if (RenderTarget.current() === RenderTarget.canvas)
+    return props.showCanvasPreview === false ? null : <CarouselCanvasSettings {...props} />
   if (gallery?.isLoopCopy) return null
   return <CarouselPreviewSettings {...props} containerID={props.canvasPreview?.viewport ?? props.containerID} />
 }
 
 export const kniffCarouselSettingsPropertyControls = {
+  showCanvasPreview: {
+    title: "Show Canvas Preview",
+    type: ControlType.Boolean,
+    defaultValue: true,
+  },
   canvasPreview: {
     title: "Canvas Preview",
     type: ControlType.Object,
+    hidden: (props) => props.showCanvasPreview === false,
     controls: {
       viewport: { title: "Viewport", type: ControlType.String, defaultValue: "Percentage Sized Carousel" },
       instructions: { title: "Instructions", type: ControlType.Boolean, defaultValue: true },
