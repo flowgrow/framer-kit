@@ -45,6 +45,7 @@
     "version-packages": "changeset version",
     "release": "pnpm run worker:deploy",
     "test:e2e": "playwright test",
+    "test:collector": "vitest run tests/authoredStyles.test.tsx && playwright test e2e/authored-padding.spec.ts e2e/intrinsic-fill.spec.ts --project=webkit --project=mobile-webkit",
     "worker:prepare": "node scripts/prepare-worker.mjs",
     "worker:dev": "pnpm exec wrangler dev --config worker/wrangler.jsonc",
     "worker:deploy": "node scripts/check-prod-release.mjs && pnpm run check && pnpm run worker:prepare && pnpm exec wrangler deploy --config worker/wrangler.jsonc && pnpm run worker:verify",

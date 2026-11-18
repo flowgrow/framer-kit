@@ -1,8 +1,9 @@
 import React, { forwardRef } from "react"
 import { createRoot } from "react-dom/client"
 import { RenderTarget } from "./framer"
-import { withKniffCarousel } from "../../src/scroll-snap/withKniffCarousel"
-import { VisibleScrollOverflowSettings } from "../../src/scroll-snap/VisibleScrollOverflowSettings"
+import { carouselViewportOverride } from "../../src/carousel/withKniffCarousel"
+const { withKniffCarousel } = carouselViewportOverride
+import { CarouselPreviewSettings as VisibleScrollOverflowSettings } from "../../src/carousel/CarouselPreviewSettings"
 const Frame = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => (
     <div {...props} ref={ref} />
   )),
@@ -65,7 +66,7 @@ export function mountAlignment(
       )}
       <VisibleScrollOverflowSettings
         containerID="Alignment viewport"
-        boundaryID={bodyBoundary ? "" : "Alignment boundary"}
+        fullBleed
         align={align}
         edgeSpace={edgeSpace}
         loop={false}
@@ -95,7 +96,7 @@ export function mountIntrinsicFill(mount: HTMLElement) {
       </Viewport>
       <VisibleScrollOverflowSettings
         containerID="Intrinsic viewport"
-        boundaryID="Intrinsic boundary"
+        fullBleed
         align="start"
         loop
       />

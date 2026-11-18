@@ -11,7 +11,15 @@ const vite = await createServer({
   appType: "custom",
   resolve: {
     dedupe: ["react", "react-dom"],
-    alias: { framer: fileURLToPath(new URL("./framer.ts", import.meta.url)) },
+    alias: {
+      "https://framer.com/m/touchIntent-1GV9VC.js@yw9Bc4mMxSyGwxci63kz": fileURLToPath(
+        new URL("../../src/carousel/touchIntent.tsx", import.meta.url),
+      ),
+      framer: fileURLToPath(new URL("./framer.ts", import.meta.url)),
+      "../lightbox/galleryOverride.tsx": fileURLToPath(
+        new URL("./carouselLoopScope.tsx", import.meta.url),
+      ),
+    },
   },
 })
 createHttpServer(async (req, res) => {

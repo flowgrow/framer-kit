@@ -1,7 +1,8 @@
 import React, { forwardRef } from "react"
 import { hydrateRoot } from "react-dom/client"
-import { withKniffCarousel } from "../../src/scroll-snap/withKniffCarousel"
-import { VisibleScrollOverflowSettings } from "../../src/scroll-snap/VisibleScrollOverflowSettings"
+import { carouselViewportOverride } from "../../src/carousel/withKniffCarousel"
+const { withKniffCarousel } = carouselViewportOverride
+import { CarouselPreviewSettings as VisibleScrollOverflowSettings } from "../../src/carousel/CarouselPreviewSettings"
 import { cssCollector } from "./framer"
 export const authoredCSS = `.authored-page .authored-viewport{display:flex;width:100%;max-width:600px;height:160px;padding:20px 96px 20px 32px;gap:24px}
 @media(max-width:700px){.authored-page .authored-viewport{padding:20px 50px 20px 12px;max-width:300px;gap:16px}}
@@ -23,7 +24,7 @@ export function AuthoredPadding() {
       </Viewport>
       <VisibleScrollOverflowSettings
         containerID="Authored viewport"
-        boundaryID="Authored boundary"
+        fullBleed
         align="start"
         loop={false}
         edgeSpace={false}

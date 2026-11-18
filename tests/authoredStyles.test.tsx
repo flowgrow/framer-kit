@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 vi.mock("framer", () => ({}))
-import { authoredVariableCSS, inlineAuthoredVariables } from "../src/scroll-snap/authoredStyles.js"
+import { authoredVariableCSS, inlineAuthoredVariables } from "../src/carousel/authoredStyles.ts"
 
 describe("authored carousel styles", () => {
   it("reads Framer Fill width as the parent width rather than its 1px flex placeholder", () => {
