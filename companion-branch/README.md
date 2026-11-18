@@ -4,7 +4,7 @@ Project: https://framer.com/projects/The-Companion--s8t6yE6lekXltgaL4N73-jdLHQ?b
 
 Published branch: https://philosophical-portion-666222--new-carousel-y0f6w208o.framer.app
 
-`CompanionLocal/` mirrors the branch's 34 code files, copied from the live Framer Kit project with relative dependencies. Ramka remains the external @ramka/react 0.0.2 dependency. The homepage uses local overrides and settings; other pages retain their existing references. Kit source and Companion production were not changed.
+`CompanionLocal/` mirrors the branch's 34 code files, copied from the live Framer Kit project with relative dependencies. The branch uses a [patched Ramka 0.0.2 browser build](https://github.com/flowgrow/ramka/commit/1fc1f3f47fec00aff45e721f7627a20b1efdfccd), served from jsDelivr at that exact commit. The gallery initializes Ramka’s static morph styles before interaction. All three consumers, including the portal context hook, use the same module. The homepage uses local overrides and settings; other pages retain their existing references. Kit source and Companion production were not changed.
 
 Homepage settings replacements:
 
@@ -30,9 +30,9 @@ Lightbox indices follow document order rather than lazy-component registration o
 
 ## Verification and remaining issue
 
-Build marker: window.__COMPANION_KIT_BUILD__ = companion-local-2026-11-18-v6.
+Build marker: window.__COMPANION_KIT_BUILD__ = companion-local-2026-11-19-v8.
 
-Current deployment, including persistent CSS in document.head: 43a3fb975.
+Current branch deployment: e1002d9e0.
 
 A real Chromium touch pull-to-dismiss followed by immediate wheel input reproduced the repeated opposing movement. The updated gesture checks passed at 150ms and 300ms delays, including the final photo near the loop boundary. WebKit and Firefox keyboard-close followed by wheel input also passed the no-opposing-movement assertion. This is not a native Safari touch-drag test.
 
