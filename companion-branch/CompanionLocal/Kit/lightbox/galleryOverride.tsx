@@ -134,6 +134,7 @@ function createGalleryOverride<P extends object>(
     const originalComposited = useRef<boolean | undefined | null>(null)
     const applyMorphCrop = useCallback(
       (index: number) => {
+        if (!config.viewTransition) return
         const item = items.find((entry) => entry.index === index)
         const position = triggerCropPosition(item?.morphElement ?? null)
         const rule = morphCropRule()
@@ -146,7 +147,7 @@ function createGalleryOverride<P extends object>(
           global.__RAMKA_VT_COMPOSITED__ = false
         }
       },
-      [items],
+      [items, config.viewTransition],
     )
     const restoreMorphCrop = useCallback(() => {
       if (originalComposited.current !== null) {
@@ -189,9 +190,10 @@ function createGalleryOverride<P extends object>(
         valueRef.current = index
         applyMorphCrop(index)
         const item = items.find((item) => item.index === index)
-        if (item?.carouselViewport) syncSnapToElement(item.carouselViewport, item.element)
+        if (config.viewTransition && item?.carouselViewport)
+          syncSnapToElement(item.carouselViewport, item.element)
       },
-      [items, applyMorphCrop],
+      [items, applyMorphCrop, config.viewTransition],
     )
 
     const context = useMemo<RamkaGalleryContextValue>(
@@ -216,12 +218,18 @@ function createGalleryOverride<P extends object>(
       <RamkaGalleryContext.Provider value={context}>
         <Lightbox.Root
           loop={config.loop}
-          viewTransition={false}
+          viewTransition={config.viewTransition}
           morphTo={config.morphTo}
           scrollTriggerIntoView={null}
           onValueChange={handleValueChange}
           onOpenChange={(nextOpen: boolean) => {
-            if (!nextOpen) activeRef.current = false
+            if (!nextOpen) {
+              // The hidden page need not scroll/repaint on every lightbox navigation.
+              const item = items.find((item) => item.index === valueRef.current)
+              if (!config.viewTransition && item?.carouselViewport)
+                syncSnapToElement(item.carouselViewport, item.element)
+              activeRef.current = false
+            }
           }}
           onOpenChangeComplete={(nextOpen: boolean) => {
             if (!nextOpen) release()

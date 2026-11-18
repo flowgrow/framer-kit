@@ -5,7 +5,7 @@ import type { RamkaGalleryConfig } from "./types.ts"
 export const ramkaSettingsDefaults = {
   showInstructions: true,
   loop: false,
-  viewTransition: true,
+  viewTransition: false,
   morphTo: "active",
   pullToClose: true,
   preload: 2,
@@ -29,4 +29,3 @@ export const defaultRamkaGalleryConfig: RamkaGalleryConfig = {
   showThumbnails: ramkaSettingsDefaults.showThumbnails,
   backdropColor: ramkaSettingsDefaults.backdropColor,
 }
-

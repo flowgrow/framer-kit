@@ -57,9 +57,20 @@ function GallerySlide({
       ),
     [item.captionElement, item.caption, item.alt],
   )
+  // Reuse decoded carousel pixels while the full-size responsive image loads.
+  const triggerImage = item.morphElement
+  const preview = typeof HTMLImageElement !== "undefined" &&
+    triggerImage instanceof HTMLImageElement && triggerImage.complete &&
+    triggerImage.naturalWidth > 0 ? triggerImage.currentSrc : undefined
   const media = (
     <Lightbox.Media
       className={classes("lb-media")}
+      style={preview ? {
+        backgroundImage: `url(${JSON.stringify(preview)})`,
+        backgroundSize: "contain",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      } : undefined}
       {...(item.width ? { width: item.width } : {})}
       {...(item.height ? { height: item.height } : {})}
     >
@@ -72,6 +83,7 @@ function GallerySlide({
         alt={item.alt}
         draggable={false}
         loading="eager"
+        decoding="async"
       />
     </Lightbox.Media>
   )

@@ -43,7 +43,7 @@ function RenderedSettings(props: RamkaSettingsProps) {
         ...ramkaSettingsDefaults,
         ...props,
         loop: false,
-        viewTransition: true,
+        viewTransition: false,
         morphTo: "active" as const,
         pullToClose: true,
     }
@@ -156,4 +156,3 @@ export const ramkaSettingsPropertyControls = {
 } satisfies PropertyControls<RamkaSettingsProps>
 
 addPropertyControls(RamkaSettings, ramkaSettingsPropertyControls)
-
