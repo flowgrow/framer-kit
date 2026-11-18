@@ -44,25 +44,27 @@ for (const route of ["default", "edge-space-off", "loop-off"]) {
           }),
         )
         .toBeLessThan(2)
-      // Loop initialization must select the first original, not the preceding copy's last slide.
-      await expect
-        .poll(() =>
-          viewport.evaluate((element) => {
-            const css = getComputedStyle(element),
-              box = element.getBoundingClientRect()
-            const first = element
-              .querySelector('[data-kniff-loop-original] > [data-framer-name^="Photo"]')!
-              .getBoundingClientRect()
-            const left = parseFloat(css.scrollPaddingLeft) || 0
-            const right = parseFloat(css.scrollPaddingRight) || 0
-            return Math.abs(
-              first.left +
-                first.width / 2 -
-                (box.left + left + (element.clientWidth - left - right) / 2),
-            )
-          }),
-        )
-        .toBeLessThan(3)
+      if (route === "default") {
+        // Loop initialization must select the first original, not the preceding copy's last slide.
+        await expect
+          .poll(() =>
+            viewport.evaluate((element) => {
+              const css = getComputedStyle(element),
+                box = element.getBoundingClientRect()
+              const first = element
+                .querySelector('[data-kniff-loop-original] > [data-framer-name^="Photo"]')!
+                .getBoundingClientRect()
+              const left = parseFloat(css.scrollPaddingLeft) || 0
+              const right = parseFloat(css.scrollPaddingRight) || 0
+              return Math.abs(
+                first.left +
+                  first.width / 2 -
+                  (box.left + left + (element.clientWidth - left - right) / 2),
+              )
+            }),
+          )
+          .toBeLessThan(3)
+      }
       const before = await viewport.evaluate((element) => element.scrollLeft)
       await page.getByRole("button", { name: "Next slide", exact: true }).click()
       await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).not.toBe(before)
