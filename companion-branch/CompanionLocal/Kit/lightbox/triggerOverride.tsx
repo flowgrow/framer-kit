@@ -90,8 +90,8 @@ function createTriggerOverride<P extends object>(
     // for the DOM registry made every Framer trigger briefly mount at index 0;
     // Ramka could then retain a stale morph target for that index.
     const claimedIndex = claimTriggerIndex?.(triggerId) ?? 0
-    const index = claimedIndex
     const item = gallery?.items.find((entry: { id: string }) => entry.id === triggerId)
+    const index = item?.index ?? claimedIndex
 
     const mergedRef = useCallback(
       (node: unknown) => {

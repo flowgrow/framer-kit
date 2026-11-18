@@ -85,7 +85,6 @@ export function extractRamkaMedia(
 }
 
 function compareDocumentOrder(first: RamkaMediaItem, second: RamkaMediaItem): number {
-  if (first.index !== second.index) return first.index - second.index
   if (first.element === second.element) return 0
   const position = first.element.compareDocumentPosition(second.element)
   if (position & 4) return -1
@@ -94,7 +93,7 @@ function compareDocumentOrder(first: RamkaMediaItem, second: RamkaMediaItem): nu
 }
 
 export function sortRamkaMedia(items: readonly RamkaMediaItem[]): RamkaMediaItem[] {
-  return [...items].sort(compareDocumentOrder)
+  return [...items].sort(compareDocumentOrder).map((item, index) => item.index === index ? item : { ...item, index })
 }
 
 export function isSameRamkaMedia(first: RamkaMediaItem, second: RamkaMediaItem): boolean {

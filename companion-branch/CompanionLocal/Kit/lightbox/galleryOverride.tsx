@@ -78,6 +78,7 @@ function renderComponent<P extends object>(
 
 function upsertMedia(items: RamkaMediaItem[], next: RamkaMediaItem): RamkaMediaItem[] {
   const currentIndex = items.findIndex((item) => item.id === next.id)
+  if (currentIndex >= 0) next = { ...next, index: items[currentIndex].index }
   if (currentIndex >= 0 && items[currentIndex] && isSameRamkaMedia(items[currentIndex], next)) {
     return items
   }
@@ -127,7 +128,7 @@ function createGalleryOverride<P extends object>(
     const registerTrigger = useCallback(
       (id: string, index: number, element: HTMLElement, viewport: HTMLElement | null) => {
         refreshTrigger(id, index, element, viewport)
-        return () => setItems((current) => current.filter((item) => item.id !== id))
+        return () => setItems((current) => sortRamkaMedia(current.filter((item) => item.id !== id)))
       },
       [refreshTrigger],
     )
