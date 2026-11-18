@@ -37,8 +37,8 @@ export function slideBoxes(parent: Element): HTMLElement[] {
     if (!(child instanceof HTMLElement) || ["STYLE", "SCRIPT"].includes(child.tagName)) return []
     if (getComputedStyle(child).display === "contents") return slideBoxes(child)
     if (
-      child.matches("[data-kniff-ramka-settings]") ||
-      child.querySelector("[data-kniff-ramka-settings]")
+      child.matches("[data-kniff-ramka-settings], [data-kniff-preview-settings], [data-kniff-carousel-settings]") ||
+      child.querySelector("[data-kniff-ramka-settings], [data-kniff-preview-settings], [data-kniff-carousel-settings]")
     )
       return []
     if (

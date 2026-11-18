@@ -66,9 +66,10 @@ export function useSlideGroups(
       for (const [index, slide] of all.entries()) {
         if (!saved.has(slide)) saved.set(slide, slide.getAttribute("style") ?? "")
         const group = starts.get(index % originals.length)
-        const extra = group ? Math.max(0, group.width - slideRect(viewport, slide).width) : 0
+        const extra = group && group.end - group.start > 1 ? Math.max(0, group.width - slideRect(viewport, slide).width) : 0
         write(slide, "scroll-snap-align", group ? align : "none")
-        write(slide, "scroll-margin-right", `${extra}px`)
+        if (extra > 0) write(slide, "scroll-margin-right", `${extra}px`)
+        else slide.style.removeProperty("scroll-margin-right")
         if (group) slide.setAttribute("data-kniff-group", String(group.index))
         else slide.removeAttribute("data-kniff-group")
       }

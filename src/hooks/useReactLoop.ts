@@ -1,21 +1,9 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { slideRect, snapPosition } from "../carousel/snapGeometry.ts"
+import { slideBoxes, slideRect, snapPosition } from "../carousel/snapGeometry.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { getPendingOverflowDestination } from "../carousel/snapNavigation.ts"
 import { useLayoutEffect, type RefObject } from "react"
 
-function slideBoxes(parent: Element): HTMLElement[] {
-  return Array.from(parent.children).flatMap((child) => {
-    if (!(child instanceof HTMLElement) || ["STYLE", "SCRIPT"].includes(child.tagName)) return []
-    if (getComputedStyle(child).display === "contents") return slideBoxes(child)
-    if (
-      child.matches("[data-kniff-ramka-settings]") ||
-      child.querySelector("[data-kniff-ramka-settings]")
-    )
-      return []
-    return child.getClientRects().length ? [child] : []
-  })
-}
 export function useReactLoop(
   styleRef: RefObject<HTMLStyleElement>,
   selector: string,

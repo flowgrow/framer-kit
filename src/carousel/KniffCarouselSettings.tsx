@@ -150,7 +150,7 @@ export function KniffCarouselSettings(props: KniffCarouselSettingsProps) {
   }, [setSnapshot, snapshot])
   if (RenderTarget.current() === RenderTarget.canvas)
     return props.canvasPreview?.enabled === false ? null : <CarouselCanvasSettings {...props} />
-  if (gallery?.isLoopCopy) return null
+  if (gallery?.isLoopCopy) return <style data-kniff-preview-settings="" />
   return <CarouselPreviewSettings {...props} containerID={props.canvasPreview?.viewport ?? props.containerID} />
 }
 
