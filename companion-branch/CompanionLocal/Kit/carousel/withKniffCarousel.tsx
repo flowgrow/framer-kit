@@ -39,38 +39,17 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
     const register = scope?.register
     const [viewport, setViewport] = useState<HTMLElement | null>(null)
     const [loop, setLoop] = useState(false)
-    const pendingViewport = React.useRef<HTMLElement | null>(null)
-    const pendingObserver = React.useRef<MutationObserver | null>(null)
-    const pendingFrame = React.useRef(0)
-    const hydrateViewport = useCallback((node: HTMLElement | null) => {
-      pendingObserver.current?.disconnect()
-      cancelAnimationFrame(pendingFrame.current)
-      pendingViewport.current = node
-      if (!node) { React.startTransition(() => setViewport(null)); return }
-      const commit = () => {
-        const triggers = Array.from(node.querySelectorAll<HTMLElement>("[data-kniff-loop-original] [data-ramka-trigger]")).filter(element => element.getClientRects().length > 0)
-        if (triggers.some(element => !element.hasAttribute("data-kniff-trigger-ready"))) return
-        pendingObserver.current?.disconnect()
-        pendingFrame.current = requestAnimationFrame(() => {
-          if (pendingViewport.current === node) React.startTransition(() => setViewport(node))
-        })
-      }
-      pendingObserver.current = new MutationObserver(commit)
-      pendingObserver.current.observe(node, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-kniff-trigger-ready", "class"] })
-      commit()
-    }, [])
-    useEffect(() => () => { pendingObserver.current?.disconnect(); cancelAnimationFrame(pendingFrame.current) }, [])
     const ref = useCallback(
       (node: unknown) => {
-        hydrateViewport(node instanceof HTMLElement ? node : null)
+        setViewport(node instanceof HTMLElement ? node : null)
         if (typeof forwardedRef === "function") forwardedRef(node)
         else if (forwardedRef) forwardedRef.current = node
       },
-      [forwardedRef, hydrateViewport],
+      [forwardedRef],
     )
     const probe = useCallback((node: HTMLSpanElement | null) => {
-      if (node?.parentElement) hydrateViewport(node.parentElement)
-    }, [hydrateViewport])
+      if (node?.parentElement) setViewport(node.parentElement)
+    }, [])
     useEffect(() => {
       if (!viewport || !register) return
       register(viewport)
@@ -79,7 +58,7 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
     }, [viewport, register])
     useEffect(() => {
       if (!viewport) return
-      const configure = (event: Event) => React.startTransition(() => setLoop((event as CustomEvent<boolean>).detail))
+      const configure = (event: Event) => setLoop((event as CustomEvent<boolean>).detail)
       const marked = viewport.hasAttribute("data-kniff-react-loop")
       viewport.setAttribute("data-kniff-react-loop", "")
       viewport.addEventListener("kniff-loop-render", configure)
@@ -102,10 +81,21 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
         dangerouslySetInnerHTML={{ __html: authored.css }}
       />
     )
-    const loopReady = loop
-    const cycleElements = React.useMemo(() => {
-      const children = Children.toArray((props as P & LayerProps).children)
-      return [-3, -2, -1, 0, 1, 2, 3].map((cycle) => {
+    const children = Children.toArray((props as P & LayerProps).children)
+    const cycles = loop && children.length > 0 ? [-3, -2, -1, 0, 1, 2, 3] : [0]
+    return (
+      <CarouselContext.Provider
+        value={{
+          id,
+          boundarySelector: scope?.boundarySelector ?? "body",
+          viewportSelector: `[data-kniff-viewport="${id}"]`,
+          viewport,
+        }}
+      >
+        {React.createElement(
+          Component,
+          { ...styledProps, "data-kniff-react-loop": "" } as P,
+          cycles.map((cycle) => {
             const slides = children.map((child, index) =>
               isValidElement(child)
                 ? cloneElement(child as ReactElement<Record<string, unknown>>, {
@@ -133,13 +123,8 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
                 {slides}
               </RamkaLoopScope>
             )
-          })
-    }, [(props as P & LayerProps).children])
-    const contextValue = React.useMemo(() => ({ id, boundarySelector: scope?.boundarySelector ?? "body", viewportSelector: `[data-kniff-viewport="${id}"]`, viewport }), [id, scope?.boundarySelector, viewport])
-    const renderedLayer = React.useMemo(() => React.createElement(Component, { ...styledProps, "data-kniff-react-loop": "" } as P, cycleElements.map((element, index) => loopReady || index === 3 ? element : <span key={element.key} data-kniff-loop-placeholder="" aria-hidden="true" style={{ display: "contents" }} />)), [props, ref, id, loopReady, cycleElements])
-    return (
-      <CarouselContext.Provider value={contextValue}>
-        {renderedLayer}
+          }),
+        )}
         {authoredStyle}
       </CarouselContext.Provider>
     )

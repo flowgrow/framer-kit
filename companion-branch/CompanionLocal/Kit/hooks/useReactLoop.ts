@@ -20,8 +20,6 @@ export function useReactLoop(
     let retry = 0
     let cancelled = false
     let clearStartup: (() => void) | undefined
-    let hydrationObserver: MutationObserver | undefined
-    let hydrationCommitted = false
     const install = () => {
       const scroller =
         registeredViewport ??
@@ -36,26 +34,6 @@ export function useReactLoop(
         ":scope > [data-kniff-loop-original]",
       )
       if (!originalCycle) return false
-      // Wait for visible trigger refs, not Framer wrapper classes (which Firefox retains).
-      const waitingForTriggers = () => Array.from(scroller.querySelectorAll<HTMLElement>("[data-kniff-loop-original] [data-ramka-trigger]")).some(element => element.getClientRects().length > 0 && !element.hasAttribute("data-kniff-trigger-ready"))
-      if (waitingForTriggers()) {
-        if (!hydrationObserver) {
-          hydrationObserver = new MutationObserver(() => {
-            if (waitingForTriggers()) return
-            hydrationObserver?.disconnect()
-            hydrationObserver = undefined
-            retry = 0
-            cancelAnimationFrame(frame)
-            frame = requestAnimationFrame(attempt)
-          })
-          hydrationObserver.observe(scroller, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-kniff-trigger-ready", "class"] })
-        }
-        return false
-      }
-      if (!hydrationCommitted) {
-        hydrationCommitted = true
-        return false
-      }
       const slides = slideBoxes(originalCycle)
       const first = slides[0]
       if (!first || slides.length < 2) return false
@@ -274,7 +252,6 @@ export function useReactLoop(
       cancelled = true
       cancelAnimationFrame(frame)
       clearStartup?.()
-      hydrationObserver?.disconnect()
       dispose?.()
     }
   }, [selector, align, loop, registeredViewport, styleRef])

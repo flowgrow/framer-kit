@@ -93,13 +93,9 @@ function createTriggerOverride<P extends object>(
     const item = gallery?.items.find((entry: { id: string }) => entry.id === triggerId)
     const index = item?.index ?? claimedIndex
 
-    const readyElement = useRef<HTMLElement | null>(null)
     const mergedRef = useCallback(
       (node: unknown) => {
         const nextElement = node instanceof HTMLElement ? node : null
-        if (readyElement.current !== nextElement) readyElement.current?.removeAttribute("data-kniff-trigger-ready")
-        readyElement.current = nextElement
-        nextElement?.setAttribute("data-kniff-trigger-ready", "")
         React.startTransition(() => setElement(nextElement))
         assignRef(forwardedRef, node)
       },
