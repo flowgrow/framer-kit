@@ -283,5 +283,5 @@ export function withKniffCarouselIgnoreSlide(Component: ComponentType<any>): Com
 
 // Identifies the branch-local implementation in published performance checks.
 if (typeof window !== "undefined") {
-  ;(window as any).__COMPANION_KIT_BUILD__ = "companion-local-2026-11-18-v5"
+  ;(window as any).__COMPANION_KIT_BUILD__ = "companion-local-2026-11-18-v6"
 }
