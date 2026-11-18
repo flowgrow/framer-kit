@@ -2,7 +2,7 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { StyledCaption } from "./StyledCaption.tsx"
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.
-import * as Lightbox from "https://esm.sh/@ramka/react@0.0.2/lightbox?external=react,react-dom&target=es2022"
+import * as Lightbox from "https://cdn.jsdelivr.net/gh/flowgrow/ramka@bbdb76a60889eaa839c0cf47607e33bf4d252a48/companion-dist/lightbox.mjs"
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.
 import { useLightboxContext } from "https://esm.sh/@ramka/react@0.0.2?external=react,react-dom&target=es2022"
 import * as React from "react"

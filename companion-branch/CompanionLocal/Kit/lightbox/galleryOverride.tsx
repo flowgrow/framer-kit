@@ -1,6 +1,6 @@
 // Branch-local copy: dependencies resolved within CompanionLocal.
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.
-import * as Lightbox from "https://esm.sh/@ramka/react@0.0.2/lightbox?external=react,react-dom&target=es2022"
+import * as Lightbox from "https://cdn.jsdelivr.net/gh/flowgrow/ramka@bbdb76a60889eaa839c0cf47607e33bf4d252a48/companion-dist/lightbox.mjs"
 type NavigationSource = "trigger" | "keyboard" | "thumbnail" | "button" | "scroll" | "imperative"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { freezeSnapViewport, syncSnapToElement } from "./carouselSync.ts"
@@ -141,7 +141,7 @@ function createGalleryOverride<P extends object>(
       [refreshTrigger],
     )
 
-    useEffect(() => { morphCropRule(); ensurePresetStyle() }, [])
+    useEffect(() => { morphCropRule(); ensurePresetStyle(); if (config.viewTransition) Lightbox.initializeMorphStyles() }, [config.viewTransition])
     const originalComposited = useRef<boolean | undefined | null>(null)
     const applyMorphCrop = useCallback(
       (index: number) => {
