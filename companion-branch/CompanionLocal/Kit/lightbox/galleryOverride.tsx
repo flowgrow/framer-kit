@@ -88,6 +88,14 @@ function upsertMedia(items: RamkaMediaItem[], next: RamkaMediaItem): RamkaMediaI
   return sortRamkaMedia(updated)
 }
 
+function ensurePresetStyle() {
+  if (typeof document === "undefined" || document.querySelector("style[data-kniff-ramka-preset]")) return
+  const style = document.createElement("style")
+  style.setAttribute("data-kniff-ramka-preset", "")
+  style.textContent = ramkaPresetCSS
+  document.head.appendChild(style)
+}
+
 function createGalleryOverride<P extends object>(
   Component: ComponentType<P>,
   inheritConfig = false,
@@ -133,7 +141,7 @@ function createGalleryOverride<P extends object>(
       [refreshTrigger],
     )
 
-    useEffect(() => { morphCropRule() }, [])
+    useEffect(() => { morphCropRule(); ensurePresetStyle() }, [])
     const originalComposited = useRef<boolean | undefined | null>(null)
     const applyMorphCrop = useCallback(
       (index: number) => {
@@ -172,6 +180,7 @@ function createGalleryOverride<P extends object>(
     }, [restoreMorphCrop])
     const prepareOpen = useCallback(
       (index: number, viewport: HTMLElement | null) => {
+        ensurePresetStyle()
         release()
         if (viewport) releaseRef.current = freezeSnapViewport(viewport)
         activeRef.current = true
@@ -243,7 +252,6 @@ function createGalleryOverride<P extends object>(
           {renderedLayer}
           <RamkaPortal items={items} config={config} />
         </Lightbox.Root>
-        {!inheritConfig && <style dangerouslySetInnerHTML={{ __html: ramkaPresetCSS }} />}
       </RamkaGalleryContext.Provider>
     )
   })
