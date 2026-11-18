@@ -81,21 +81,9 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
         dangerouslySetInnerHTML={{ __html: authored.css }}
       />
     )
-    const children = Children.toArray((props as P & LayerProps).children)
-    const cycles = loop && children.length > 0 ? [-3, -2, -1, 0, 1, 2, 3] : [0]
-    return (
-      <CarouselContext.Provider
-        value={{
-          id,
-          boundarySelector: scope?.boundarySelector ?? "body",
-          viewportSelector: `[data-kniff-viewport="${id}"]`,
-          viewport,
-        }}
-      >
-        {React.createElement(
-          Component,
-          { ...styledProps, "data-kniff-react-loop": "" } as P,
-          cycles.map((cycle) => {
+    const cycleElements = React.useMemo(() => {
+      const children = Children.toArray((props as P & LayerProps).children)
+      return [-3, -2, -1, 0, 1, 2, 3].map((cycle) => {
             const slides = children.map((child, index) =>
               isValidElement(child)
                 ? cloneElement(child as ReactElement<Record<string, unknown>>, {
@@ -123,8 +111,12 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
                 {slides}
               </RamkaLoopScope>
             )
-          }),
-        )}
+          })
+    }, [(props as P & LayerProps).children])
+    const contextValue = React.useMemo(() => ({ id, boundarySelector: scope?.boundarySelector ?? "body", viewportSelector: `[data-kniff-viewport="${id}"]`, viewport }), [id, scope?.boundarySelector, viewport])
+    return (
+      <CarouselContext.Provider value={contextValue}>
+        {React.createElement(Component, { ...styledProps, "data-kniff-react-loop": "" } as P, loop ? cycleElements : cycleElements[3])}
         {authoredStyle}
       </CarouselContext.Provider>
     )
