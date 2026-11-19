@@ -276,7 +276,7 @@ export function installAutoMove(
     if (
       event &&
       !event.shiftKey &&
-      (Math.abs(event.deltaX) < 0.5 || Math.abs(event.deltaY) > Math.abs(event.deltaX))
+      (Math.abs(event.deltaX) < 2 || Math.abs(event.deltaY) > Math.abs(event.deltaX))
     ) {
       verticalWheelUntil = performance.now() + 180
       return
