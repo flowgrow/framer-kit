@@ -33,7 +33,8 @@ function framerImageUrl(src: string): URL | undefined {
 function thumbnailSrc(item: RamkaMediaItem): string {
   const url = framerImageUrl(item.src)
   if (!url) return item.src
-  url.searchParams.set("scale-down-to", String(Math.ceil(72 * Math.max(1, ratio(item)))))
+  const dpr = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1
+  url.searchParams.set("scale-down-to", String(Math.ceil(72 * Math.max(1, ratio(item)) * dpr)))
   return url.href
 }
 
