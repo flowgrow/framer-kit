@@ -46,6 +46,9 @@ export function installAutoMove(
   let awaitingScroll = false
   let nativeHandoff = false
   let wheelGesture = false
+  let lightboxClosedAt = -Infinity
+  let lastProtectedWheelAt = -Infinity
+  let lightboxOpen = viewport.hasAttribute("data-kniff-lightbox-open")
   let inView = false,
     suspended = true,
     resumeMoving = true
@@ -279,9 +282,15 @@ export function installAutoMove(
       return
     }
     verticalWheelUntil = 0
-    wheelGesture = Boolean(event)
-    // Cancel a close/settle animation before the browser applies new wheel input.
-    if (event && !externallyPaused()) viewport.scrollTo({ left: viewport.scrollLeft, behavior: "instant" })
+    const now = performance.now()
+    const continuing = wheelGesture && now - lastProtectedWheelAt < 180
+    wheelGesture = Boolean(event) && (continuing || now - lightboxClosedAt < 650)
+    if (wheelGesture) {
+      lastProtectedWheelAt = now
+      // Cancel pending close/settle motion once, before the first wheel delta.
+      if (!continuing && !externallyPaused())
+        viewport.scrollTo({ left: viewport.scrollLeft, behavior: "instant" })
+    }
     if (stopOnInteraction) { pause("held"); return }
     gesture.reset()
     awaitingScroll = true
@@ -409,6 +418,9 @@ export function installAutoMove(
   })
   resize.observe(viewport)
   const mutation = new MutationObserver(() => {
+    const open = viewport.hasAttribute("data-kniff-lightbox-open")
+    if (lightboxOpen && !open) lightboxClosedAt = performance.now()
+    lightboxOpen = open
     visibility()
     measure()
     resize.disconnect()
@@ -419,7 +431,7 @@ export function installAutoMove(
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["data-kniff-auto-move-paused"],
+    attributeFilter: ["data-kniff-auto-move-paused", "data-kniff-lightbox-open"],
   })
   viewport.addEventListener("wheel", wheel, { passive: true })
   viewport.addEventListener("keydown", key)
@@ -448,4 +460,3 @@ export function installAutoMove(
     reduced.removeEventListener("change", visibility)
   }
 }
-
