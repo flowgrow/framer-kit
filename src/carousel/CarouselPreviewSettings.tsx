@@ -296,6 +296,28 @@ ${boundary} ${viewport} {
     includeEdgeSpace && !loop && align !== "end"
       ? `max(0px, calc((100% - ${ssrLastSlideWidth}) * ${align === "start" ? 1 : 0.5}))`
       : "0px"
+  const effectDecls = (transform: string, opacity: number) =>
+    `${hasTransform ? `transform: ${transform || "none"} !important;` : ""}${hasOpacity ? ` opacity: ${opacity} !important;` : ""}`
+  const ssrEffectsCSS = transformEnabled
+    ? `
+  ${slides} {
+    &:not([data-kniff-slide-position], [data-kniff], [data-kniff-ignore-slide], :has([data-kniff-ignore-slide])) {
+      ${effectDecls(next, nextOpacity)}
+    }
+  }
+  ${firstSlide} {
+    &:not([data-kniff-slide-position]) {
+      z-index: 1 !important;
+      ${effectDecls(current, currentOpacity)}
+    }
+  }
+  > [data-kniff-ssr-loop-copy] > :where(:not(.ssr-variant)),
+  > [data-kniff-ssr-loop-copy] > :where(.ssr-variant) > * {
+    &:not([data-kniff-slide-position], [data-kniff], [data-kniff-ignore-slide], :has([data-kniff-ignore-slide])) {
+      ${effectDecls(previous, previousOpacity)}
+    }
+  }`
+    : ""
   const css = `
 div[data-framer-name]:has(> style[data-kniff-preview-settings]) {
   display: none !important;
@@ -357,6 +379,7 @@ ${viewport} {
   ${lastSlide} {
     margin-inline-end: ${lastSlideMargin};
   }
+  ${ssrEffectsCSS}
   ${
     loop
       ? `

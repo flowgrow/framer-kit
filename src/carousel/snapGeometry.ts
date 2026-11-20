@@ -61,7 +61,11 @@ export function overflowSnapPoints(viewport: HTMLElement) {
     .sort((a, b) => a - b)
 }
 export function slideRect(viewport: HTMLElement, slide: HTMLElement) {
-  if (slide.hasAttribute("data-kniff-slide-position") && slide.offsetParent === viewport) {
+  if (
+    (slide.hasAttribute("data-kniff-slide-position") ||
+      getComputedStyle(slide).transform !== "none") &&
+    slide.offsetParent === viewport
+  ) {
     return {
       left:
         viewport.getBoundingClientRect().left +
