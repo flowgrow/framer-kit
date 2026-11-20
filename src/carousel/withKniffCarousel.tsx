@@ -109,7 +109,7 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
     const probe = useCallback((node: HTMLSpanElement | null) => {
       if (node?.parentElement) setViewport(node.parentElement)
     }, [])
-    useEffect(() => {
+    useIsomorphicLayoutEffect(() => {
       if (!viewport || !register) return
       register(viewport)
       return () =>

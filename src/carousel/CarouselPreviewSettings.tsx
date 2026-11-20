@@ -40,7 +40,13 @@ export function CarouselPreviewSettings({
   const viewportSelector =
     scope?.viewportSelector ?? (containerID.trim() ? target(containerID) : "")
   const boundary = scope?.boundarySelector ?? "body"
-  const registeredViewport = scope?.viewport ?? null
+  const registeredViewport: HTMLElement | null =
+    scope?.viewport ??
+    (typeof document !== "undefined" && viewportSelector
+      ? ((styleRef.current?.closest(boundary) ?? document).querySelector(
+          viewportSelector,
+        ) as HTMLElement | null)
+      : null)
   const includeEdgeSpace = loop || edgeSpace
   useSlideGroups(
     styleRef,
@@ -155,6 +161,8 @@ export function CarouselPreviewSettings({
     }
     const reposition = () => {
       cancelAnimationFrame(frame)
+      discoveryDirty = true
+      dirty = true
       refresh()
     }
     const invalidate = () => {
@@ -311,8 +319,8 @@ ${boundary} ${viewport} {
       ${effectDecls(current, currentOpacity)}
     }
   }
-  > [data-kniff-ssr-loop-copy] > :where(:not(.ssr-variant)),
-  > [data-kniff-ssr-loop-copy] > :where(.ssr-variant) > * {
+  > :is([data-kniff-ssr-loop-copy], [data-kniff-loop-copy]:has(~ [data-kniff-loop-original])) > :where(:not(.ssr-variant)),
+  > :is([data-kniff-ssr-loop-copy], [data-kniff-loop-copy]:has(~ [data-kniff-loop-original])) > :where(.ssr-variant) > * {
     &:not([data-kniff-slide-position], [data-kniff], [data-kniff-ignore-slide], :has([data-kniff-ignore-slide])) {
       ${effectDecls(previous, previousOpacity)}
     }
