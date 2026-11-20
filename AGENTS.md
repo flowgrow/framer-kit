@@ -2,6 +2,7 @@
 
 - Treat the code files in the Framer Kit Framer project (https://framer.com/projects/Framer-Kit--BqMZT7zRSjeufHHfMQHE-8MaFD) as the source code.
 - Framer's `Kit/` folder mirrors to `src/` here, and Framer's `Framer_Kit/` wrappers mirror to `Framer_Kit/`.
+- Code file paths in Framer do not automatically create visible folders in the Framer UI. When adding or reorganizing folders in Framer, always also create/maintain matching Assets folders so they are visible in the UI.
 - Apply every change made in those Framer code files to the local copy of this project as well.
 - Automatically commit each change to Git after syncing the local copy. Never commit secrets.
 
