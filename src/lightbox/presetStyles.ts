@@ -2,6 +2,7 @@
 export const ramkaPresetCSS = `
 .kniff-ramka-lb-portal {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  --lightbox-vt-duration: 160ms;
   --lb-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 .kniff-ramka-lb-trigger {
@@ -97,6 +98,16 @@ export const ramkaPresetCSS = `
 .kniff-ramka-lb-content-snug .kniff-ramka-lb-slide {
   padding-inline: 0;
 }
+[data-kniff-lightbox-content-box] > *,
+[data-kniff-lightbox-thumbnail-content] > * {
+  box-sizing: border-box;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
 .kniff-ramka-lb-media {
   overflow: hidden;
 }
@@ -162,7 +173,7 @@ export const ramkaPresetCSS = `
   transition: opacity var(--lightbox-pull-snap-duration, 500ms)
     var(--lightbox-pull-snap-easing, var(--lb-ease-out-expo));
 }
-.kniff-ramka-lb-slide-snug [data-ramka-item]:not([data-active]) {
+.kniff-ramka-lb-content:is([data-pulling], [data-zoomed], [data-pull-dismissing]) .kniff-ramka-lb-slide-snug [data-ramka-item]:not([data-active]) {
   --lb-neighbor-dim: max(var(--lightbox-pull-progress, 0), var(--lightbox-zoom-progress, 0));
   opacity: calc(1 - var(--lightbox-pull-progress, 0) * 0.85);
   filter: opacity(calc(1 - var(--lb-neighbor-dim))) blur(calc(var(--lb-neighbor-dim) * 6px));
@@ -451,6 +462,13 @@ export const ramkaPresetCSS = `
   background: transparent;
   cursor: pointer;
 }
+[data-kniff-lightbox-thumbnail-content] {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
 .kniff-ramka-lb-thumbnail-strip [role='tab'] img {
   display: block;
   width: 100%;
@@ -474,4 +492,10 @@ export const ramkaPresetCSS = `
 }
 .kniff-ramka-lb-slide { box-sizing: border-box; }
 .kniff-ramka-lb-control { padding: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-kniff-lightbox-custom] { animation: kniff-lightbox-content-in 180ms ease-out both; }
+  @keyframes kniff-lightbox-content-in {
+    from { opacity: 0; transform: scale(.98); }
+  }
+}
 `

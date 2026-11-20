@@ -2,10 +2,7 @@
 
 Native scroll-snap carousels and Kniff lightboxes for Framer.
 
-The code files in the [Framer Kit Framer project](https://framer.com/projects/Framer-Kit--BqMZT7zRSjeufHHfMQHE-8MaFD) are the source of truth. This GitHub repository is a synchronized copy of those files for versioning, review, and browser testing:
-
-- Framer's `Kit/` folder maps to [`src/`](./src)
-- Framer's `Framer_Kit/` component wrappers map to [`Framer_Kit/`](./Framer_Kit)
+The code files in the [Framer Kit Framer project](https://framer.com/projects/Framer-Kit--BqMZT7zRSjeufHHfMQHE-8MaFD) are the source of truth. This GitHub repository is a synchronized copy of those files for versioning, review, and browser testing — Framer's `Kit/` folder maps to [`src/`](./src).
 
 ## Scroll-snap carousel
 

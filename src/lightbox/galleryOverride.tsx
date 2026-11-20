@@ -1,10 +1,12 @@
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.
-import * as Lightbox from "https://esm.sh/@ramka/react@0.0.2/lightbox?external=react,react-dom&target=es2022"
+import * as Lightbox from "https://cdn.jsdelivr.net/gh/flowgrow/ramka@1fc1f3f47fec00aff45e721f7627a20b1efdfccd/companion-dist/lightbox.mjs"
 type NavigationSource = "trigger" | "keyboard" | "thumbnail" | "button" | "scroll" | "imperative"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { freezeSnapViewport, syncSnapToElement } from "./carouselSync.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { RamkaPortal } from "./RamkaPortal.tsx"
+// @ts-ignore Framer code-file import.
+import { ramkaPresetCSS } from "./presetStyles.ts"
 import * as React from "react"
 import {
   forwardRef,
@@ -19,13 +21,26 @@ import {
 } from "react"
 
 // @ts-ignore Framer cannot resolve local code-file imports.
-import { RamkaGalleryContext } from "./context.ts"
+import { lightboxContentSlots, RamkaGalleryContext } from "./context.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { defaultRamkaGalleryConfig } from "./defaults.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { extractRamkaMedia, isSameRamkaMedia, sortRamkaMedia } from "./media.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import type { RamkaGalleryConfig, RamkaGalleryContextValue, RamkaMediaItem } from "./types.ts"
+
+// Keep one document stylesheet stable across gallery opens and loop scopes.
+function morphCropRule(): CSSStyleRule | null {
+  let style = document.querySelector<HTMLStyleElement>("style[data-kniff-morph-crop]")
+  if (!style) {
+    style = document.createElement("style")
+    style.setAttribute("data-kniff-morph-crop", "")
+    style.textContent =
+      ':root[data-ramka-view-transition="opening"]::view-transition-new(lightbox-morph), :root[data-ramka-view-transition="closing"]::view-transition-old(lightbox-morph) { object-position: 50% 50% !important; }'
+    document.head.append(style)
+  }
+  return (style.sheet?.cssRules[0] as CSSStyleRule) ?? null
+}
 
 function triggerCropPosition(target: HTMLElement | null): string {
   if (!target) return "50% 50%"
@@ -72,6 +87,15 @@ function upsertMedia(items: RamkaMediaItem[], next: RamkaMediaItem): RamkaMediaI
   return sortRamkaMedia(updated)
 }
 
+function ensurePresetStyle() {
+  if (typeof document === "undefined" || document.querySelector("style[data-kniff-ramka-preset]"))
+    return
+  const style = document.createElement("style")
+  style.setAttribute("data-kniff-ramka-preset", "")
+  style.textContent = ramkaPresetCSS
+  document.head.appendChild(style)
+}
+
 function createGalleryOverride<P extends object>(
   Component: ComponentType<P>,
   inheritConfig = false,
@@ -80,10 +104,20 @@ function createGalleryOverride<P extends object>(
 
   const Override = forwardRef<unknown, P>((props, forwardedRef) => {
     const parentGallery = useContext(RamkaGalleryContext) as any
-    const [items, setItems] = useState<RamkaMediaItem[]>([])
+    const [items, updateItems] = useState<RamkaMediaItem[]>([])
+    const setItems = useCallback(
+      (next: React.SetStateAction<RamkaMediaItem[]>) =>
+        React.startTransition(() => updateItems(next)),
+      [],
+    )
     const triggerIndicesRef = useRef(new Map<string, number>())
     const nextTriggerIndexRef = useRef(0)
-    const [ownConfig, setConfig] = useState<RamkaGalleryConfig>(defaultRamkaGalleryConfig)
+    const [ownConfig, updateConfig] = useState<RamkaGalleryConfig>(defaultRamkaGalleryConfig)
+    const setConfig = useCallback(
+      (next: React.SetStateAction<RamkaGalleryConfig>) =>
+        React.startTransition(() => updateConfig(next)),
+      [],
+    )
 
     const config = inheritConfig && parentGallery ? parentGallery.config : ownConfig
 
@@ -99,8 +133,28 @@ function createGalleryOverride<P extends object>(
 
     const refreshTrigger = useCallback(
       (id: string, index: number, element: HTMLElement, viewport: HTMLElement | null) => {
-        const media = extractRamkaMedia(id, index, element)
-        if (!media) return
+        const slots = lightboxContentSlots.get(element)
+        const image = extractRamkaMedia(id, index, element)
+        if (!image && !slots?.content) {
+          setItems((current) =>
+            current.some((item) => item.id === id)
+              ? current.filter((item) => item.id !== id)
+              : current,
+          )
+          return
+        }
+        const media: RamkaMediaItem = {
+          ...(image ?? {
+            id,
+            index,
+            element,
+            morphElement: element,
+            imageElement: null,
+            src: "",
+            alt: element.getAttribute("aria-label") ?? "",
+          }),
+          ...(slots ? { slots } : {}),
+        }
         if (viewport?.contains(element)) media.carouselViewport = viewport
         setItems((current) => upsertMedia(current, media))
       },
@@ -115,22 +169,22 @@ function createGalleryOverride<P extends object>(
       [refreshTrigger],
     )
 
-    const cropStyleRef = useRef<HTMLStyleElement | null>(null)
+    useEffect(() => {
+      morphCropRule()
+      ensurePresetStyle()
+      if (config.viewTransition) Lightbox.initializeMorphStyles()
+    }, [config.viewTransition])
     const originalComposited = useRef<boolean | undefined | null>(null)
     const applyMorphCrop = useCallback(
       (index: number) => {
+        if (!config.viewTransition) return
         const item = items.find((entry) => entry.index === index)
-        const position = triggerCropPosition(item?.morphElement ?? null)
-        const sheet = cropStyleRef.current?.sheet
-        if (sheet) {
-          if (!sheet.cssRules.length)
-            sheet.insertRule(
-              ':root[data-ramka-view-transition="opening"]::view-transition-new(lightbox-morph), :root[data-ramka-view-transition="closing"]::view-transition-old(lightbox-morph) {}',
-            )
-          const rule = sheet.cssRules[0] as CSSStyleRule
-          if (rule.style.objectPosition !== position)
-            rule.style.setProperty("object-position", position, "important")
-        }
+        const position = triggerCropPosition(
+          item?.slots?.content ? null : (item?.morphElement ?? null),
+        )
+        const rule = morphCropRule()
+        if (rule && rule.style.objectPosition !== position)
+          rule.style.setProperty("object-position", position, "important")
         if (isOffCenterPosition(position)) {
           const global = window as typeof window & { __RAMKA_VT_COMPOSITED__?: boolean }
           if (originalComposited.current === null)
@@ -138,11 +192,9 @@ function createGalleryOverride<P extends object>(
           global.__RAMKA_VT_COMPOSITED__ = false
         }
       },
-      [items],
+      [items, config.viewTransition],
     )
     const restoreMorphCrop = useCallback(() => {
-      const sheet = cropStyleRef.current?.sheet
-      if (sheet?.cssRules.length) sheet.deleteRule(0)
       if (originalComposited.current !== null) {
         const global = window as typeof window & { __RAMKA_VT_COMPOSITED__?: boolean }
         if (originalComposited.current === undefined) delete global.__RAMKA_VT_COMPOSITED__
@@ -152,19 +204,29 @@ function createGalleryOverride<P extends object>(
     }, [])
     const releaseRef = useRef<(() => void) | null>(null)
     const activeRef = useRef(false)
+    const originIndexRef = useRef<number | null>(null)
     const valueRef = useRef<number | null>(null)
+    const cancelSyncRef = useRef<(() => void) | null>(null)
+    const cancelSync = useCallback(() => {
+      cancelSyncRef.current?.()
+      cancelSyncRef.current = null
+    }, [])
     const release = useCallback(() => {
+      cancelSync()
       releaseRef.current?.()
       releaseRef.current = null
       activeRef.current = false
+      originIndexRef.current = null
       valueRef.current = null
       restoreMorphCrop()
-    }, [restoreMorphCrop])
+    }, [cancelSync, restoreMorphCrop])
     const prepareOpen = useCallback(
       (index: number, viewport: HTMLElement | null) => {
+        ensurePresetStyle()
         release()
         if (viewport) releaseRef.current = freezeSnapViewport(viewport)
         activeRef.current = true
+        originIndexRef.current = index
         valueRef.current = index
         applyMorphCrop(index)
       },
@@ -181,11 +243,29 @@ function createGalleryOverride<P extends object>(
         }
         if (!activeRef.current || index === valueRef.current) return
         valueRef.current = index
-        applyMorphCrop(index)
+        cancelSync()
+        if (config.viewTransition && config.morphTo === "origin") return
         const item = items.find((item) => item.index === index)
-        if (item?.carouselViewport) syncSnapToElement(item.carouselViewport, item.element)
+        const viewport = item?.carouselViewport
+        if (!item || !viewport) return
+
+        const sync = () => {
+          cancelSyncRef.current = null
+          if (activeRef.current && valueRef.current === index && viewport.contains(item.element))
+            syncSnapToElement(viewport, item.element)
+        }
+        // Let the foreground slide settle before allowing background layout work.
+        const timer = window.setTimeout(() => {
+          if (typeof window.requestIdleCallback !== "function") {
+            sync()
+            return
+          }
+          const idle = window.requestIdleCallback(sync)
+          cancelSyncRef.current = () => window.cancelIdleCallback(idle)
+        }, 450)
+        cancelSyncRef.current = () => window.clearTimeout(timer)
       },
-      [items, applyMorphCrop],
+      [applyMorphCrop, cancelSync, config.morphTo, config.viewTransition, items],
     )
 
     const context = useMemo<RamkaGalleryContextValue>(
@@ -206,14 +286,36 @@ function createGalleryOverride<P extends object>(
       [forwardedRef],
     )
 
+    const renderedLayer = useMemo(
+      () => renderComponent(Component, props as unknown as P, mergedRootRef),
+      [props, mergedRootRef],
+    )
+
     return (
       <RamkaGalleryContext.Provider value={context}>
         <Lightbox.Root
           loop={config.loop}
           viewTransition={config.viewTransition}
           morphTo={config.morphTo}
+          // The media already uses the loaded carousel image as its preview.
+          awaitImageDecode={16}
           scrollTriggerIntoView={null}
           onValueChange={handleValueChange}
+          onBeforeClose={() => {
+            const syncPending = cancelSyncRef.current !== null
+            cancelSync()
+            const index =
+              config.viewTransition && config.morphTo === "origin"
+                ? originIndexRef.current
+                : valueRef.current
+            if (index === null) return
+            if (syncPending && config.viewTransition && config.morphTo === "active") {
+              const item = items.find((entry) => entry.index === index)
+              if (item?.carouselViewport?.contains(item.element))
+                syncSnapToElement(item.carouselViewport, item.element)
+            }
+            applyMorphCrop(index)
+          }}
           onOpenChange={(nextOpen: boolean) => {
             if (!nextOpen) activeRef.current = false
           }}
@@ -221,10 +323,9 @@ function createGalleryOverride<P extends object>(
             if (!nextOpen) release()
           }}
         >
-          {renderComponent(Component, props as unknown as P, mergedRootRef)}
+          {renderedLayer}
           <RamkaPortal items={items} config={config} />
         </Lightbox.Root>
-        <style ref={cropStyleRef} />
       </RamkaGalleryContext.Provider>
     )
   })

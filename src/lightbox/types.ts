@@ -1,5 +1,8 @@
 import type { CSSProperties, ReactNode } from "react"
 
+// @ts-ignore Framer cannot resolve local code-file imports.
+import type { LightboxContentSlots } from "./context.ts"
+
 export type RamkaMorphTarget = "active" | "origin" | "closest"
 
 export interface RamkaGalleryConfig {
@@ -42,6 +45,7 @@ export interface RamkaMediaItem {
   height?: number
   captionElement?: HTMLElement
   caption?: ReactNode
+  slots?: LightboxContentSlots
 }
 
 export interface RamkaGalleryContextValue {

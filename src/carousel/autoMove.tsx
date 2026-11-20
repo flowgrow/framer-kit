@@ -1,5 +1,5 @@
-// @ts-ignore Framer resolves sibling code files at runtime; the repo build checks this path.
-import { installTouchIntent } from "https://framer.com/m/touchIntent-1GV9VC.js@yw9Bc4mMxSyGwxci63kz"
+// @ts-ignore Framer cannot resolve local code-file imports.
+import { installTouchIntent } from "./touchIntent.tsx"
 
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { overflowSnapPoints, slideRect } from "./snapGeometry.ts"

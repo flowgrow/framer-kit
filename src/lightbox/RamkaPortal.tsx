@@ -1,14 +1,14 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
+import { lightboxContentGrid, lightboxContentStyle } from "./context.ts"
+// @ts-ignore Framer cannot resolve local code-file imports.
 import { StyledCaption } from "./StyledCaption.tsx"
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.
-import * as Lightbox from "https://esm.sh/@ramka/react@0.0.2/lightbox?external=react,react-dom&target=es2022"
+import * as Lightbox from "https://cdn.jsdelivr.net/gh/flowgrow/ramka@1fc1f3f47fec00aff45e721f7627a20b1efdfccd/companion-dist/lightbox.mjs"
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.
-import { useLightboxContext } from "https://esm.sh/@ramka/react@0.0.2?external=react,react-dom&target=es2022"
+const { useLightboxContext } = Lightbox
 import * as React from "react"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { IconX, IconZoomIn, IconZoomOut } from "./presetIcons.tsx"
-// @ts-ignore Framer cannot resolve local code-file imports.
-import { ramkaPresetCSS } from "./presetStyles.ts"
 // @ts-ignore Framer cannot resolve local code-file imports.
 import type { RamkaGalleryConfig, RamkaMediaItem } from "./types.ts"
 
@@ -18,6 +18,52 @@ const classes = (...names: (string | false)[]) =>
     .map((name) => `kniff-ramka-${name}`)
     .join(" ")
 const ratio = (item: RamkaMediaItem) => (item.width && item.height ? item.width / item.height : 1)
+
+const maxImageEdge = 2560
+
+function framerImageUrl(src: string): URL | undefined {
+  try {
+    const url = new URL(src)
+    if (url.hostname === "framerusercontent.com" && url.pathname.startsWith("/images/")) return url
+  } catch {
+    // Non-absolute image URLs are left as authored.
+  }
+}
+
+function thumbnailSrc(item: RamkaMediaItem): string {
+  const url = framerImageUrl(item.src)
+  if (!url) return item.src
+  const dpr = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1
+  if (item.width && item.height) {
+    const longEdge = Math.ceil(
+      (72 * dpr * Math.max(item.width, item.height)) / Math.min(item.width, item.height),
+    )
+    url.searchParams.set("scale-down-to", String(longEdge))
+  } else {
+    url.searchParams.delete("scale-down-to")
+  }
+  return url.href
+}
+
+function mainImageSources(item: RamkaMediaItem) {
+  const url = framerImageUrl(item.src)
+  if (!url) return { src: item.src, srcSet: item.srcSet }
+
+  url.searchParams.set("scale-down-to", String(maxImageEdge))
+  const src = url.href
+  const cappedWidth = Math.max(
+    1,
+    Math.floor(Math.min(item.width || maxImageEdge, maxImageEdge * Math.min(1, ratio(item)))),
+  )
+  const smaller = (item.srcSet ?? "").split(",").flatMap((candidate) => {
+    const match = candidate.trim().match(/^(\S+)\s+(\d+)w$/)
+    if (!match || Number(match[2]) >= cappedWidth) return []
+    const variant = framerImageUrl(match[1]!)
+    const edge = Number(variant?.searchParams.get("scale-down-to"))
+    return variant && edge > 0 && edge < maxImageEdge ? [candidate.trim()] : []
+  })
+  return { src, srcSet: [...smaller, `${src} ${cappedWidth}w`].join(", ") }
+}
 
 function backdropIsDark(color: string): boolean {
   const hex = color.match(/^#([\da-f]{3}|[\da-f]{6}|[\da-f]{8})$/i)?.[1]
@@ -51,28 +97,48 @@ function GallerySlide({
   const { activeIndex, navigate } = useLightboxContext()
   const caption = React.useMemo(
     () =>
-      item.captionElement ? (
+      item.slots?.caption ??
+      (item.captionElement ? (
         <StyledCaption source={item.captionElement} />
       ) : (
         (item.caption ?? item.alt)
-      ),
-    [item.captionElement, item.caption, item.alt],
+      )),
+    [item.captionElement, item.caption, item.alt, item.slots],
   )
+  // Reuse decoded carousel pixels while the full-size responsive image loads.
+  const triggerImage = item.morphElement
+  const preview =
+    typeof HTMLImageElement !== "undefined" &&
+    triggerImage instanceof HTMLImageElement &&
+    triggerImage.complete &&
+    triggerImage.naturalWidth > 0
+      ? triggerImage.currentSrc
+      : undefined
   const media = (
     <Lightbox.Media
       className={classes("lb-media")}
+      style={
+        preview
+          ? {
+              backgroundImage: `url(${JSON.stringify(preview)})`,
+              backgroundSize: "contain",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }
+          : undefined
+      }
       {...(item.width ? { width: item.width } : {})}
       {...(item.height ? { height: item.height } : {})}
     >
       <img
-        src={item.src}
-        srcSet={item.srcSet}
+        {...mainImageSources(item)}
         sizes="100vw"
         width={item.width}
         height={item.height}
         alt={item.alt}
         draggable={false}
         loading="eager"
+        decoding="async"
       />
     </Lightbox.Media>
   )
@@ -89,8 +155,30 @@ function GallerySlide({
         navigate(index, "button")
       }}
     >
-      <Lightbox.Item index={index} caption={caption} aria-roledescription="slide">
-        {zoom ? <Lightbox.Zoom maxZoom={6}>{media}</Lightbox.Zoom> : media}
+      <Lightbox.Item
+        index={index}
+        caption={caption}
+        aria-roledescription="slide"
+        style={item.slots?.content ? lightboxContentGrid : undefined}
+      >
+        {item.slots?.content ? (
+          index === activeIndex && (
+            <div
+              data-kniff-lightbox-custom=""
+              data-kniff-lightbox-content-box=""
+              style={lightboxContentStyle(item.slots)}
+              onKeyDown={(event) => {
+                if (event.key.startsWith("Arrow")) event.stopPropagation()
+              }}
+            >
+              {item.slots.content}
+            </div>
+          )
+        ) : zoom ? (
+          <Lightbox.Zoom maxZoom={6}>{media}</Lightbox.Zoom>
+        ) : (
+          media
+        )}
       </Lightbox.Item>
     </Lightbox.Slide>
   )
@@ -104,6 +192,8 @@ function RamkaPortalImpl({
   items: RamkaMediaItem[]
   config: RamkaGalleryConfig
 }) {
+  const { activeIndex } = useLightboxContext()
+  const custom = Boolean(items[activeIndex]?.slots?.content)
   const snug = config.layout === "peek"
   if (!items.length) return null
   const solo = items.length === 1
@@ -111,16 +201,22 @@ function RamkaPortalImpl({
     <Lightbox.Portal
       data-kniff-ramka-portal=""
       className={`${classes("lb-portal")}${backdropIsDark(config.backdropColor) ? " dark" : ""}`}
-      style={{ position: "fixed", inset: 0, zIndex: 2147483647 }}
+      style={
+        {
+          position: "fixed",
+          inset: 0,
+          zIndex: 2147483647,
+          "--lightbox-vt-duration": config.viewTransition ? "360ms" : "160ms",
+        } as React.CSSProperties
+      }
     >
-      <style>{ramkaPresetCSS}</style>
       <Lightbox.Backdrop
         className={classes("lb-backdrop")}
         style={{ backgroundColor: config.backdropColor }}
       />
       <Lightbox.Content
-        aria-label="Image viewer"
-        pullToClose={config.pullToClose}
+        aria-label="Lightbox"
+        pullToClose={config.pullToClose && !custom}
         className={classes(
           "lb-content",
           snug && "lb-content-snug",
@@ -144,7 +240,7 @@ function RamkaPortalImpl({
           ))}
         </Lightbox.Slides>
         <div className={classes("lb-top-right", "lb-chrome-gesture-hide")}>
-          {config.zoom && (
+          {config.zoom && !custom && (
             <div className={classes("lb-control-group", "lb-control-md")}>
               <Lightbox.ZoomOut aria-label="Zoom out" className={classes("lb-control")}>
                 <IconZoomOut />
@@ -168,20 +264,34 @@ function RamkaPortalImpl({
             <Lightbox.ThumbnailStrip
               className={classes("lb-thumbnail-strip", "lb-thumbnail-strip-desktop")}
             >
-              <Lightbox.ThumbnailStripTrack aria-label="Photo thumbnails">
-                {items.map((item, index) => (
-                  <Lightbox.Thumbnail key={item.id} index={index}>
-                    <img
-                      src={item.src}
-                      srcSet={item.srcSet}
-                      sizes={`${72 * Math.max(1, ratio(item))}px`}
-                      alt={item.alt}
-                      draggable={false}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </Lightbox.Thumbnail>
-                ))}
+              <Lightbox.ThumbnailStripTrack aria-label="Lightbox thumbnails">
+                {items.map((item, index) => {
+                  const thumbnail = React.Children.toArray(item.slots?.thumbnail)
+                  return (
+                    <Lightbox.Thumbnail key={item.id} index={index}>
+                      {thumbnail.length > 0 ? (
+                        <span
+                          data-kniff-lightbox-thumbnail-content=""
+                          ref={item.slots?.setThumbnailTarget}
+                        >
+                          {!item.slots?.setThumbnailTarget && thumbnail}
+                        </span>
+                      ) : item.src ? (
+                        <img
+                          src={thumbnailSrc(item)}
+                          srcSet={framerImageUrl(item.src) ? undefined : item.srcSet}
+                          sizes={`${72 * Math.max(1, ratio(item))}px`}
+                          alt={item.alt}
+                          draggable={false}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <span>{item.alt || `Item ${index + 1}`}</span>
+                      )}
+                    </Lightbox.Thumbnail>
+                  )
+                })}
               </Lightbox.ThumbnailStripTrack>
               <span className={classes("lb-thumbnail-strip-indicator")} aria-hidden />
             </Lightbox.ThumbnailStrip>

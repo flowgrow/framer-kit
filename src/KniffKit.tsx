@@ -22,6 +22,10 @@ export function withKniffCarouselNextButton(Component: ComponentType<any>): Comp
   return KniffOverrides.withKniffCarouselNextButton(Component)
 }
 
+export function withKniffCarouselHideNavigation(Component: ComponentType<any>): ComponentType<any> {
+  return KniffOverrides.withKniffCarouselHideNavigation(Component)
+}
+
 export function withKniffCarouselPlayButton(Component: ComponentType<any>): ComponentType<any> {
   return KniffOverrides.withKniffCarouselPlayButton(Component)
 }

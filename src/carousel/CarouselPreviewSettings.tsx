@@ -84,6 +84,8 @@ export function CarouselPreviewSettings({
     if (!el) return
     let slides: HTMLElement[] = []
     let points: number[] = []
+    const candidates = new Set<Element>()
+    let discoveryDirty = true
     const animations = new Map<HTMLElement, Animation>()
     const opacities = [previousOpacity, currentOpacity, nextOpacity]
     const keyframes = [previous, current, next].map((transform, index) => ({
@@ -102,8 +104,9 @@ export function CarouselPreviewSettings({
     if (needsPosition) el.style.position = "relative"
     const refresh = () => {
       frame = 0
-      if (dirty) {
-        const updated: HTMLElement[] = slideBoxes(el).filter(
+      if (discoveryDirty) {
+        candidates.clear()
+        const updated: HTMLElement[] = slideBoxes(el, (s: HTMLElement) => candidates.add(s)).filter(
           (s: HTMLElement) => !s.hasAttribute("data-kniff"),
         )
         const changed = new Set(updated)
@@ -120,9 +123,12 @@ export function CarouselPreviewSettings({
             animation.pause()
             animations.set(s, animation)
           }
-          resize.observe(s)
+          if (!slides.includes(s)) resize.observe(s)
         }
         slides = updated
+        discoveryDirty = false
+      }
+      if (dirty) {
         points = slides.map((s) => snapPosition(el, s))
         dirty = false
       }
@@ -155,13 +161,62 @@ export function CarouselPreviewSettings({
       dirty = true
       schedule()
     }
-    const resize = new ResizeObserver(invalidate)
-    const mutations = new MutationObserver(invalidate)
+    const invalidateDiscovery = () => {
+      discoveryDirty = true
+      invalidate()
+    }
+    const resize = new ResizeObserver((entries) => {
+      if (entries.some(({ target }) => target === el)) invalidateDiscovery()
+      else invalidate()
+    })
+    const inlineLayout = (value: string | null) =>
+      (value ?? "")
+        .split(";")
+        .map((declaration) => declaration.trim())
+        .filter(
+          (declaration) =>
+            declaration &&
+            !/^(?:opacity|filter|pointer-events|cursor|scroll-snap-type|scroll-behavior)\s*:/i.test(
+              declaration,
+            ),
+        )
+        .join(";")
+    const inlineDisplay = (value: string | null) =>
+      value?.match(/(?:^|;)\s*display\s*:[^;]*/gi)?.join(";") ?? ""
+    const mutations = new MutationObserver((records) => {
+      for (const { type, target, attributeName, oldValue } of records) {
+        if (
+          type === "childList" ||
+          (attributeName !== "class" && attributeName !== "style" && attributeName !== "hidden")
+        ) {
+          invalidateDiscovery()
+          return
+        }
+        if (target !== el && !candidates.has(target as Element)) continue
+        const style = (target as Element).getAttribute("style")
+        if (attributeName !== "style" || inlineDisplay(oldValue) !== inlineDisplay(style)) {
+          invalidateDiscovery()
+          return
+        }
+        if (inlineLayout(oldValue) !== inlineLayout(style)) invalidate()
+      }
+    })
+    window.addEventListener("resize", invalidateDiscovery)
     mutations.observe(el, {
       subtree: true,
       childList: true,
       attributes: true,
-      attributeFilter: ["class", "style", "hidden", "data-kniff"],
+      attributeOldValue: true,
+      attributeFilter: [
+        "class",
+        "style",
+        "hidden",
+        "data-kniff",
+        "data-kniff-ignore-slide",
+        "data-kniff-ramka-settings",
+        "data-kniff-preview-settings",
+        "data-kniff-carousel-settings",
+      ],
     })
     resize.observe(el)
     el.addEventListener("kniff-loop-reposition", reposition)
@@ -170,6 +225,7 @@ export function CarouselPreviewSettings({
     return () => {
       mutations.disconnect()
       resize.disconnect()
+      window.removeEventListener("resize", invalidateDiscovery)
       el.removeEventListener("kniff-loop-reposition", reposition)
       el.removeEventListener("scroll", schedule)
       cancelAnimationFrame(frame)

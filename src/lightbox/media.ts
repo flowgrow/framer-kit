@@ -108,6 +108,7 @@ export function isSameRamkaMedia(first: RamkaMediaItem, second: RamkaMediaItem):
     first.sizes === second.sizes &&
     first.captionElement === second.captionElement &&
     first.caption === second.caption &&
+    first.slots === second.slots &&
     first.alt === second.alt &&
     first.width === second.width &&
     first.height === second.height

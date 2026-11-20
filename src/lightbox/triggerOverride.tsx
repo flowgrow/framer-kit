@@ -1,7 +1,7 @@
 // @ts-ignore Framer cannot resolve local code-file imports.
 import { CarouselContext } from "../carousel/carouselContext.tsx"
 // @ts-ignore Remote ESM module has no Framer TypeScript declarations.
-import * as Lightbox from "https://esm.sh/@ramka/react@0.0.2/lightbox?external=react,react-dom&target=es2022"
+import * as Lightbox from "https://cdn.jsdelivr.net/gh/flowgrow/ramka@1fc1f3f47fec00aff45e721f7627a20b1efdfccd/companion-dist/lightbox.mjs"
 import * as React from "react"
 import {
   forwardRef,
@@ -129,18 +129,21 @@ function createTriggerOverride<P extends object>(
         ],
       })
       element.addEventListener("load", refresh, true)
+      element.addEventListener("kniff-lightbox-content-change", refresh)
+      refresh()
 
       return () => {
         observer.disconnect()
         element.removeEventListener("load", refresh, true)
+        element.removeEventListener("kniff-lightbox-content-change", refresh)
       }
     }, [element, index, refreshTrigger, triggerId, viewport])
 
     useLayoutEffect(() => {
       const triggerState = triggerStateRef.current
       if (!triggerState) return
-      triggerState.imageRef(item?.imageElement ?? null)
-      triggerState.morphRef(item?.morphElement ?? element)
+      triggerState.imageRef(item?.slots?.content ? null : (item?.imageElement ?? null))
+      triggerState.morphRef(item?.slots?.content ? null : (item?.morphElement ?? element))
 
       return () => {
         triggerState.imageRef(null)
@@ -158,6 +161,7 @@ function createTriggerOverride<P extends object>(
       <Lightbox.Trigger
         id={`kniff-ramka-trigger-${triggerId.replace(/:/g, "")}`}
         index={index}
+        data-kniff-lightbox-trigger=""
         onClickCapture={(event: React.MouseEvent<HTMLElement>) =>
           gallery.prepareOpen(index, viewport?.contains(event.currentTarget) ? viewport : null)
         }

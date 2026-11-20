@@ -32,13 +32,18 @@ export function cssTransform(value: SlideTransform = {}, perspective: number) {
 }
 
 // Responsive Framer variants use boxless wrappers; measure their rendered slide.
-export function slideBoxes(parent: Element): HTMLElement[] {
+export function slideBoxes(parent: Element, visit?: (child: HTMLElement) => void): HTMLElement[] {
   return Array.from(parent.children).flatMap((child) => {
     if (!(child instanceof HTMLElement) || ["STYLE", "SCRIPT"].includes(child.tagName)) return []
-    if (getComputedStyle(child).display === "contents") return slideBoxes(child)
+    visit?.(child)
+    if (getComputedStyle(child).display === "contents") return slideBoxes(child, visit)
     if (
-      child.matches("[data-kniff-ramka-settings], [data-kniff-preview-settings], [data-kniff-carousel-settings]") ||
-      child.querySelector("[data-kniff-ramka-settings], [data-kniff-preview-settings], [data-kniff-carousel-settings]")
+      child.matches(
+        "[data-kniff-ramka-settings], [data-kniff-preview-settings], [data-kniff-carousel-settings]",
+      ) ||
+      child.querySelector(
+        "[data-kniff-ramka-settings], [data-kniff-preview-settings], [data-kniff-carousel-settings]",
+      )
     )
       return []
     if (
@@ -111,10 +116,13 @@ export function atTerminalSlide(viewport: HTMLElement, forward: boolean, positio
 }
 
 export function dotSlides(viewport: HTMLElement): HTMLElement[] {
-  const grouped = viewport.hasAttribute("data-kniff-slide-by") && viewport.getAttribute("data-kniff-slide-by") !== "1"
+  const grouped =
+    viewport.hasAttribute("data-kniff-slide-by") &&
+    viewport.getAttribute("data-kniff-slide-by") !== "1"
   const slides = slideBoxes(viewport).filter(
     (slide) =>
-      (!slide.hasAttribute("data-kniff") || slide.hasAttribute("data-kniff-end-stop")) && (!grouped || slide.hasAttribute("data-kniff-group")),
+      (!slide.hasAttribute("data-kniff") || slide.hasAttribute("data-kniff-end-stop")) &&
+      (!grouped || slide.hasAttribute("data-kniff-group")),
   )
   if (viewport.hasAttribute("data-kniff-loop")) return slides
   return slides.filter(
