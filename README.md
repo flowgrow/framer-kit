@@ -2,7 +2,7 @@
 
 Native scroll-snap carousels and Kniff lightboxes for Framer.
 
-The code files in the [Framer Kit Framer project](https://framer.com/projects/Framer-Kit--BqMZT7zRSjeufHHfMQHE-8MaFD) are the source of truth. This GitHub repository is a synchronized copy of those files for versioning, review, and browser testing — Framer's `Kit/` folder maps to [`src/`](./src).
+The code files in the [Framer Kit Framer project](https://framer.com/projects/Framer-Kit--K1Qon7NgQ3hsY7jriAaO-6PfaN) are the source of truth. This GitHub repository is a synchronized copy of those files for versioning, review, and browser testing — Framer's `Kit/` folder maps to [`src/`](./src).
 
 ## Scroll-snap carousel
 
@@ -35,7 +35,7 @@ The lightbox supports Peek or Theater layouts, neighbor preloading, zoom control
 
 ## Testing and tooling
 
-Tests run against the actual published Framer Kit project (`https://adaptable-squash-368743.framer.app`, override with `FRAMER_SITE_URL`), alongside focused unit tests for pure logic:
+Tests run against the actual published Framer Kit project (`https://basic-absolute-122763.framer.app`, override with `FRAMER_SITE_URL`), alongside focused unit tests for pure logic:
 
 ```sh
 pnpm install --frozen-lockfile

@@ -9,7 +9,7 @@ export default defineConfig({
   workers: 2,
   retries: 0,
   use: {
-    baseURL: process.env.FRAMER_SITE_URL ?? "https://adaptable-squash-368743.framer.app",
+    baseURL: process.env.FRAMER_SITE_URL ?? "https://basic-absolute-122763.framer.app",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
