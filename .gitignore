@@ -1,20 +1,11 @@
 node_modules/
-dist/
 coverage/
 .DS_Store
 *.log
 
-
 playwright-report/
 test-results/
-screenshots/
 
-worker/.generated/
-.wrangler/
 .env
 .env.*
 !.env.example
-.dev.vars
-.dev.vars.*
-
-worker/.prepare-*/

@@ -1,168 +1,62 @@
-# @kniff/framer-kit
+# Framer Kit
 
-The code files in the Framer Kit Framer project are the source of truth. This
-GitHub repository is a local copy of those files for versioning; changes made
-in Framer are synced here and committed to Git.
-Framer's `Kit/` folder maps to this repository's `src/` folder. Framer's
-`Framer_Kit/` wrapper files are copied into `Framer_Kit/` here.
+Native scroll-snap carousels and Kniff lightboxes for Framer.
 
-Native scroll-snap carousels and Kniff lightboxes for Framer. React, React DOM,
-and Framer are supplied by the host; implementations are safe to import during SSR.
+The code files in the [Framer Kit Framer project](https://framer.com/projects/Framer-Kit--BqMZT7zRSjeufHHfMQHE-8MaFD) are the source of truth. This GitHub repository is a synchronized copy of those files for versioning, review, and browser testing:
+
+- Framer's `Kit/` folder maps to [`src/`](./src)
+- Framer's `Framer_Kit/` component wrappers map to [`Framer_Kit/`](./Framer_Kit)
 
 ## Scroll-snap carousel
 
-Use a full-width boundary containing the viewport frame and its slides. Set the
-viewport’s width, max-width, padding and gap in Framer. Percentage slide widths
-use that authored content area; no separate sizing frame is required. An optional
-padding wrapper is respected at each breakpoint. Enable **Full Bleed** (`fullBleed`, off by default) to extend the scrollable
-viewport to the page edges while keeping slides aligned with the authored padding.
+Use a shared parent frame containing the viewport frame, its slides, and its controls. Set the viewport's width, max-width, padding, and gap directly in Framer. Percentage slide widths use that authored content area; no separate sizing frame is required. Enable **Full Bleed** (`fullBleed`, off by default) to extend the scrollable viewport to the page edges while keeping slides aligned with the authored padding.
 
-`VisibleScrollOverflowSettings` accepts `containerID`, `boundaryID`, `align`
-(`start`, `center`, `end`), `stopEach`, `edgeSpace`,
-and `loop`. Snapping is always mandatory and scrollbars are always hidden. Targets match an aria-label or custom Framer layer name.
+On the Framer canvas, the carousel displays the authored layers. For preview and published pages:
 
-Auto Move selects `off`, `per-slide` (advances on `autoMoveInterval`, in seconds),
-or `scroll` (continuous motion at `autoMoveSpeed`, in px/s). Direction applies to
-both motion modes.
+1. Apply `withKniffContext` to the common parent of a carousel, its controls, and/or its lightbox gallery.
+2. Apply `withKniffCarouselViewport` to the viewport frame (including when Loop is off) and place **Kniff Carousel Settings** inside the context.
+3. Apply `withKniffCarouselPreviousButton`, `withKniffCarouselNextButton`, `withKniffCarouselPlayButton`, `withKniffCarouselProgress`, `withKniffCarouselDotsContainer`, and `withKniffCarouselDot` to your control layers.
 
-Apply the `withKniffCarousel` override to the viewport frame, including when Loop
-is off. It mirrors the viewport's authored padding, gap and max-width into CSS variables,
-preserving breakpoint and variant rules. The server-emitted variables survive
-hydration; padding and scroll padding use CSS calculations without padding
-observers or additive animations. Set the slide gap on the viewport frame itself;
-the viewport also owns its authored width and max-width cap. Settings and overflow
-navigation buttons target the viewport itself by its aria-label or layer name.
+`KniffCarouselSettings` configures alignment (`start`, `center`, `end`), `stopEach`, `edgeSpace`, `fullBleed`, `loop`, `slideBy`, and Auto Move (`off`, `per-slide`, or continuous `scroll`). Snapping is mandatory and scrollbars are hidden.
 
-Loop is enabled by
-default in preview and published pages. React clones the slides and the carousel
-normalizes the position after `scrollend`. Safari resets its scrolling layer at
-loop jumps to avoid missing slide paint. With Loop off, scrolling and snapping remain native CSS. Chromium uses CSS initial
-targeting; Safari and Firefox receive a one-time initial-position correction after
-hydration. Initialization cancels if the visitor interacts first.
-On the Framer canvas the carousel displays the authored layers. For preview and published pages:
+Loop is enabled by default in preview and published pages. React clones the slides and normalizes scroll position after `scrollend`, with Safari layer resets at loop jumps to prevent blank frames. With Loop off, scrolling and snapping remain native CSS.
 
-1. Apply `withKniffCarouselBoundary` to the common parent of one carousel and its controls.
-2. Apply `withKniffCarousel` to its viewport. Place Carousel Settings inside the boundary. Its viewport and boundary name fields are only needed for older, unscoped layouts.
-3. Apply `withKniffCarouselPrevious` and `withKniffCarouselNext` directly to your button layers. Their nearest boundary supplies the viewport. Each boundary and viewport has a generated, CSS-addressable data attribute, so layer names can repeat.
+### Grouped carousel navigation
 
-`InitialTarget` is an experimental CSS initial-position helper. Place it inside
-the chosen slide, make it absolute, and pin all four edges. It uses Roma
-Komarov's [scroll-start technique](https://blog.kizu.dev/snappy-scroll-start/).
+**Carousel Settings → Slide By** selects Fixed or Auto:
 
-Copy-ready development wrappers are in `examples/framer`. For production:
+- **Fixed** uses the Slides count (default `1`). Groups stay anchored to the first slide (e.g. with `3`, stops are slides 1–3, 4–6, etc., including an incomplete final group). Start, center, and end alignment apply to the whole group.
+- **Auto** packs consecutive slides and gaps into the viewport width minus scroll-padding, with at least one slide per group. Resize and CMS insertions recalculate groups.
 
-```tsx
-import { addPropertyControls } from "framer"
-import {
-  VisibleScrollOverflowSettings as KitComponent,
-  visibleScrollOverflowSettingsPropertyControls,
-// @ts-ignore Framer resolves remote HTTPS modules.
-} from "https://framer-kit.kniff.at/0.5.7/scroll-snap.js?external=react,react-dom,framer&target=es2022"
-
-export default function ScrollSettings(props: Record<string, unknown>) {
-  return <KitComponent {...props} />
-}
-addPropertyControls(ScrollSettings, visibleScrollOverflowSettingsPropertyControls)
-```
-
-Keep exact versions and the `external` query in remote imports. Property control
-registration is explicit; importing the library does not register components.
+Arrows, dots, per-slide automove, and native snap areas share the same stops. Dots count reachable stops, merging clamped duplicates when Loop is off. Apply `withKniffCarouselIgnoreSlide` to a CMS loader so it does not count as a slide.
 
 ## Kniff Lightbox
 
-The `@kniff/framer-kit/ramka` entry exports `RamkaSettings`, `withKniffLightboxGallery`,
-and `withKniffLightboxTrigger`. Apply the gallery override to a parent and the trigger
-override to each image. Place Kniff Lightbox Settings inside the gallery parent.
-The lightbox includes neighboring images, zoom controls, and thumbnail previews.
-Lightbox looping is always off. Morph transitions and pull to close are always
-enabled, and closing morphs to the active image. Settings control Peek or Theater
-layout, preload (two neighbors on each side by default), zoom, thumbnail navigation,
-and backdrop color, including on
-React loop copies.
-Inside a registered carousel, opening an image pauses automove until the close morph finishes.
-Navigating in the lightbox automatically aligns the corresponding slide using the same snap position as the carousel buttons. Standalone lightboxes leave surrounding scroll containers alone.
-React loop copies each retain their own morph source.
+Apply `withKniffContext` to the gallery parent, `withKniffLightboxTrigger` to each image, and place **Kniff Lightbox Settings** inside the parent.
 
-Examples are in `examples/framer`. There is no Embla dependency or entry point.
-The old `syncEmbla`, `stopAutomove`, and lightbox navigation-button props are removed.
+The lightbox supports Peek or Theater layouts, neighbor preloading, zoom controls, captions, thumbnail previews, morph transitions, and pull-to-close. Inside a registered carousel, opening an image pauses automove until the close morph finishes, and navigating in the lightbox keeps the underlying carousel slide aligned (including on React loop copies).
 
-## Grouped carousel navigation (Framer project)
+## Testing and tooling
 
-Carousel Settings → Slide By selects Fixed or Auto. Fixed uses the Slides count
-(default 1). Groups stay anchored to the first slide: with 3, the stops are
-slides 1–3, 4–6, and so on, including an incomplete final group. Start, center,
-and end alignment apply to the whole group. Auto packs consecutive slides and
-gaps into the viewport width minus scroll-padding, with at least one slide per
-group. Resize and CMS insertions recalculate groups.
-
-Arrows, dots, per-slide automove, and native snap areas share the same stops.
-Dots count reachable stops, merging clamped duplicates when Loop is off. A final
-stop is added only when needed to expose the tail or CMS loader. Apply
-`withKniffCarouselIgnoreSlide` to a CMS loader so it does not count as a slide.
-Appending CMS items does not add scroll-position restoration logic.
-
-These changes are in the Framer project's code files and mirrored in `src`;
-they have not been released to the versioned Worker CDN.
-
-Published integration tests run against the actual Framer project:
-
-```sh
-pnpm exec vitest run tests/slideGroups.test.ts
-pnpm test:framer
-```
-
-The WebKit projects cover desktop and iPhone emulation, not the installed Safari
-app or the Framer editor canvas. CMS examples are at
-`https://adaptable-squash-368743.framer.app/cms/default?slide-by=1`; use `2`, `3`,
-or `0` (Auto). Each has start, center, and end alignment. The loop regression
-page is `/carousel/group-loop-test`.
-
-## Development
+Tests run against the actual published Framer Kit project (`https://adaptable-squash-368743.framer.app`, override with `FRAMER_SITE_URL`), alongside focused unit tests for pure logic:
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm run check
-pnpm run dev:framer
+pnpm test                 # Unit tests (authoredStyles, slideGroups)
+pnpm test:framer          # Published Framer project checks in desktop & mobile WebKit
+pnpm test:collector       # Parser unit tests + published Framer checks
+pnpm run typecheck        # TypeScript check
 ```
 
-Run `pnpm run format` to format JavaScript, TypeScript, and React files with Prettier.
-Use `pnpm run format:check` to check formatting and `pnpm run lint` to run Oxlint.
-CI runs both checks as part of `pnpm run check`.
+The Playwright WebKit projects cover desktop and iPhone emulation, not the installed Safari app or the Framer editor canvas. Test routes include `/carousel/default`, `/carousel/edge-space-off`, `/carousel/loop-off`, `/carousel/group-loop-test`, and `/cms/default?slide-by=1` (also `2`, `3`, or `0` for Auto).
 
-The development server is available through the existing Cloudflare tunnel at
-`https://framer-kit-dev.kniff.at`. Native browser stress tests run on macOS with
-Accessibility and screen capture access:
+Native macOS browser scroll stress tests (requires Accessibility and screen capture permissions):
 
 ```sh
 swift scripts/macos-wheel.swift --app safari --test --runs 40
 ```
 
-Use `chrome` or `firefox` for the other browsers. The tool captures the browser
-window, watches a 30px strip at the carousel center on the left edge, and saves
-candidate blank frames plus gesture results under `/tmp` for visual inspection.
-
-## Production module hosting
-
-The production CDN runs on a Cloudflare Worker at `https://framer-kit.kniff.at`.
-See [worker/README.md](worker/README.md) for versioned imports, external dependency
-handling, verification, and deployment. Copy-ready production adapters live in
-`examples/framer/prod`.
-
-## Release workflow
-
-Releases deploy directly to the Cloudflare Worker/CDN. This package is private
-and is not published to npm. GitHub Actions runs CI only.
-
-1. Implement and test a change.
-2. Add a changeset and run `pnpm run version-packages` to increment the version and changelog.
-3. Add the version to `worker/releases.json`, commit and merge the release to `main`.
-4. Create and push the matching Git tag, such as `v0.5.4`.
-5. Run `pnpm run worker:deploy` (or `pnpm run release`) from the tagged source.
-6. Update the pinned imports in both Framer projects, publish, and verify their pages.
-
-Deployment validates the new version, runs all checks and builds, preserves
-historical assets from the live CDN, and uploads the local `dist` output.
-No npm publishing credentials or registry release are required.
+Use `chrome` or `firefox` for other browsers.
 
 ## License
 
