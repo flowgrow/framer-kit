@@ -105,6 +105,40 @@ export function CarouselPreviewSettings({
     }
     let frame = 0
     let dirty = true
+    // WebKit snaps to transformed boxes, so effects would move their own snap targets
+    // while scrolling. Snap to untransformed markers that mirror each slide's layout box.
+    const markers = new Map<HTMLElement, HTMLSpanElement>()
+    const syncMarkers = () => {
+      if (!el.hasAttribute("data-kniff-snap-markers")) el.setAttribute("data-kniff-snap-markers", "")
+      const live = new Set(slides)
+      for (const [slide, marker] of markers)
+        if (!live.has(slide)) {
+          marker.remove()
+          markers.delete(slide)
+          delete slide.dataset.kniffSnapAlign
+        }
+      for (const slide of slides) {
+        let marker = markers.get(slide)
+        if (!marker) {
+          marker = document.createElement("span")
+          marker.setAttribute("data-kniff", "")
+          marker.setAttribute("data-kniff-snap-marker", "")
+          marker.setAttribute("aria-hidden", "true")
+          el.append(marker)
+          markers.set(slide, marker)
+        }
+        const snap = slide.style.getPropertyValue("scroll-snap-align") || align
+        if (slide.dataset.kniffSnapAlign !== snap) slide.dataset.kniffSnapAlign = snap
+        const values: [string, string][] = [
+          ["left", `${slide.offsetLeft}px`],
+          ["width", `${slide.offsetWidth}px`],
+          ["scroll-snap-align", snap],
+          ["scroll-margin-right", slide.style.getPropertyValue("scroll-margin-right")],
+        ]
+        for (const [property, value] of values)
+          if (marker.style.getPropertyValue(property) !== value) marker.style.setProperty(property, value)
+      }
+    }
     const position = el.style.position
     const needsPosition = getComputedStyle(el).position === "static"
     if (needsPosition) el.style.position = "relative"
@@ -135,6 +169,7 @@ export function CarouselPreviewSettings({
         discoveryDirty = false
       }
       if (dirty) {
+        if (transformEnabled) syncMarkers()
         points = slides.map((s) => snapPosition(el, s))
         dirty = false
       }
@@ -238,6 +273,11 @@ export function CarouselPreviewSettings({
       el.removeEventListener("scroll", schedule)
       cancelAnimationFrame(frame)
       slides.forEach(release)
+      for (const [slide, marker] of markers) {
+        marker.remove()
+        delete slide.dataset.kniffSnapAlign
+      }
+      el.removeAttribute("data-kniff-snap-markers")
       if (needsPosition) el.style.position = position
     }
   }, [
@@ -260,7 +300,7 @@ export function CarouselPreviewSettings({
   // Relative selectors stay inside the viewport's native CSS nesting block.
   const cycle = ":where([data-kniff-loop-original], [data-kniff-loop-copy])"
   const slides = `
-  > :where(:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy], [data-kniff-ssr-loop-copy])),
+  > :where(:not(.ssr-variant, [data-kniff-snap-marker], [data-kniff-loop-original], [data-kniff-loop-copy], [data-kniff-ssr-loop-copy])),
   > :where(.ssr-variant) > *,
   > ${cycle} > :where(:not(.ssr-variant)),
   > ${cycle} > :where(.ssr-variant) > *`
@@ -373,6 +413,19 @@ ${viewport} {
 
   > [data-kniff-ssr-loop-copy] {
     display: none !important;
+  }
+  > [data-kniff-snap-marker] {
+    position: absolute !important;
+    top: 0;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    scroll-snap-stop: always;
+  }
+  &[data-kniff-snap-markers] {
+    ${slides} {
+      scroll-snap-align: none !important;
+    }
   }
   ${slides} {
     flex-shrink: 0 !important;

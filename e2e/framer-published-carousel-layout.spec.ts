@@ -95,3 +95,21 @@ for (const route of ["default", "edge-space-off", "loop-off"]) {
     })
   }
 }
+
+test("effects keep the next slide's snap target fixed during navigation", async ({ page }) => {
+  await page.goto("/carousel/effects")
+  const viewport = page.locator("[data-kniff-viewport]:visible").first()
+  await expect(viewport).toHaveAttribute("data-kniff-loop-ready", "")
+  const slide = viewport.locator("[data-kniff-loop-original] [data-kniff-carousel-slide]").nth(1)
+  await expect(slide).toHaveCSS("scroll-snap-align", "none")
+  const target = await slide.evaluate((el: HTMLElement) => {
+    const track = el.closest<HTMLElement>("[data-kniff-viewport]")!
+    const css = getComputedStyle(track)
+    const left = parseFloat(css.scrollPaddingLeft) || 0
+    const right = parseFloat(css.scrollPaddingRight) || 0
+    return el.offsetLeft - left - (track.clientWidth - left - right - el.offsetWidth) / 2
+  })
+  await page.getByRole("button", { name: "Next slide", exact: true }).first().click()
+  await expect.poll(() => viewport.evaluate((el, x) => Math.abs(el.scrollLeft - x), target))
+    .toBeLessThan(2)
+})

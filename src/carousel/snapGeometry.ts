@@ -35,6 +35,7 @@ export function cssTransform(value: SlideTransform = {}, perspective: number) {
 export function slideBoxes(parent: Element, visit?: (child: HTMLElement) => void): HTMLElement[] {
   return Array.from(parent.children).flatMap((child) => {
     if (!(child instanceof HTMLElement) || ["STYLE", "SCRIPT"].includes(child.tagName)) return []
+    if (child.hasAttribute("data-kniff-snap-marker")) return []
     visit?.(child)
     if (child.hasAttribute("data-kniff-ssr-loop-copy")) return []
     if (getComputedStyle(child).display === "contents") return slideBoxes(child, visit)
@@ -89,7 +90,8 @@ export function snapPosition(viewport: HTMLElement, slide: HTMLElement): number 
   const marginLeft = parseFloat(slideCSS.scrollMarginLeft) || 0
   const marginRight = parseFloat(slideCSS.scrollMarginRight) || 0
   const width = rect.width + marginLeft + marginRight
-  const align = slideCSS.scrollSnapAlign
+  // Effects move snapping to untransformed markers; the slide keeps the logical alignment.
+  const align = slide.dataset.kniffSnapAlign || slideCSS.scrollSnapAlign
   const offset = align.includes("center")
     ? (viewport.clientWidth - left - right - width) / 2
     : align.includes("end")
