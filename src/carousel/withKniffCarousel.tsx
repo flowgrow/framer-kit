@@ -27,11 +27,65 @@ interface LayerProps {
   style?: React.CSSProperties
 }
 
+function isSlideTargetElement(element: ReactElement<Record<string, unknown>>): boolean {
+  const p = element.props
+  return (
+    typeof element.type === "string" ||
+    typeof p.className === "string" ||
+    "data-framer-name" in p
+  )
+}
+
+function collectSlideClassNames(node: ReactNode, found: Set<string>, depth = 0): void {
+  if (!isValidElement(node) || depth > 4) return
+  const el = node as ReactElement<Record<string, unknown>>
+  const p = el.props
+  if (typeof p.className === "string") {
+    for (const token of p.className.split(/\s+/)) {
+      if (token) found.add(token)
+    }
+  }
+  if (p.overrides && typeof p.overrides === "object") {
+    for (const override of Object.values(p.overrides as Record<string, unknown>)) {
+      if (override && typeof override === "object" && typeof (override as any).className === "string") {
+        for (const token of (override as any).className.split(/\s+/)) {
+          if (token) found.add(token)
+        }
+      }
+    }
+  }
+  if (isSlideTargetElement(el)) return
+  if (p.children !== undefined) {
+    for (const child of Children.toArray(p.children as ReactNode)) {
+      collectSlideClassNames(child, found, depth + 1)
+    }
+  }
+}
+
+function markEdgeElement(node: ReactNode, attrs: Record<string, string>, depth = 0): ReactNode {
+  if (!isValidElement(node) || depth > 4) return node
+  const el = node as ReactElement<Record<string, unknown>>
+  if (isSlideTargetElement(el)) return cloneElement(el, attrs)
+  const inner = el.props.children as ReactNode
+  if (inner === undefined) return el
+  if (isValidElement(inner)) {
+    return cloneElement(el, undefined, markEdgeElement(inner, attrs, depth + 1))
+  }
+  return el
+}
+
 /** Apply to the actual overflow viewport. React owns every repeated slide. */
 function withKniffCarousel<P extends object>(Component: ComponentType<P>): ComponentType<P> {
   const Runtime = forwardRef<unknown, P>((props, forwardedRef) => {
     const layer = props as P & LayerProps
-    const authored = useAuthoredStyles(layer.className ?? "")
+    const children = Children.toArray(layer.children)
+    const edgeClassSet = new Set<string>()
+    if (children.length > 0) {
+      collectSlideClassNames(children[0], edgeClassSet)
+      if (children.length > 1) collectSlideClassNames(children[children.length - 1], edgeClassSet)
+    }
+    const edgeClasses = [...edgeClassSet].join(" ")
+    const authored = useAuthoredStyles(layer.className ?? "", edgeClasses)
     const scope = React.useContext(CarouselContext) as any
     const localId = React.useId()
     const id = scope?.id ?? localId
@@ -80,7 +134,6 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
         dangerouslySetInnerHTML={{ __html: authored.css }}
       />
     )
-    const children = Children.toArray((props as P & LayerProps).children)
     const cycles = loop && children.length > 0 ? [-3, -2, -1, 0, 1, 2, 3] : [0]
     return (
       <CarouselContext.Provider
@@ -95,14 +148,22 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
           Component,
           { ...styledProps, "data-kniff-react-loop": "" } as P,
           cycles.map((cycle) => {
-            const slides = children.map((child, index) =>
-              isValidElement(child)
-                ? cloneElement(child as ReactElement<Record<string, unknown>>, {
-                    key: `${cycle}:${child.key ?? index}`,
-                    ...(cycle ? { ref: null, id: undefined, tabIndex: -1 } : {}),
-                  })
-                : child,
-            )
+            const slides = children.map((child, index) => {
+              if (!isValidElement(child)) return child
+              let next = cloneElement(child as ReactElement<Record<string, unknown>>, {
+                key: `${cycle}:${child.key ?? index}`,
+                ...(cycle ? { ref: null, id: undefined, tabIndex: -1 } : {}),
+              })
+              if (cycle === 0 && children.length > 1) {
+                const edgeAttrs: Record<string, string> = {}
+                if (index === 0) edgeAttrs["data-kniff-first-slide"] = ""
+                if (index === children.length - 1) edgeAttrs["data-kniff-last-slide"] = ""
+                if (edgeAttrs["data-kniff-first-slide"] !== undefined || edgeAttrs["data-kniff-last-slide"] !== undefined) {
+                  next = markEdgeElement(next, edgeAttrs) as ReactElement<Record<string, unknown>>
+                }
+              }
+              return next
+            })
             return cycle === 0 ? (
               <span
                 key={cycle}

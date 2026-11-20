@@ -102,4 +102,26 @@ describe("compact collector output", () => {
     expect(css).toContain("@supports(display:grid){&:is(.variant){width:300px;}}")
     expect(css).not.toContain("::before")
   })
+  it("computes SSR slide width variables for aspect-ratio and explicit widths across breakpoints", () => {
+    const css = authoredVariableCSS(
+      `
+      .page .vp{height:600px;padding:0;width:100%;max-width:1000px}
+      .page .photo1{aspect-ratio:1.36986;width:auto;height:80%}
+      .page .photo2{width:420px;height:100%}
+      @media (max-width:809.98px){.page .vp{height:250px}.page .photo2{width:88%}}
+    `,
+      "vp",
+      "photo1 photo2",
+    )
+    expect(css).toContain("--kniff-vh:600px;")
+    expect(css).toContain("--kniff-pt:0px;--kniff-pb:0px;")
+    expect(css).not.toMatch(/--kniff-authored-(row-gap|column-gap|padding-top|padding-bottom)/)
+    expect(css).toContain("--kniff-ar:1.36986;")
+    expect(css).toContain(
+      "--kniff-sh:calc((var(--kniff-vh, 0px) - var(--kniff-pt, 0px) - var(--kniff-pb, 0px)) * 0.8);",
+    )
+    expect(css).toContain("--kniff-slide-width:calc(var(--kniff-sh, 0px) * var(--kniff-ar, 0));")
+    expect(css).toContain("--kniff-slide-width:420px;")
+    expect(css).toContain("@media (max-width:809.98px){.page .vp{--kniff-vh:250px;}.page .photo2{--kniff-slide-width:88%;}}")
+  })
 })

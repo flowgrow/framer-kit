@@ -110,15 +110,93 @@ export function inlineAuthoredVariables(style?: CSSProperties): CSSProperties {
   return result as CSSProperties
 }
 
+const intrinsicKeyword =
+  /^(none|auto|min-content|max-content|fit-content|stretch|inherit|initial|unset)$/
+
+function viewportHeightVariables(property: string, raw: string): string {
+  const important = /\s*!important\s*$/i.test(raw) ? " !important" : ""
+  const value = raw.replace(/\s*!important\s*$/i, "").trim()
+  const values = split(value, (character) => /\s/.test(character))
+  const emit = (name: string, token: string) =>
+    `${name}:${token === "0" ? "0px" : token}${important};`
+  if (property === "padding" && values.length <= 4) {
+    const [top = "0px", , bottom = top] = values
+    return emit("--kniff-pt", top) + emit("--kniff-pb", bottom)
+  }
+  if (property === "padding-top") return emit("--kniff-pt", value)
+  if (property === "padding-bottom") return emit("--kniff-pb", value)
+  if (property === "height" && !intrinsicKeyword.test(value) && !/%$/.test(value)) {
+    return emit("--kniff-vh", value)
+  }
+  return ""
+}
+
+function slideWidthVariables(
+  values: Record<string, string>,
+  properties: [string, string][],
+): string {
+  let out = ""
+  const stripImportant = (v: string) => v.replace(/\s*!important\s*$/i, "").trim()
+  let hasExplicitWidth = false
+  let hasAspectRatio = false
+  for (const [property, raw] of properties) {
+    const important = /\s*!important\s*$/i.test(raw) ? " !important" : ""
+    const value = stripImportant(raw)
+    if (property === "aspect-ratio") {
+      const cleaned = value.replace(/\bauto\b/g, "").trim()
+      if (cleaned && !intrinsicKeyword.test(cleaned)) {
+        const expr = cleaned.includes("/") ? `(${cleaned})` : cleaned
+        out += `--kniff-ar:${expr}${important};`
+        hasAspectRatio = true
+      }
+    } else if (property === "height") {
+      const pct = value.match(/^(-?[\d.]+)%$/)
+      if (pct) {
+        out += `--kniff-sh:calc((var(--kniff-vh, 0px) - var(--kniff-pt, 0px) - var(--kniff-pb, 0px)) * ${Number(pct[1]) / 100})${important};`
+      } else if (!intrinsicKeyword.test(value)) {
+        out += `--kniff-sh:${value === "0" ? "0px" : value}${important};`
+      }
+    } else if (property === "width") {
+      if (isFillWidth(value, values.flex, values["flex-grow"])) {
+        out += `--kniff-slide-width:100%${important};`
+        hasExplicitWidth = true
+      } else if (!intrinsicKeyword.test(value)) {
+        out += `--kniff-slide-width:${value === "0" ? "0px" : value}${important};`
+        hasExplicitWidth = true
+      } else if (value === "auto" || value === "min-content") {
+        out += `--kniff-slide-width:calc(var(--kniff-sh, 0px) * var(--kniff-ar, 0))${important};`
+        hasExplicitWidth = true
+      }
+    }
+  }
+  if (hasAspectRatio && !hasExplicitWidth) {
+    out += "--kniff-slide-width:calc(var(--kniff-sh, 0px) * var(--kniff-ar, 0));"
+  }
+  return out
+}
+
 /** Preserve every relevant selector's specificity, order and conditional blocks. */
-export function authoredVariableCSS(source: string, className: string): string {
+export function authoredVariableCSS(
+  source: string,
+  className: string,
+  slideClassName = "",
+): string {
   const classes = new Set(className.split(/\s+/).filter(Boolean))
   if (!classes.size) return ""
+  const slideClasses = new Set(slideClassName.split(/\s+/).filter(Boolean))
   const text = source.replace(/\/\*[\s\S]*?\*\//g, "")
   const root = `:is(${[...classes].map((name) => `.${name}`).join(",")})`
   const cycles = ":is([data-kniff-loop-original],[data-kniff-loop-copy])"
   const slideSubjects = `${root} > *,${root} > .ssr-variant > *,${root} > ${cycles} > *,${root} > ${cycles} > .ssr-variant > *`
   let needsWidthFix = false
+  const matchesClasses = (selector: string, target: Set<string>) => {
+    const compound =
+      split(selector, (character) => /\s|[>+~]/.test(character)).slice(-1)[0] ?? ""
+    if (compound.includes("::")) return false
+    // Match the styled element, not a class on one of its ancestors.
+    const subject = compound.split(":")[0] ?? ""
+    return [...subject.matchAll(/\.([\w-]+)/g)].some((match) => target.has(match[1]!))
+  }
   function visit(input: string, widths: boolean): string {
     let output = "",
       cursor = 0
@@ -156,26 +234,21 @@ export function authoredVariableCSS(source: string, className: string): string {
       }
       if (header.startsWith("@") || body.includes("{")) continue
       const allSelectors = split(header, (character) => character === ",")
-      const selectors = allSelectors.filter((selector) => {
-        const compound =
-          split(selector, (character) => /\s|[>+~]/.test(character)).slice(-1)[0] ?? ""
-        if (compound.includes("::")) return false
-        // Match the styled element, not a class on one of its ancestors.
-        const subject = compound.split(":")[0] ?? ""
-        return [...subject.matchAll(/\.([\w-]+)/g)].some((match) => classes.has(match[1]!))
-      })
+      const selectors = allSelectors.filter((selector) => matchesClasses(selector, classes))
       let declarations = ""
-      const properties = split(body, (character) => character === ";").flatMap((declaration) => {
-        const colon = declaration.indexOf(":")
-        return colon > 0
-          ? [
-              [
-                declaration.slice(0, colon).trim().toLowerCase(),
-                declaration.slice(colon + 1).trim(),
-              ],
-            ]
-          : []
-      })
+      const properties: [string, string][] = split(body, (character) => character === ";").flatMap(
+        (declaration) => {
+          const colon = declaration.indexOf(":")
+          return colon > 0
+            ? [
+                [
+                  declaration.slice(0, colon).trim().toLowerCase(),
+                  declaration.slice(colon + 1).trim(),
+                ] as [string, string],
+              ]
+            : []
+        },
+      )
       const values = Object.fromEntries(properties)
       // Keep the original cascade, including differently named breakpoint/variant
       // classes. Nest under one zero-specificity slide scope instead of repeating
@@ -194,16 +267,27 @@ export function authoredVariableCSS(source: string, className: string): string {
         }
         continue
       }
-      if (!selectors.length) continue
-      for (const [property, value] of properties) {
-        declarations += variables(
-          property!,
-          property === "width" && isFillWidth(value, values.flex, values["flex-grow"])
-            ? "100cqw" + (/!important/i.test(value!) ? " !important" : "")
-            : value!,
-        )
+      if (selectors.length) {
+        for (const [property, value] of properties) {
+          declarations += variables(
+            property,
+            property === "width" && isFillWidth(value, values.flex, values["flex-grow"])
+              ? "100cqw" + (/!important/i.test(value) ? " !important" : "")
+              : value,
+          )
+          declarations += viewportHeightVariables(property, value)
+        }
+        if (declarations) output += `${selectors.join(",")}{${declarations}}`
       }
-      if (declarations) output += `${selectors.join(",")}{${declarations}}`
+      if (slideClasses.size) {
+        const matchedSlides = allSelectors.filter((selector) =>
+          matchesClasses(selector, slideClasses),
+        )
+        if (matchedSlides.length) {
+          const slideDecls = slideWidthVariables(values, properties)
+          if (slideDecls) output += `${matchedSlides.join(",")}{${slideDecls}}`
+        }
+      }
     }
     return output
   }

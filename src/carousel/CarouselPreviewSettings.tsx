@@ -259,8 +259,13 @@ export function CarouselPreviewSettings({
   const content =
     ":not(style, script, [data-kniff], [data-kniff-ramka-settings], :has([data-kniff-ramka-settings]), [data-kniff-ignore-slide], :has([data-kniff-ignore-slide]))"
   const edgeSlide = (which: "first" | "last") => {
+    const attr = which === "first" ? "[data-kniff-first-slide]" : "[data-kniff-last-slide]"
     const item = `:nth-${which === "first" ? "" : "last-"}child(1 of ${content}:not([data-kniff-loop-original], [data-kniff-loop-copy]))`
     return `
+  > ${attr},
+  > .ssr-variant > ${attr},
+  > [data-kniff-loop-original] > ${attr},
+  > [data-kniff-loop-original] > .ssr-variant > ${attr},
   > ${item}:not(.ssr-variant),
   > .ssr-variant${item} > ${content},
   > ${cycle} > ${item}:not(.ssr-variant),
@@ -276,13 +281,16 @@ ${boundary} ${viewport} {
   --kniff-bleed-page-span: 100vw;
 }`
     : ""
-  const firstSlideMargin =
-    includeEdgeSpace && !loop && align !== "start"
-      ? `max(0px, calc((100% - var(--kniff-first-slide-width, 0px)) * ${align === "end" ? 1 : 0.5}))`
+  const ssrSlideWidth = "var(--kniff-slide-width, var(--kniff-first-slide-width, 0px))"
+  const ssrLastSlideWidth = "var(--kniff-slide-width, var(--kniff-last-slide-width, 0px))"
+  const ssrFirstMargin =
+    align !== "start"
+      ? `max(0px, calc((100% - ${ssrSlideWidth}) * ${align === "end" ? 1 : 0.5}))`
       : "0px"
+  const firstSlideMargin = includeEdgeSpace && !loop ? ssrFirstMargin : "0px"
   const lastSlideMargin =
     includeEdgeSpace && !loop && align !== "end"
-      ? `max(0px, calc((100% - var(--kniff-last-slide-width, 0px)) * ${align === "start" ? 1 : 0.5}))`
+      ? `max(0px, calc((100% - ${ssrLastSlideWidth}) * ${align === "start" ? 1 : 0.5}))`
       : "0px"
   const css = `
 div[data-framer-name]:has(> style[data-kniff-preview-settings]) {
@@ -340,13 +348,11 @@ ${viewport} {
   ${
     loop && align !== "start"
       ? `
-  /* Before hydration, give the first slide the snapport's full width to align within. */
+  /* Before hydration, align the first slide in-flow using its SSR authored width. */
   &:not([data-kniff-loop]):not(:has(> [data-kniff-loop-copy])) {
-    display: grid !important;
-    grid-auto-flow: column;
-    grid-auto-columns: 100%;
-    justify-items: start;
-    ${firstSlide} { justify-self: ${align}; }
+    ${firstSlide} {
+      margin-inline-start: ${ssrFirstMargin};
+    }
   }`
       : ""
   }
@@ -355,6 +361,7 @@ ${viewport} {
     transform: translateZ(0);
 
     ${cycle} > *,
+    ${cycle} > .ssr-variant > *,
     :where(.ssr-variant) > * {
       margin-inline: 0 !important;
     }
