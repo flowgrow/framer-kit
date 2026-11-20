@@ -113,7 +113,7 @@ export function inlineAuthoredVariables(style?: CSSProperties): CSSProperties {
 const intrinsicKeyword =
   /^(none|auto|min-content|max-content|fit-content|stretch|inherit|initial|unset)$/
 
-function viewportHeightVariables(property: string, raw: string): string {
+function viewportLayoutVariables(property: string, raw: string): string {
   const important = /\s*!important\s*$/i.test(raw) ? " !important" : ""
   const value = raw.replace(/\s*!important\s*$/i, "").trim()
   const values = split(value, (character) => /\s/.test(character))
@@ -125,6 +125,11 @@ function viewportHeightVariables(property: string, raw: string): string {
   }
   if (property === "padding-top") return emit("--kniff-pt", value)
   if (property === "padding-bottom") return emit("--kniff-pb", value)
+  if (property === "gap" && values.length <= 2) {
+    const [row = "0px", column = row] = values
+    return emit("--kniff-gap", column)
+  }
+  if (property === "column-gap") return emit("--kniff-gap", value)
   if (property === "height" && !intrinsicKeyword.test(value) && !/%$/.test(value)) {
     return emit("--kniff-vh", value)
   }
@@ -175,18 +180,68 @@ function slideWidthVariables(
   return out
 }
 
+function firstSlideViewportVariables(
+  values: Record<string, string>,
+  properties: [string, string][],
+): string {
+  let out = ""
+  const stripImportant = (v: string) => v.replace(/\s*!important\s*$/i, "").trim()
+  let hasExplicitWidth = false
+  let hasAspectRatio = false
+  for (const [property, raw] of properties) {
+    const important = /\s*!important\s*$/i.test(raw) ? " !important" : ""
+    const value = stripImportant(raw)
+    if (property === "aspect-ratio") {
+      const cleaned = value.replace(/\bauto\b/g, "").trim()
+      if (cleaned && !intrinsicKeyword.test(cleaned)) {
+        const expr = cleaned.includes("/") ? `(${cleaned})` : cleaned
+        out += `--kniff-f-ar:${expr}${important};`
+        hasAspectRatio = true
+      }
+    } else if (property === "height") {
+      const pct = value.match(/^(-?[\d.]+)%$/)
+      if (pct) {
+        out += `--kniff-f-sh:calc((var(--kniff-vh, 0px) - var(--kniff-pt, 0px) - var(--kniff-pb, 0px)) * ${Number(pct[1]) / 100})${important};`
+      } else if (!intrinsicKeyword.test(value)) {
+        out += `--kniff-f-sh:${value === "0" ? "0px" : value}${important};`
+      }
+    } else if (property === "width") {
+      const pct = value.match(/^(-?[\d.]+)%$/)
+      if (isFillWidth(value, values.flex, values["flex-grow"])) {
+        out += `--kniff-ssr-first-pct:1${important};--kniff-ssr-first-px:0px${important};`
+        hasExplicitWidth = true
+      } else if (pct) {
+        out += `--kniff-ssr-first-pct:${Number(pct[1]) / 100}${important};--kniff-ssr-first-px:0px${important};`
+        hasExplicitWidth = true
+      } else if (!intrinsicKeyword.test(value)) {
+        out += `--kniff-ssr-first-pct:0${important};--kniff-ssr-first-px:${value === "0" ? "0px" : value}${important};`
+        hasExplicitWidth = true
+      } else if (value === "auto" || value === "min-content") {
+        out += `--kniff-ssr-first-pct:0${important};--kniff-ssr-first-px:calc(var(--kniff-f-sh, 0px) * var(--kniff-f-ar, 0))${important};`
+        hasExplicitWidth = true
+      }
+    }
+  }
+  if (hasAspectRatio && !hasExplicitWidth) {
+    out += "--kniff-ssr-first-pct:0;--kniff-ssr-first-px:calc(var(--kniff-f-sh, 0px) * var(--kniff-f-ar, 0));"
+  }
+  return out
+}
+
 /** Preserve every relevant selector's specificity, order and conditional blocks. */
 export function authoredVariableCSS(
   source: string,
   className: string,
   slideClassName = "",
+  firstSlideClassName = "",
 ): string {
   const classes = new Set(className.split(/\s+/).filter(Boolean))
   if (!classes.size) return ""
   const slideClasses = new Set(slideClassName.split(/\s+/).filter(Boolean))
+  const firstSlideClasses = new Set(firstSlideClassName.split(/\s+/).filter(Boolean))
   const text = source.replace(/\/\*[\s\S]*?\*\//g, "")
   const root = `:is(${[...classes].map((name) => `.${name}`).join(",")})`
-  const cycles = ":is([data-kniff-loop-original],[data-kniff-loop-copy])"
+  const cycles = ":is([data-kniff-loop-original],[data-kniff-loop-copy],[data-kniff-ssr-loop-copy])"
   const slideSubjects = `${root} > *,${root} > .ssr-variant > *,${root} > ${cycles} > *,${root} > ${cycles} > .ssr-variant > *`
   let needsWidthFix = false
   const matchesClasses = (selector: string, target: Set<string>) => {
@@ -275,7 +330,7 @@ export function authoredVariableCSS(
               ? "100cqw" + (/!important/i.test(value) ? " !important" : "")
               : value,
           )
-          declarations += viewportHeightVariables(property, value)
+          declarations += viewportLayoutVariables(property, value)
         }
         if (declarations) output += `${selectors.join(",")}{${declarations}}`
       }
@@ -286,6 +341,15 @@ export function authoredVariableCSS(
         if (matchedSlides.length) {
           const slideDecls = slideWidthVariables(values, properties)
           if (slideDecls) output += `${matchedSlides.join(",")}{${slideDecls}}`
+        }
+      }
+      if (firstSlideClasses.size) {
+        const matchedFirst = allSelectors.some((selector) =>
+          matchesClasses(selector, firstSlideClasses),
+        )
+        if (matchedFirst) {
+          const firstDecls = firstSlideViewportVariables(values, properties)
+          if (firstDecls) output += `${root}{${firstDecls}}`
         }
       }
     }

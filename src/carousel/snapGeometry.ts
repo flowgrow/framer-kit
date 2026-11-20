@@ -36,6 +36,7 @@ export function slideBoxes(parent: Element, visit?: (child: HTMLElement) => void
   return Array.from(parent.children).flatMap((child) => {
     if (!(child instanceof HTMLElement) || ["STYLE", "SCRIPT"].includes(child.tagName)) return []
     visit?.(child)
+    if (child.hasAttribute("data-kniff-ssr-loop-copy")) return []
     if (getComputedStyle(child).display === "contents") return slideBoxes(child, visit)
     if (
       child.matches(

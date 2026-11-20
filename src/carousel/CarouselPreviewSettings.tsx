@@ -252,7 +252,7 @@ export function CarouselPreviewSettings({
   // Relative selectors stay inside the viewport's native CSS nesting block.
   const cycle = ":where([data-kniff-loop-original], [data-kniff-loop-copy])"
   const slides = `
-  > :where(:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy])),
+  > :where(:not(.ssr-variant, [data-kniff-loop-original], [data-kniff-loop-copy], [data-kniff-ssr-loop-copy])),
   > :where(.ssr-variant) > *,
   > ${cycle} > :where(:not(.ssr-variant)),
   > ${cycle} > :where(.ssr-variant) > *`
@@ -260,7 +260,7 @@ export function CarouselPreviewSettings({
     ":not(style, script, [data-kniff], [data-kniff-ramka-settings], :has([data-kniff-ramka-settings]), [data-kniff-ignore-slide], :has([data-kniff-ignore-slide]))"
   const edgeSlide = (which: "first" | "last") => {
     const attr = which === "first" ? "[data-kniff-first-slide]" : "[data-kniff-last-slide]"
-    const item = `:nth-${which === "first" ? "" : "last-"}child(1 of ${content}:not([data-kniff-loop-original], [data-kniff-loop-copy]))`
+    const item = `:nth-${which === "first" ? "" : "last-"}child(1 of ${content}:not([data-kniff-loop-original], [data-kniff-loop-copy], [data-kniff-ssr-loop-copy]))`
     return `
   > ${attr},
   > .ssr-variant > ${attr},
@@ -287,6 +287,10 @@ ${boundary} ${viewport} {
     align !== "start"
       ? `max(0px, calc((100% - ${ssrSlideWidth}) * ${align === "end" ? 1 : 0.5}))`
       : "0px"
+  const ssrLeadX =
+    align === "start"
+      ? "var(--kniff-pad-left, 0px)"
+      : `calc(var(--kniff-pad-left, 0px) + max(0px, calc((var(--kniff-lead-box) - var(--kniff-lead-first)) * ${align === "end" ? 1 : 0.5})))`
   const firstSlideMargin = includeEdgeSpace && !loop ? ssrFirstMargin : "0px"
   const lastSlideMargin =
     includeEdgeSpace && !loop && align !== "end"
@@ -306,6 +310,7 @@ ${viewport} {
   --kniff-slide-transition: ${customTransition ? JSON.stringify(slideTransition) : "initial"};
   --kniff-initial-align: ${align};
   --kniff-initial-position: ${align === "start" ? "0%" : align === "end" ? "100%" : "50%"};
+  position: relative;
   display: flex !important;
   flex-wrap: nowrap !important;
   box-sizing: border-box;
@@ -318,9 +323,13 @@ ${viewport} {
   margin-inline: calc((100% - var(--kniff-bleed-page-span)) / 2) !important;
   --kniff-content-width: min(100cqw, var(--kniff-authored-width, 100cqw), var(--kniff-authored-max-width, 100cqw));
   --kniff-gutter: calc((var(--kniff-bleed-page-span) - var(--kniff-content-width)) / 2);
-  padding-left: calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter)) !important;
-  padding-right: calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter)) !important;`
-      : "--kniff-gutter: 0px;"
+  --kniff-pad-left: calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter));
+  --kniff-pad-right: calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter));
+  padding-left: var(--kniff-pad-left) !important;
+  padding-right: var(--kniff-pad-right) !important;`
+      : `--kniff-gutter: 0px;
+  --kniff-pad-left: var(--kniff-authored-padding-left, 0px);
+  --kniff-pad-right: var(--kniff-authored-padding-right, 0px);`
   }
   overflow-x: auto !important;
   overflow-y: hidden !important;
@@ -328,10 +337,13 @@ ${viewport} {
   overflow-anchor: none;
   justify-content: flex-start !important;
   scroll-snap-type: x mandatory;
-  scroll-padding-left: calc(var(--kniff-authored-padding-left, 0px) + var(--kniff-gutter));
-  scroll-padding-right: calc(var(--kniff-authored-padding-right, 0px) + var(--kniff-gutter));
+  scroll-padding-left: var(--kniff-pad-left);
+  scroll-padding-right: var(--kniff-pad-right);
   scrollbar-width: none !important;
 
+  > [data-kniff-ssr-loop-copy] {
+    display: none !important;
+  }
   ${slides} {
     flex-shrink: 0 !important;
     &[data-kniff-slide-position="current"] { z-index: 1 !important; }
@@ -346,12 +358,43 @@ ${viewport} {
     margin-inline-end: ${lastSlideMargin};
   }
   ${
-    loop && align !== "start"
+    loop
       ? `
-  /* Before hydration, align the first slide in-flow using its SSR authored width. */
+  /* Before hydration, align the first slide in-flow and position the leading loop copy absolutely. */
   &:not([data-kniff-loop]):not(:has(> [data-kniff-loop-copy])) {
-    ${firstSlide} {
+    ${
+      align !== "start"
+        ? `${firstSlide} {
       margin-inline-start: ${ssrFirstMargin};
+    }`
+        : ""
+    }
+    > [data-kniff-ssr-loop-copy] {
+      --kniff-lead-box: calc(100% - var(--kniff-pad-left, 0px) - var(--kniff-pad-right, 0px));
+      --kniff-lead-first: calc(var(--kniff-lead-box) * var(--kniff-ssr-first-pct, 0) + var(--kniff-ssr-first-px, 0px));
+      --kniff-lead-x: ${ssrLeadX};
+      display: flex !important;
+      position: absolute !important;
+      top: var(--kniff-pt, 0px) !important;
+      bottom: var(--kniff-pb, 0px) !important;
+      right: calc(100% - var(--kniff-lead-x) + var(--kniff-gap, 0px)) !important;
+      left: auto !important;
+      width: var(--kniff-lead-box) !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      justify-content: flex-end !important;
+      align-items: inherit !important;
+      gap: inherit !important;
+      column-gap: inherit !important;
+      overflow: visible !important;
+      pointer-events: none !important;
+      user-select: none !important;
+    }
+    > [data-kniff-ssr-loop-copy] > :where(:not(.ssr-variant)),
+    > [data-kniff-ssr-loop-copy] > :where(.ssr-variant) > * {
+      flex-shrink: 0 !important;
+      margin-inline: 0 !important;
+      scroll-snap-align: none !important;
     }
   }`
       : ""

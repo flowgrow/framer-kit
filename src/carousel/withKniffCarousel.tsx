@@ -9,6 +9,7 @@ import {
   isValidElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useState,
   type ComponentType,
   type ReactElement,
@@ -74,24 +75,29 @@ function markEdgeElement(node: ReactNode, attrs: Record<string, string>, depth =
   return el
 }
 
+const useIsomorphicLayoutEffect = typeof document !== "undefined" ? useLayoutEffect : useEffect
+
 /** Apply to the actual overflow viewport. React owns every repeated slide. */
 function withKniffCarousel<P extends object>(Component: ComponentType<P>): ComponentType<P> {
   const Runtime = forwardRef<unknown, P>((props, forwardedRef) => {
     const layer = props as P & LayerProps
     const children = Children.toArray(layer.children)
+    const firstClassSet = new Set<string>()
     const edgeClassSet = new Set<string>()
     if (children.length > 0) {
-      collectSlideClassNames(children[0], edgeClassSet)
+      collectSlideClassNames(children[0], firstClassSet)
+      for (const token of firstClassSet) edgeClassSet.add(token)
       if (children.length > 1) collectSlideClassNames(children[children.length - 1], edgeClassSet)
     }
     const edgeClasses = [...edgeClassSet].join(" ")
-    const authored = useAuthoredStyles(layer.className ?? "", edgeClasses)
+    const firstClasses = [...firstClassSet].join(" ")
+    const authored = useAuthoredStyles(layer.className ?? "", edgeClasses, firstClasses)
     const scope = React.useContext(CarouselContext) as any
     const localId = React.useId()
     const id = scope?.id ?? localId
     const register = scope?.register
     const [viewport, setViewport] = useState<HTMLElement | null>(null)
-    const [loop, setLoop] = useState(false)
+    const [loopState, setLoopState] = useState<"pending" | "on" | "off">("pending")
     const ref = useCallback(
       (node: unknown) => {
         setViewport(node instanceof HTMLElement ? node : null)
@@ -109,9 +115,10 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
       return () =>
         register((current: HTMLElement | null) => (current === viewport ? null : current))
     }, [viewport, register])
-    useEffect(() => {
+    useIsomorphicLayoutEffect(() => {
       if (!viewport) return
-      const configure = (event: Event) => setLoop((event as CustomEvent<boolean>).detail)
+      const configure = (event: Event) =>
+        setLoopState((event as CustomEvent<boolean>).detail ? "on" : "off")
       const marked = viewport.hasAttribute("data-kniff-react-loop")
       viewport.setAttribute("data-kniff-react-loop", "")
       viewport.addEventListener("kniff-loop-render", configure)
@@ -134,7 +141,14 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
         dangerouslySetInnerHTML={{ __html: authored.css }}
       />
     )
-    const cycles = loop && children.length > 0 ? [-3, -2, -1, 0, 1, 2, 3] : [0]
+    const cycles =
+      children.length === 0
+        ? [0]
+        : loopState === "on"
+          ? [-3, -2, -1, 0, 1, 2, 3]
+          : loopState === "pending" && children.length > 1
+            ? [-1, 0]
+            : [0]
     return (
       <CarouselContext.Provider
         value={{
@@ -173,6 +187,15 @@ function withKniffCarousel<P extends object>(Component: ComponentType<P>): Compo
               >
                 {slides}
               </span>
+            ) : loopState === "pending" ? (
+              <RamkaLoopScope
+                key={cycle}
+                data-kniff-ssr-loop-copy=""
+                aria-hidden="true"
+                style={{ display: "none" }}
+              >
+                {slides}
+              </RamkaLoopScope>
             ) : (
               <RamkaLoopScope
                 key={cycle}

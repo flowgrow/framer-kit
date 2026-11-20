@@ -124,4 +124,24 @@ describe("compact collector output", () => {
     expect(css).toContain("--kniff-slide-width:420px;")
     expect(css).toContain("@media (max-width:809.98px){.page .vp{--kniff-vh:250px;}.page .photo2{--kniff-slide-width:88%;}}")
   })
+  it("emits viewport gap and first-slide SSR lead variables across breakpoints", () => {
+    const css = authoredVariableCSS(
+      `
+      .page .vp{height:600px;gap:96px;padding:0;width:100%;max-width:1000px}
+      .page .photo1{aspect-ratio:1.36986 / 1;width:auto;height:80%}
+      @media (max-width:809.98px){.page .vp{height:250px;gap:16px}.page .photo1{width:80%}}
+    `,
+      "vp",
+      "photo1",
+      "photo1",
+    )
+    expect(css).toContain("--kniff-gap:96px;")
+    expect(css).toContain(":is(.vp){--kniff-f-ar:(1.36986 / 1);")
+    expect(css).toContain(
+      "--kniff-ssr-first-pct:0;--kniff-ssr-first-px:calc(var(--kniff-f-sh, 0px) * var(--kniff-f-ar, 0));",
+    )
+    expect(css).toContain(
+      "@media (max-width:809.98px){.page .vp{--kniff-vh:250px;--kniff-gap:16px;}.page .photo1{--kniff-slide-width:80%;}:is(.vp){--kniff-ssr-first-pct:0.8;--kniff-ssr-first-px:0px;}}",
+    )
+  })
 })
