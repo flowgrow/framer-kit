@@ -23,31 +23,6 @@ interface FramerLayerProps {
   children?: React.ReactNode
 }
 
-interface FramerImageBackground {
-  sizes?: string
-  [key: string]: unknown
-}
-
-interface FramerImageProps {
-  background?: unknown
-}
-
-/** Forces Framer's responsive image background to use its intrinsic size. */
-function withIntrinsicBackgroundSize<P extends object>(props: P): P {
-  const background = (props as P & FramerImageProps).background
-  if (!background || typeof background !== "object" || Array.isArray(background)) {
-    return props
-  }
-
-  return {
-    ...props,
-    background: {
-      ...(background as FramerImageBackground),
-      sizes: "auto",
-    },
-  } as P
-}
-
 function assignRef(ref: React.ForwardedRef<unknown>, value: unknown): void {
   if (typeof ref === "function") ref(value)
   else if (ref) ref.current = value
@@ -155,8 +130,6 @@ function createTriggerOverride<P extends object>(
       return renderComponent(Component, props as unknown as P, forwardedRef)
     }
 
-    const imageProps = withIntrinsicBackgroundSize(props as unknown as P)
-
     return (
       <Lightbox.Trigger
         id={`kniff-ramka-trigger-${triggerId.replace(/:/g, "")}`}
@@ -172,7 +145,7 @@ function createTriggerOverride<P extends object>(
           event.preventDefault()
           event.currentTarget.click()
         }}
-        render={renderComponent(Component, imageProps, mergedRef)}
+        render={renderComponent(Component, props as unknown as P, mergedRef)}
       >
         {(state: {
           imageRef: (node: HTMLImageElement | null) => void
