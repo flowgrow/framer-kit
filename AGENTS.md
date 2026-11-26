@@ -4,7 +4,7 @@
 - Framer's `Kit/` folder mirrors to `src/` here.
 - Code file paths in Framer do not automatically create visible folders in the Framer UI. When adding or reorganizing folders in Framer, always also create/maintain matching Assets folders so they are visible in the UI.
 - Apply every change made in those Framer code files to the local copy of this project as well.
-- Automatically commit each change to Git after syncing the local copy. Never commit secrets.
+- Automatically commit each change to Git and push to `origin` after syncing the local copy. Never commit secrets.
 
 
 # Framer integration tests and publishing
