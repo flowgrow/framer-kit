@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test"
 
+const expectedSlides: Record<string, number> = {
+  default: 3,
+  "edge-space-off": 10,
+  "loop-off": 10,
+}
+
 for (const route of ["default", "edge-space-off", "loop-off"]) {
   for (const width of [1280, 390]) {
     test(`${route}: real Framer CSS, slide sizing and navigation at ${width}px`, async ({
@@ -12,8 +18,8 @@ for (const route of ["default", "edge-space-off", "loop-off"]) {
       expect(response?.ok()).toBe(true)
       const viewport = page.locator("[data-kniff-viewport]:visible").first()
       await expect(viewport).toHaveCSS("overflow-x", "auto")
-      const slides = viewport.locator('[data-kniff-loop-original] > [data-framer-name^="Photo"]')
-      await expect(slides).toHaveCount(10)
+      const slides = viewport.locator('[data-kniff-loop-original] [data-framer-name^="Photo"]')
+      await expect(slides).toHaveCount(expectedSlides[route]!)
       const css = await page.locator("[data-kniff-authored-css]").allTextContents()
       expect(css.length).toBeGreaterThan(0)
       for (const text of css) {
@@ -36,7 +42,7 @@ for (const route of ["default", "edge-space-off", "loop-off"]) {
           viewport.evaluate((element) => {
             const style = getComputedStyle(element)
             const photos = element.querySelectorAll(
-              '[data-kniff-loop-original] > [data-framer-name^="Photo"]',
+              '[data-kniff-loop-original] [data-framer-name^="Photo"]',
             )
             const first = photos[0]!.getBoundingClientRect()
             const second = photos[1]!.getBoundingClientRect()
@@ -52,7 +58,7 @@ for (const route of ["default", "edge-space-off", "loop-off"]) {
               const css = getComputedStyle(element),
                 box = element.getBoundingClientRect()
               const first = element
-                .querySelector('[data-kniff-loop-original] > [data-framer-name^="Photo"]')!
+                .querySelector('[data-kniff-loop-original] [data-framer-name^="Photo"]')!
                 .getBoundingClientRect()
               const left = parseFloat(css.scrollPaddingLeft) || 0
               const right = parseFloat(css.scrollPaddingRight) || 0
@@ -77,7 +83,7 @@ for (const route of ["default", "edge-space-off", "loop-off"]) {
             const style = getComputedStyle(element)
             const box = element.getBoundingClientRect()
             const second = element
-              .querySelectorAll('[data-kniff-loop-original] > [data-framer-name^="Photo"]')[1]!
+              .querySelectorAll('[data-kniff-loop-original] [data-framer-name^="Photo"]')[1]!
               .getBoundingClientRect()
             const left = parseFloat(style.scrollPaddingLeft) || 0
             const right = parseFloat(style.scrollPaddingRight) || 0

@@ -136,7 +136,7 @@ test("fixed groups loop through four stops without shifting group membership", a
   await expect(dots.last()).toHaveAttribute("aria-current", "true")
   await page.getByRole("button", { name: "Next slide", exact: true }).click()
   await expect(dots.first()).toHaveAttribute("aria-current", "true")
-  await expect(track.locator("[data-kniff-loop-original] > [data-kniff-group]")).toHaveCount(4)
+  await expect(track.locator("[data-kniff-loop-original] [data-kniff-group]")).toHaveCount(4)
 })
 
 test("Auto repacks measured slides after viewport resize", async ({ page }) => {
@@ -240,7 +240,7 @@ test("initialized carousel stays visible and retains its images", async ({ page 
       return images.length > 0
     }),
   ).toBe(true)
-  const first = track.locator('[data-kniff-loop-original] > [data-framer-name="Photo1"]')
+  const first = track.locator('[data-kniff-loop-original] [data-framer-name="Photo1"]')
   await first.click()
   await expect(page.getByRole("dialog")).toBeVisible()
   await page.keyboard.press("Escape")
