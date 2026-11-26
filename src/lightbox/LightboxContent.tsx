@@ -275,3 +275,4 @@ addPropertyControls(LightboxContent, {
   },
   canvasPreview: { type: ControlType.Boolean, title: "Canvas Preview", defaultValue: false },
 })
+

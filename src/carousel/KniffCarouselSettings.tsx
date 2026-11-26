@@ -354,3 +354,4 @@ export function registerKniffCarouselSettingsPropertyControls(): void {
 registerKniffCarouselSettingsPropertyControls()
 
 KniffCarouselSettings.displayName = "Kniff Carousel Settings"
+

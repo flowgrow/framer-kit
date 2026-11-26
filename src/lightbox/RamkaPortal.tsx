@@ -65,6 +65,51 @@ function mainImageSources(item: RamkaMediaItem) {
   return { src, srcSet: [...smaller, `${src} ${cappedWidth}w`].join(", ") }
 }
 
+function mainImageSizes(item: RamkaMediaItem, snug: boolean, solo: boolean): string {
+  if (!item.width || !item.height) return "100vw"
+  const aspect = Number(ratio(item).toFixed(4))
+  const inlineInset = snug ? "4rem" : "6rem"
+  const verticalInset = solo ? "9rem" : "13.125rem"
+  return `(min-width: 768px) min(calc(100vw - ${inlineInset}), calc((100vh - ${verticalInset}) * ${aspect})), min(100vw, calc((100vh - 8rem) * ${aspect}))`
+}
+
+function SlideImage({
+  active,
+  ...props
+}: React.ImgHTMLAttributes<HTMLImageElement> & { active: boolean }) {
+  const ref = React.useRef<HTMLImageElement>(null)
+
+  React.useEffect(() => {
+    const img = ref.current
+    if (!img || typeof img.decode !== "function") return
+    let cancelled = false
+    let timer = 0
+    const decode = () => {
+      if (cancelled || !img.complete || img.naturalWidth === 0) return
+      img.decode().catch(() => {})
+    }
+    const schedule = () => {
+      if (cancelled) return
+      if (active) {
+        decode()
+      } else {
+        // Let the active slide paint and decode first; decode preloaded
+        // neighbors off-thread before they scroll into Safari's tile buffer.
+        timer = window.setTimeout(decode, 32)
+      }
+    }
+    if (img.complete && img.naturalWidth > 0) schedule()
+    else img.addEventListener("load", schedule, { once: true })
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+      img.removeEventListener("load", schedule)
+    }
+  }, [active, props.src, props.srcSet, props.sizes])
+
+  return <img ref={ref} {...props} />
+}
+
 function backdropIsDark(color: string): boolean {
   const hex = color.match(/^#([\da-f]{3}|[\da-f]{6}|[\da-f]{8})$/i)?.[1]
   const channels = hex
@@ -87,11 +132,13 @@ function GallerySlide({
   index,
   item,
   snug,
+  solo,
   zoom,
 }: {
   index: number
   item: RamkaMediaItem
   snug: boolean
+  solo: boolean
   zoom: boolean
 }) {
   const { activeIndex, navigate } = useLightboxContext()
@@ -105,34 +152,24 @@ function GallerySlide({
       )),
     [item.captionElement, item.caption, item.alt, item.slots],
   )
-  // Reuse decoded carousel pixels while the full-size responsive image loads.
-  const triggerImage = item.morphElement
-  const preview =
-    typeof HTMLImageElement !== "undefined" &&
-    triggerImage instanceof HTMLImageElement &&
-    triggerImage.complete &&
-    triggerImage.naturalWidth > 0
-      ? triggerImage.currentSrc
-      : undefined
+  const sources = React.useMemo(
+    () => mainImageSources(item),
+    [item],
+  )
+  const sizes = React.useMemo(
+    () => mainImageSizes(item, snug, solo),
+    [item, snug, solo],
+  )
   const media = (
     <Lightbox.Media
       className={classes("lb-media")}
-      style={
-        preview
-          ? {
-              backgroundImage: `url(${JSON.stringify(preview)})`,
-              backgroundSize: "contain",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-            }
-          : undefined
-      }
       {...(item.width ? { width: item.width } : {})}
       {...(item.height ? { height: item.height } : {})}
     >
-      <img
-        {...mainImageSources(item)}
-        sizes="100vw"
+      <SlideImage
+        active={index === activeIndex}
+        {...sources}
+        sizes={sizes}
         width={item.width}
         height={item.height}
         alt={item.alt}
@@ -188,15 +225,33 @@ function GallerySlide({
 function RamkaPortalImpl({
   items,
   config,
+  onPullStart,
 }: {
   items: RamkaMediaItem[]
   config: RamkaGalleryConfig
+  onPullStart?: () => void
 }) {
   const { activeIndex } = useLightboxContext()
+  const [contentEl, setContentEl] = React.useState<HTMLElement | null>(null)
+  const onPullStartRef = React.useRef(onPullStart)
+  onPullStartRef.current = onPullStart
+  React.useEffect(() => {
+    if (!contentEl || typeof MutationObserver === "undefined") return
+    let pulling = contentEl.hasAttribute("data-pulling")
+    if (pulling) onPullStartRef.current?.()
+    const observer = new MutationObserver(() => {
+      const next = contentEl.hasAttribute("data-pulling")
+      if (next && !pulling) onPullStartRef.current?.()
+      pulling = next
+    })
+    observer.observe(contentEl, { attributes: true, attributeFilter: ["data-pulling"] })
+    return () => observer.disconnect()
+  }, [contentEl])
   const custom = Boolean(items[activeIndex]?.slots?.content)
   const snug = config.layout === "peek"
   if (!items.length) return null
   const solo = items.length === 1
+  const soloLayout = solo || !config.showThumbnails
   return (
     <Lightbox.Portal
       data-kniff-ramka-portal=""
@@ -215,12 +270,13 @@ function RamkaPortalImpl({
         style={{ backgroundColor: config.backdropColor }}
       />
       <Lightbox.Content
+        ref={setContentEl}
         aria-label="Lightbox"
         pullToClose={config.pullToClose && !custom}
         className={classes(
           "lb-content",
           snug && "lb-content-snug",
-          (solo || !config.showThumbnails) && "lb-content-solo",
+          soloLayout && "lb-content-solo",
         )}
       >
         <Lightbox.Slides
@@ -236,7 +292,14 @@ function RamkaPortalImpl({
           }
         >
           {items.map((item, index) => (
-            <GallerySlide key={item.id} index={index} item={item} snug={snug} zoom={config.zoom} />
+            <GallerySlide
+              key={item.id}
+              index={index}
+              item={item}
+              snug={snug}
+              solo={soloLayout}
+              zoom={config.zoom}
+            />
           ))}
         </Lightbox.Slides>
         <div className={classes("lb-top-right", "lb-chrome-gesture-hide")}>

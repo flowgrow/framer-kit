@@ -206,20 +206,32 @@ function createGalleryOverride<P extends object>(
     const activeRef = useRef(false)
     const originIndexRef = useRef<number | null>(null)
     const valueRef = useRef<number | null>(null)
-    const cancelSyncRef = useRef<(() => void) | null>(null)
-    const cancelSync = useCallback(() => {
-      cancelSyncRef.current?.()
-      cancelSyncRef.current = null
-    }, [])
+    const syncedIndexRef = useRef<number | null>(null)
+    const syncCarouselToIndex = useCallback(
+      (index: number | null) => {
+        if (index === null || index === syncedIndexRef.current) return
+        if (config.viewTransition && config.morphTo === "origin") return
+        const item = items.find((entry) => entry.index === index)
+        const viewport = item?.carouselViewport
+        if (!item || !viewport?.contains(item.element)) return
+        syncSnapToElement(viewport, item.element)
+        syncedIndexRef.current = index
+      },
+      [config.morphTo, config.viewTransition, items],
+    )
+    const handlePullStart = useCallback(() => {
+      if (!activeRef.current) return
+      syncCarouselToIndex(valueRef.current)
+    }, [syncCarouselToIndex])
     const release = useCallback(() => {
-      cancelSync()
       releaseRef.current?.()
       releaseRef.current = null
       activeRef.current = false
       originIndexRef.current = null
       valueRef.current = null
+      syncedIndexRef.current = null
       restoreMorphCrop()
-    }, [cancelSync, restoreMorphCrop])
+    }, [restoreMorphCrop])
     const prepareOpen = useCallback(
       (index: number, viewport: HTMLElement | null) => {
         ensurePresetStyle()
@@ -228,6 +240,7 @@ function createGalleryOverride<P extends object>(
         activeRef.current = true
         originIndexRef.current = index
         valueRef.current = index
+        syncedIndexRef.current = index
         applyMorphCrop(index)
       },
       [release, applyMorphCrop],
@@ -239,33 +252,13 @@ function createGalleryOverride<P extends object>(
         if (metadata.source === "trigger") {
           applyMorphCrop(index)
           valueRef.current = index
+          syncedIndexRef.current = index
           return
         }
         if (!activeRef.current || index === valueRef.current) return
         valueRef.current = index
-        cancelSync()
-        if (config.viewTransition && config.morphTo === "origin") return
-        const item = items.find((item) => item.index === index)
-        const viewport = item?.carouselViewport
-        if (!item || !viewport) return
-
-        const sync = () => {
-          cancelSyncRef.current = null
-          if (activeRef.current && valueRef.current === index && viewport.contains(item.element))
-            syncSnapToElement(viewport, item.element)
-        }
-        // Let the foreground slide settle before allowing background layout work.
-        const timer = window.setTimeout(() => {
-          if (typeof window.requestIdleCallback !== "function") {
-            sync()
-            return
-          }
-          const idle = window.requestIdleCallback(sync)
-          cancelSyncRef.current = () => window.cancelIdleCallback(idle)
-        }, 450)
-        cancelSyncRef.current = () => window.clearTimeout(timer)
       },
-      [applyMorphCrop, cancelSync, config.morphTo, config.viewTransition, items],
+      [applyMorphCrop],
     )
 
     const context = useMemo<RamkaGalleryContextValue>(
@@ -302,18 +295,12 @@ function createGalleryOverride<P extends object>(
           scrollTriggerIntoView={null}
           onValueChange={handleValueChange}
           onBeforeClose={() => {
-            const syncPending = cancelSyncRef.current !== null
-            cancelSync()
             const index =
               config.viewTransition && config.morphTo === "origin"
                 ? originIndexRef.current
                 : valueRef.current
             if (index === null) return
-            if (syncPending && config.viewTransition && config.morphTo === "active") {
-              const item = items.find((entry) => entry.index === index)
-              if (item?.carouselViewport?.contains(item.element))
-                syncSnapToElement(item.carouselViewport, item.element)
-            }
+            syncCarouselToIndex(index)
             applyMorphCrop(index)
           }}
           onOpenChange={(nextOpen: boolean) => {
@@ -324,7 +311,7 @@ function createGalleryOverride<P extends object>(
           }}
         >
           {renderedLayer}
-          <RamkaPortal items={items} config={config} />
+          <RamkaPortal items={items} config={config} onPullStart={handlePullStart} />
         </Lightbox.Root>
       </RamkaGalleryContext.Provider>
     )
